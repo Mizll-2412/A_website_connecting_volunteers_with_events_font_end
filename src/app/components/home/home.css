@@ -1,0 +1,144 @@
+:root {
+  --blue: #2C7BE5;
+  --green: #4CAF50;
+  --orange: #FF9800;
+  --light-gray: #F5F5F5;
+  --white: #FFFFFF;
+}
+
+/* Header */
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--white);
+  padding: 1rem 2rem;
+  border-bottom: 1px solid #ddd;
+}
+
+.logo {
+  font-weight: bold;
+  font-size: 1.5rem;
+}
+
+nav a {
+  margin: 0 1rem;
+  color: #333;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* Hero sections */
+.hero-section {
+  background-color: var(--light-gray);
+  height: 300px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 2rem;
+  font-weight: bold;
+  color: #000;
+}
+
+.hero-section.alt {
+  background-color: #e0e0e0;
+}
+
+/* Featured projects */
+.featured {
+  background: var(--light-gray);
+  padding: 2rem;
+  text-align: center;
+}
+
+.featured h2 {
+  margin-bottom: 1rem;
+  color: var(--blue);
+}
+
+.carousel {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  position: relative;
+}
+
+.card {
+  background: var(--white);
+  border-radius: 10px;
+  width: 200px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+  overflow: hidden;
+}
+
+.img-placeholder {
+  height: 120px;
+  background: #ddd;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.info {
+  padding: 0.5rem;
+}
+
+.info a {
+  color: var(--orange);
+  text-decoration: none;
+  font-size: 0.9rem;
+}
+
+.next-btn {
+  background: var(--blue);
+  color: white;
+  border: none;
+  border-radius: 50%;
+  font-size: 1.5rem;
+  width: 40px;
+  height: 40px;
+  cursor: pointer;
+}
+
+/* AI Section */
+.ai-section {
+  background: var(--light-gray);
+  padding: 2rem;
+  text-align: center;
+}
+
+.ai-section h2 {
+  color: var(--green);
+  margin-bottom: 1.5rem;
+}
+
+.ai-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+  gap: 1rem;
+}
+
+.ai-card {
+  background: var(--white);
+  height: 100px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+/* Footer */
+.footer {
+  background: var(--blue);
+  color: var(--white);
+  text-align: center;
+  padding: 1rem;
+}

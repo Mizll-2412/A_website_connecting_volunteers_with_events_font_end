@@ -1,1 +1,139 @@
-<p>register works!</p>
+<div class="auth-container">
+  <div class="auth-card register-card">
+    <div class="auth-header">
+      <div class="logo">
+        <img src="logo.png" alt="Logo">
+      </div>
+      <h2>Đăng Ký</h2>
+      <p>Tạo tài khoản mới</p>
+    </div>
+
+    <div *ngIf="successMessage" class="alert alert-success">
+      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+        <polyline points="22 4 12 14.01 9 11.01"></polyline>
+      </svg>
+      {{ successMessage }}
+    </div>
+
+    <div *ngIf="errorMessage" class="alert alert-error">
+      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="12" cy="12" r="10"></circle>
+        <line x1="12" y1="8" x2="12" y2="12"></line>
+        <line x1="12" y1="16" x2="12.01" y2="16"></line>
+      </svg>
+      {{ errorMessage }}
+    </div>
+
+    <!-- Form -->
+    <form (ngSubmit)="onSubmit()" class="auth-form">
+      <div class="form-row">
+        <div class="form-group">
+          <label for="hoTen">Họ và tên *</label>
+          <input 
+            type="text" 
+            id="hoTen" 
+            name="hoTen"
+            [(ngModel)]="registerData.hoTen" 
+            placeholder="Nguyễn Văn A"
+            required
+            [disabled]="isLoading"
+          />
+        </div>
+
+        <div class="form-group">
+          <label for="email">Email *</label>
+          <input 
+            type="email" 
+            id="email" 
+            name="email"
+            [(ngModel)]="registerData.email" 
+            placeholder="abc@example.com"
+            required
+            [disabled]="isLoading"
+          />
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label for="password">Mật khẩu *</label>
+          <input 
+            type="password" 
+            id="password" 
+            name="password"
+            [(ngModel)]="registerData.password" 
+            placeholder="••••••••"
+            required
+            [disabled]="isLoading"
+          />
+        </div>
+
+        <div class="form-group">
+          <label for="confirmPassword">Xác nhận mật khẩu *</label>
+          <input 
+            type="password" 
+            id="confirmPassword" 
+            name="confirmPassword"
+            [(ngModel)]="registerData.confirmPassword" 
+            placeholder="••••••••"
+            required
+            [disabled]="isLoading"
+          />
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label for="soDienThoai">Số điện thoại</label>
+          <input 
+            type="tel" 
+            id="soDienThoai" 
+            name="soDienThoai"
+            [(ngModel)]="registerData.soDienThoai" 
+            placeholder="0123456789"
+            [disabled]="isLoading"
+          />
+        </div>
+
+        <div class="form-group">
+          <label for="cccd">CCCD/CMND</label>
+          <input 
+            type="text" 
+            id="cccd" 
+            name="cccd"
+            [(ngModel)]="registerData.cccd" 
+            placeholder="001234567890"
+            maxlength="12"
+            [disabled]="isLoading"
+          />
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="diaChị">Địa chỉ</label>
+        <textarea 
+          id="diaChị" 
+          name="diaChị"
+          [(ngModel)]="registerData.diaChi" 
+          placeholder="Nhập địa chỉ đầy đủ"
+          rows="3"
+          [disabled]="isLoading"
+        ></textarea>
+      </div>
+
+      <button 
+        type="submit" 
+        class="btn-primary"
+        [disabled]="isLoading"
+      >
+        <span *ngIf="!isLoading">Đăng Ký</span>
+        <span *ngIf="isLoading">Đang xử lý...</span>
+      </button>
+    </form>
+
+    <div class="auth-footer">
+      <p>Đã có tài khoản? <a routerLink="/login">Đăng nhập ngay</a></p>
+    </div>
+  </div>
+</div>
