@@ -96,8 +96,7 @@ export class VolunteerProfileComponent implements OnInit {
 
   constructor(private fb: FormBuilder) {
     this.registrationForm = this.fb.group({
-      firstName: ['', Validators.required],
-      lastName: ['', Validators.required],
+      hoTen: ['', Validators.required],
       cccd: ['', [Validators.required, Validators.pattern(/^\d{12}$/)]],
       birthDate: ['', Validators.required],
       email: ['', [Validators.required, Validators.email]],
@@ -115,7 +114,7 @@ export class VolunteerProfileComponent implements OnInit {
     if (userInfo){
       this.user = JSON.parse(userInfo);
       this.registrationForm.patchValue({
-        fullName: this.user?.hoTen,
+        hoTen: this.user?.hoTen,
         email: this.user?.email,
       });
     }

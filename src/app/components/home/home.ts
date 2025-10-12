@@ -1,17 +1,14 @@
 import { Component, OnDestroy, OnInit } from '@angular/core';
 import { User } from '../../models/user';
-import { RouterLink, RouterLinkActive, Router } from '@angular/router';
+import { RouterLink, RouterModule, Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 
 @Component({
   selector: 'app-home',
-  imports: [
-    CommonModule,
-    RouterLink,
-    RouterLinkActive
-  ],
+  standalone: true,
+  imports: [CommonModule, RouterModule],
   templateUrl: './home.html',
-  styleUrl: './home.css'
+  styleUrls: ['./home.css']
 })
 
 export class Home implements OnInit, OnDestroy{
