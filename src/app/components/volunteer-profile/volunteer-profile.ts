@@ -16,7 +16,7 @@ interface Event {
 
 @Component({
   selector: 'app-volunteer-profile',
-  standalone: true, 
+  standalone: true,
   imports: [
     CommonModule,
     ReactiveFormsModule
@@ -27,8 +27,9 @@ interface Event {
 export class VolunteerProfileComponent implements OnInit {
   registrationForm: FormGroup;
   selectedMenuItem: string = 'profile';
-  
-    user?: User;
+  previewUrl: string | null = null;
+
+  user?: User;
 
 
   events: Event[] = [
@@ -100,18 +101,35 @@ export class VolunteerProfileComponent implements OnInit {
       cccd: ['', [Validators.required, Validators.pattern(/^\d{12}$/)]],
       birthDate: ['', Validators.required],
       email: ['', [Validators.required, Validators.email]],
-      gender: ['', Validators.required],
       phoneNumber: ['', [Validators.required, Validators.pattern(/^\d{10}$/)]],
-      nationality: ['', Validators.required],
-      address: ['', Validators.required],
-      interests: ['', Validators.required],
-      skills: ['', Validators.required]
+      skill1: [''],
+      skill2: [''],
+      skill3: [''],
+      skill4: [''],
+      interest1: [''],
+      interest2: [''],
+      interest3: [''],
+      interest4: [''],
+      field1: [''],
+      field2: [''],
+      field3: [''],
+      field4: ['']
     });
   }
+  onFileSelected(event: any): void {
+  const file = event.target?.files?.[0];
+  if (file) {
+    const reader = new FileReader();
+    reader.onload = () => {
+      this.previewUrl = reader.result as string;
+    };
+    reader.readAsDataURL(file);
+  }
+}
 
   ngOnInit(): void {
     const userInfo = localStorage.getItem("user");
-    if (userInfo){
+    if (userInfo) {
       this.user = JSON.parse(userInfo);
       this.registrationForm.patchValue({
         hoTen: this.user?.hoTen,

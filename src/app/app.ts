@@ -9,8 +9,6 @@ import { RouterLink, RouterLinkActive } from '@angular/router';
 imports: [
     CommonModule,
     RouterOutlet,
-    RouterLink,
-    RouterLinkActive
   ],
   templateUrl: './app.html',
   styleUrl: './app.css'

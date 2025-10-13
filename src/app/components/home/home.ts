@@ -3,6 +3,7 @@ import { User } from '../../models/user';
 import { RouterLink, RouterModule, Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 
+
 @Component({
   selector: 'app-home',
   standalone: true,
@@ -24,7 +25,6 @@ export class Home implements OnInit, OnDestroy{
 
 
   ngOnDestroy(): void {
-    throw new Error('Method not implemented.');
   }
   ngOnInit(): void {
     const userInfo = localStorage.getItem('user');
