@@ -38,9 +38,37 @@ export class AuthService {
   }
 
   register(data: RegisterRequest): Observable<AuthResponse> {
-    return this.http.post<AuthResponse>(`${this.apiUrl}/admin/register`, data);
+    return this.http.post<AuthResponse>(`${this.apiUrl}/auth/register`, data);
   }
 
+  isAuthenticated(): boolean {
+    const user = localStorage.getItem('user');
+    return !!user;
+  }
+  getUsername(): string {
+    const user = localStorage.getItem('user');
+    if (user) {
+      try {
+        const userData = JSON.parse(user);
+        return userData.hoTen || 'Người dùng';
+      } catch {
+        return 'Người dùng';
+      }
+    }
+    return '';
+  }
+  getRole(): string {
+    const user = localStorage.getItem('user');
+    if (user) {
+      try {
+        const data = JSON.parse(user);
+        return data.vaiTro || ''; 
+      } catch {
+        return '';
+      }
+    }
+    return '';
+  }
   saveToken(token: string): void {
     localStorage.setItem('token', token);
   }

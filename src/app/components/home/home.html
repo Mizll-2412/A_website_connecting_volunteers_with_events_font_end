@@ -1,18 +1,38 @@
-<header class="header">
-  <div class="logo">
-    <img src="logo.png" alt="Logo">
-  </div>
-  <nav>
-    <a href="#">Trang chủ</a>
-    <a href="#">Sự kiện</a>
-    <a href="#">Tổ chức</a>
-    <a routerLink="/profile" routerLinkActive="active">Hồ Sơ</a>
-  </nav>
-  <div class="actions">
-    <span>EN</span>
-    <img src="search-interface-symbol.png">
-  </div>
-</header>
+    <header class="header">
+        <div class="logo">
+            <img src="logo.png" alt="Logo">
+        </div>
+
+        <nav class="nav-links">
+            <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">Trang chủ</a>
+            <a routerLink="/events" routerLinkActive="active">Sự kiện</a>
+            <a *ngIf="role === 'User'" routerLink="/organizations" routerLinkActive="active">
+                Tổ chức
+            </a>
+            <a *ngIf="role === 'Organization'" routerLink="/manage-org" routerLinkActive="active">
+                Quản lý tổ chức
+            </a> 
+            <a *ngIf="role === 'User'" routerLink="/profile" routerLinkActive="active">Hồ sơ</a>
+            <a *ngIf="role === 'Organization'" routerLink="/list-user" routerLinkActive="active">Hồ sơ nổi bật</a>
+        </nav>
+
+        <div class="actions">
+            <span class="lang">EN</span>
+            <img src="search-interface-symbol.png" alt="Search" class="search-icon">
+
+            <ng-container *ngIf="!isLoggedIn">
+                <button class="btn login-btn" routerLink="/login">Đăng nhập</button>
+                <button class="btn signup-btn" routerLink="/register">Đăng ký</button>
+            </ng-container>
+
+            <ng-container *ngIf="isLoggedIn">
+                <div class="user-menu">
+                    <img src="user.png" alt="User" class="avatar">
+                    <span class="username">{{ username }}</span>
+                </div>
+            </ng-container>
+        </div>
+    </header>
 
 <section class="hero-section">
   <img src="tinhnguyen.png">
@@ -21,7 +41,7 @@
 <section class="featured">
   <h2>Dự án nổi bật</h2>
   <div class="carousel">
-        <!-- <div class="card" *ngFor="let i of [1,2,3]"> -->
+    <!-- <div class="card" *ngFor="let i of [1,2,3]"> -->
 
     <div class="card">
       <div class="img-placeholder">Image</div>

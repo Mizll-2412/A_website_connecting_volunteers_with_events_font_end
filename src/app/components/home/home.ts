@@ -2,7 +2,7 @@ import { Component, OnDestroy, OnInit } from '@angular/core';
 import { User } from '../../models/user';
 import { RouterLink, RouterModule, Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
-
+import { AuthService } from '../../services/auth';
 
 @Component({
   selector: 'app-home',
@@ -14,7 +14,10 @@ import { CommonModule } from '@angular/common';
 
 export class Home implements OnInit, OnDestroy{
   user?: User;
-  constructor(private router: Router) {}
+  constructor(private router: Router, private auth: AuthService) {}
+  isLoggedIn = false;
+  username = '';
+  role = '';
 
   // public user: User ;
 
@@ -27,6 +30,12 @@ export class Home implements OnInit, OnDestroy{
   ngOnDestroy(): void {
   }
   ngOnInit(): void {
+    this.isLoggedIn = this.auth.isAuthenticated();
+     if (this.isLoggedIn) {
+      this.username = this.auth.getUsername();
+      this.role = this.auth.getRole();
+
+    }
     const userInfo = localStorage.getItem('user');
         if (userInfo) {
           this.user = JSON.parse(userInfo);

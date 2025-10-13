@@ -1,8 +1,9 @@
-import { Component, OnInit } from '@angular/core';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
-import { CommonModule } from '@angular/common';
+import { Component, OnInit } from '@angular/core';
 import { User } from '../../models/user';
-
+import { Router, RouterModule } from '@angular/router';
+import { CommonModule } from '@angular/common';
+import { AuthService } from '../../services/auth';
 interface Event {
   id: number;
   title: string;
@@ -17,20 +18,19 @@ interface Event {
 @Component({
   selector: 'app-volunteer-profile',
   standalone: true,
-  imports: [
-    CommonModule,
-    ReactiveFormsModule
-  ],
-  templateUrl: './volunteer-profile.html',
+  imports: [CommonModule, RouterModule, ReactiveFormsModule],
+  templateUrl:'./volunteer-profile.html',
   styleUrls: ['./volunteer-profile.css']
 })
 export class VolunteerProfileComponent implements OnInit {
-  registrationForm: FormGroup;
+  registrationForm!: FormGroup;
+
   selectedMenuItem: string = 'profile';
   previewUrl: string | null = null;
-
   user?: User;
-
+  isLoggedIn = false;
+  username = '';
+  role = '';
 
   events: Event[] = [
     {
@@ -95,7 +95,12 @@ export class VolunteerProfileComponent implements OnInit {
     }
   ];
 
-  constructor(private fb: FormBuilder) {
+  constructor(
+    private fb: FormBuilder,
+    private router: Router,
+    private auth: AuthService
+  ) {
+    // ✅ khởi tạo form ở đây
     this.registrationForm = this.fb.group({
       hoTen: ['', Validators.required],
       cccd: ['', [Validators.required, Validators.pattern(/^\d{12}$/)]],
@@ -116,9 +121,9 @@ export class VolunteerProfileComponent implements OnInit {
       field4: ['']
     });
   }
-  onFileSelected(event: any): void {
+onFileSelected(event: any): void {
   const file = event.target?.files?.[0];
-  if (file) {
+  if(file) {
     const reader = new FileReader();
     reader.onload = () => {
       this.previewUrl = reader.result as string;
@@ -127,45 +132,52 @@ export class VolunteerProfileComponent implements OnInit {
   }
 }
 
-  ngOnInit(): void {
-    const userInfo = localStorage.getItem("user");
-    if (userInfo) {
-      this.user = JSON.parse(userInfo);
-      this.registrationForm.patchValue({
-        hoTen: this.user?.hoTen,
-        email: this.user?.email,
-      });
-    }
+ngOnInit(): void {
+  const userInfo = localStorage.getItem("user");
+  if(userInfo) {
+    this.user = JSON.parse(userInfo);
+    this.registrationForm.patchValue({
+      hoTen: this.user?.hoTen,
+      email: this.user?.email,
+    });
   }
+  this.isLoggedIn = this.auth.isAuthenticated();
+     if (this.isLoggedIn) {
+      this.username = this.auth.getUsername();
+      this.role = this.auth.getRole();
 
-  selectMenuItem(item: string): void {
-    this.selectedMenuItem = item;
-  }
-
-  onSubmit(): void {
-    if (this.registrationForm.valid) {
-      console.log('Form Data:', this.registrationForm.value);
-      alert('Đăng ký thành công!');
-      this.registrationForm.reset();
-    } else {
-      alert('Vui lòng điền đầy đủ thông tin!');
-      this.markFormGroupTouched(this.registrationForm);
     }
+}
+
+selectMenuItem(item: string): void {
+  this.selectedMenuItem = item;
+}
+
+onSubmit(): void {
+  if(this.registrationForm.valid) {
+  console.log('Form Data:', this.registrationForm.value);
+  alert('Đăng ký thành công!');
+  this.registrationForm.reset();
+} else {
+  alert('Vui lòng điền đầy đủ thông tin!');
+  this.markFormGroupTouched(this.registrationForm);
+}
   }
 
   private markFormGroupTouched(formGroup: FormGroup): void {
-    Object.keys(formGroup.controls).forEach(key => {
-      const control = formGroup.get(key);
-      control?.markAsTouched();
-    });
-  }
+  Object.keys(formGroup.controls).forEach(key => {
+    const control = formGroup.get(key);
+    control?.markAsTouched();
+  });
+}
 
-  viewEventDetails(event: Event): void {
-    console.log('View event:', event);
-  }
+viewEventDetails(event: Event): void {
+  console.log('View event:', event);
+}
 
-  applyForEvent(event: Event): void {
-    console.log('Apply for event:', event);
-    alert(`Đã ứng tuyển sự kiện: ${event.title}`);
+applyForEvent(event: Event): void {
+  console.log('Apply for event:', event);
+  alert(`Đã ứng tuyển sự kiện: ${event.title
+}`);
   }
 }
