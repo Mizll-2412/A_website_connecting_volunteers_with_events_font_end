@@ -20,9 +20,7 @@ export class RegisterComponent {
     email: '',
     password: '',
     confirmPassword: '',
-    soDienThoai: '',
-    cccd: '',
-    diaChi: ''
+    vaiTro: ''
   };
 
   errorMessage: string = '';

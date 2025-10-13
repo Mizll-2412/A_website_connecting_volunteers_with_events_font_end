@@ -83,43 +83,40 @@
         </div>
       </div>
 
-      <div class="form-row">
-        <div class="form-group">
-          <label for="soDienThoai">Số điện thoại</label>
-          <input 
-            type="tel" 
-            id="soDienThoai" 
-            name="soDienThoai"
-            [(ngModel)]="registerData.soDienThoai" 
-            placeholder="0123456789"
-            [disabled]="isLoading"
-          />
-        </div>
-
-        <div class="form-group">
-          <label for="cccd">CCCD/CMND</label>
-          <input 
-            type="text" 
-            id="cccd" 
-            name="cccd"
-            [(ngModel)]="registerData.cccd" 
-            placeholder="001234567890"
-            maxlength="12"
-            [disabled]="isLoading"
-          />
-        </div>
-      </div>
-
+      <!-- Vai trò -->
       <div class="form-group">
-        <label for="diaChị">Địa chỉ</label>
-        <textarea 
-          id="diaChị" 
-          name="diaChị"
-          [(ngModel)]="registerData.diaChi" 
-          placeholder="Nhập địa chỉ đầy đủ"
-          rows="3"
-          [disabled]="isLoading"
-        ></textarea>
+        <label>Bạn là? *</label>
+        <div class="role-selection">
+          <label class="role-option">
+            <input 
+              type="radio" 
+              name="vaiTro" 
+              value="Tình nguyện viên"
+              [(ngModel)]="registerData.vaiTro"
+              required
+              [disabled]="isLoading"
+            />
+            <span class="role-label">
+              <img src="user.png" alt="Tinh Nguyen Vien">
+              Tình nguyện viên
+            </span>
+          </label>
+
+          <label class="role-option">
+            <input 
+              type="radio" 
+              name="vaiTro" 
+              value="Tổ chức"
+              [(ngModel)]="registerData.vaiTro"
+              required
+              [disabled]="isLoading"
+            />
+            <span class="role-label">
+              <img src="corporate.png" alt="To Chuc">
+              Tổ chức
+            </span>
+          </label>
+        </div>
       </div>
 
       <button 

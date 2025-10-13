@@ -15,9 +15,7 @@ export interface RegisterRequest {
   email: string;
   password: string;
   confirmPassword: string;
-  soDienThoai?: string;
-  cccd?: string;
-  diaChi?: string;
+  vaiTro: string
 }
 
 export interface AuthResponse {
