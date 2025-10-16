@@ -1,216 +1,129 @@
-    <header class="header">
-        <div class="logo">
-            <img src="logo.png" alt="Logo">
+<div class="container my-4">
+  <div class="row g-4">
+    <!-- Sidebar -->
+    <aside class="col-lg-3">
+      <div class="card border-0 shadow-sm p-3">
+        <div class="list-group">
+          <button class="list-group-item list-group-item-action"
+                  [class.active]="selectedMenuItem === 'profile'"
+                  (click)="selectMenuItem('profile')">
+            Hồ sơ cá nhân
+          </button>
+          <button class="list-group-item list-group-item-action"
+                  [class.active]="selectedMenuItem === 'family'"
+                  (click)="selectMenuItem('family')">
+            Sự kiện đã tham gia
+          </button>
+          <button class="list-group-item list-group-item-action"
+                  [class.active]="selectedMenuItem === 'certificates'"
+                  (click)="selectMenuItem('certificates')">
+            Giấy chứng nhận
+          </button>
+          <button class="list-group-item list-group-item-action"
+                  [class.active]="selectedMenuItem === 'ratings'"
+                  (click)="selectMenuItem('ratings')">
+            Đánh giá & điểm uy tín
+          </button>
         </div>
-
-        <nav class="nav-links">
-            <a routerLink="/home" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">Trang chủ</a>
-            <a routerLink="/su-kien" routerLinkActive="active">Sự kiện</a>
-            <a *ngIf="role === 'User'" routerLink="/organization" routerLinkActive="active">
-                Tổ chức
-            </a>
-            <a *ngIf="role === 'Organization'" routerLink="/manage-org" routerLinkActive="active">
-                Quản lý tổ chức
-            </a> 
-            <a *ngIf="role === 'User'" routerLink="/profile" routerLinkActive="active">Hồ sơ</a>
-            <a *ngIf="role === 'Organization'" routerLink="/list-user" routerLinkActive="active">Hồ sơ nổi bật</a>
-        </nav>
-
-        <div class="actions">
-            <span class="lang">EN</span>
-            <img src="search-interface-symbol.png" alt="Search" class="search-icon">
-
-            <ng-container *ngIf="!isLoggedIn">
-                <button class="btn login-btn" routerLink="/login">Đăng nhập</button>
-                <button class="btn signup-btn" routerLink="/register">Đăng ký</button>
-            </ng-container>
-
-            <!-- <ng-container *ngIf="isLoggedIn">
-                <div class="user-menu">
-                    <img src="user.png" alt="User" class="avatar">
-                    <span class="username">{{ username }}</span>
-                </div>
-            </ng-container> -->
-        </div>
-    </header>
-<div class="main-container">
-  <aside class="sidebar">
-    <div class="sidebar-item" 
-         [class.active]="selectedMenuItem === 'profile'"
-         (click)="selectMenuItem('profile')">
-      Hồ sơ cá nhân
-    </div>
-    <div class="sidebar-item" 
-         [class.active]="selectedMenuItem === 'family'"
-         (click)="selectMenuItem('family')">
-      Sự kiện đã tham gia
-    </div>
-    <div class="sidebar-item" 
-         [class.active]="selectedMenuItem === 'certificates'"
-         (click)="selectMenuItem('certificates')">
-      Giấy chứng nhận
-    </div>
-    <div class="sidebar-item" 
-         [class.active]="selectedMenuItem === 'ratings'"
-         (click)="selectMenuItem('ratings')">
-      Đánh giá & điểm uy tín
-    </div>
-  </aside>
-
-  <main class="content">
-    <section class="form-section">
-      <div class="section-header">
-        <h2>Thông tin cá nhân</h2>
-        <button class="save-btn" (click)="onSubmit()">
-          {{ volunteer?.maTNV ? 'Cập nhật hồ sơ' : 'Tạo hồ sơ' }}
-        </button>
       </div>
+    </aside>
 
-      <form [formGroup]="registrationForm">
-        <div class="form-grid">
-          <!-- Upload ảnh -->
-          <div class="avatar-section">
-            <div class="avatar-upload">
-              <input type="file" id="avatar" accept="image/*" (change)="onFileSelected($event)" style="display: none">
-              <label for="avatar" class="avatar-circle">
-                <img *ngIf="previewUrl" [src]="previewUrl" alt="Avatar">
-                <span *ngIf="!previewUrl">+</span>
-              </label>
-            </div>
-            <p>Điểm đánh giá: {{ volunteer?.diemTrungBinh || 0 }}</p>
-          </div>
-
-          <!-- Form fields -->
-          <div class="form-fields">
-            <div class="form-group">
-              <label>Họ Tên <span style="color: red;">*</span></label>
-              <input type="text" formControlName="hoTen" placeholder="Nhập họ tên">
-              <div *ngIf="registrationForm.get('hoTen')?.invalid && registrationForm.get('hoTen')?.touched" 
-                   class="error-message">
-                Vui lòng nhập họ tên
-              </div>
-            </div>
-
-            <div class="form-group">
-              <label>Email <span style="color: red;">*</span></label>
-              <input type="email" formControlName="email" placeholder="Nhập email">
-              <div *ngIf="registrationForm.get('email')?.invalid && registrationForm.get('email')?.touched" 
-                   class="error-message">
-                Vui lòng nhập email hợp lệ
-              </div>
-            </div>
-
-            <div class="form-group">
-              <label>CCCD</label>
-              <input type="text" formControlName="cccd" placeholder="Nhập CCCD">
-            </div>
-
-            <div class="form-group">
-              <label>SĐT</label>
-              <input type="tel" formControlName="phoneNumber" placeholder="Nhập số điện thoại">
-            </div>
-
-            <div class="form-group">
-              <label>Ngày sinh</label>
-              <input type="date" formControlName="ngaySinh">
-            </div>
-
-            <div class="form-group">
-              <label>Giới tính</label>
-              <select formControlName="gioiTinh">
-                <option value="">-- Chọn giới tính --</option>
-                <option value="Nam">Nam</option>
-                <option value="Nữ">Nữ</option>
-                <option value="Khác">Khác</option>
-              </select>
-            </div>
-
-            <div class="form-group full-width">
-              <label>Địa chỉ</label>
-              <input type="text" formControlName="diaChi" placeholder="Nhập địa chỉ">
-            </div>
-
-            <div class="form-group full-width">
-              <label>Giới thiệu bản thân</label>
-              <textarea formControlName="gioiThieu" rows="3" placeholder="Giới thiệu về bản thân..."></textarea>
-            </div>
-
-            <!-- Kỹ năng với dropdown thông minh -->
-            <div class="form-group full-width">
-              <label>Kỹ năng</label>
-              <div class="multi-input-row">
-                <select (change)="onKyNangChange(0, $event)" [value]="selectedKyNangs[0] || ''">
-                  <option value="">-- Chọn kỹ năng 1 --</option>
-                  <option *ngFor="let kn of getAvailableKyNangs(0)" 
-                          [value]="kn.maKyNang">
-                    {{ kn.tenKyNang }}
-                  </option>
-                </select>
-
-                <select (change)="onKyNangChange(1, $event)" [value]="selectedKyNangs[1] || ''">
-                  <option value="">-- Chọn kỹ năng 2 --</option>
-                  <option *ngFor="let kn of getAvailableKyNangs(1)" 
-                          [value]="kn.maKyNang">
-                    {{ kn.tenKyNang }}
-                  </option>
-                </select>
-
-                <select (change)="onKyNangChange(2, $event)" [value]="selectedKyNangs[2] || ''">
-                  <option value="">-- Chọn kỹ năng 3 --</option>
-                  <option *ngFor="let kn of getAvailableKyNangs(2)" 
-                          [value]="kn.maKyNang">
-                    {{ kn.tenKyNang }}
-                  </option>
-                </select>
-
-                <select (change)="onKyNangChange(3, $event)" [value]="selectedKyNangs[3] || ''">
-                  <option value="">-- Chọn kỹ năng 4 --</option>
-                  <option *ngFor="let kn of getAvailableKyNangs(3)" 
-                          [value]="kn.maKyNang">
-                    {{ kn.tenKyNang }}
-                  </option>
-                </select>
-              </div>
-            </div>
-            <div class="form-group full-width">
-              <label>Lĩnh vực quan tâm</label>
-              <div class="multi-input-row">
-                <select (change)="onLinhVucChange(0, $event)" [value]="selectedLinhVucs[0] || ''">
-                  <option value="">-- Chọn lĩnh vực 1 --</option>
-                  <option *ngFor="let lv of getAvailableLinhVucs(0)" 
-                          [value]="lv.maLinhVuc">
-                    {{ lv.tenLinhVuc }}
-                  </option>
-                </select>
-
-                <select (change)="onLinhVucChange(1, $event)" [value]="selectedLinhVucs[1] || ''">
-                  <option value="">-- Chọn lĩnh vực 2 --</option>
-                  <option *ngFor="let lv of getAvailableLinhVucs(1)" 
-                          [value]="lv.maLinhVuc">
-                    {{ lv.tenLinhVuc }}
-                  </option>
-                </select>
-
-                <select (change)="onLinhVucChange(2, $event)" [value]="selectedLinhVucs[2] || ''">
-                  <option value="">-- Chọn lĩnh vực 3 --</option>
-                  <option *ngFor="let lv of getAvailableLinhVucs(2)" 
-                          [value]="lv.maLinhVuc">
-                    {{ lv.tenLinhVuc }}
-                  </option>
-                </select>
-
-                <select (change)="onLinhVucChange(3, $event)" [value]="selectedLinhVucs[3] || ''">
-                  <option value="">-- Chọn lĩnh vực 4 --</option>
-                  <option *ngFor="let lv of getAvailableLinhVucs(3)" 
-                          [value]="lv.maLinhVuc">
-                    {{ lv.tenLinhVuc }}
-                  </option>
-                </select>
-              </div>
-            </div>
-          </div>
+    <!-- Content -->
+    <main class="col-lg-9">
+      <div class="card border-0 shadow-sm p-4">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+          <h4 class="fw-semibold mb-0">Thông tin cá nhân</h4>
+          <button class="btn btn-success" (click)="onSubmit()">
+            {{ volunteer?.maTNV ? 'Cập nhật hồ sơ' : 'Tạo hồ sơ' }}
+          </button>
         </div>
-      </form>
-    </section>
-  </main>
+
+        <form [formGroup]="registrationForm">
+          <div class="row g-4">
+            <!-- Avatar -->
+            <div class="col-md-4 text-center">
+              <div class="position-relative">
+                <input type="file" id="avatar" accept="image/*" (change)="onFileSelected($event)" hidden />
+                <label for="avatar" class="d-inline-block border border-2 border-success rounded-circle overflow-hidden" style="width: 150px; height: 150px; cursor: pointer;">
+                  <img *ngIf="previewUrl" [src]="previewUrl" alt="Avatar" class="w-100 h-100 object-fit-cover" />
+                  <span *ngIf="!previewUrl" class="display-5 text-secondary d-flex align-items-center justify-content-center h-100">+</span>
+                </label>
+              </div>
+              <p class="mt-2 small text-muted">Điểm đánh giá: {{ volunteer?.diemTrungBinh || 0 }}</p>
+            </div>
+
+            <!-- Form Fields -->
+            <div class="col-md-8">
+              <div class="row g-3">
+                <div class="col-md-6">
+                  <label class="form-label">Họ Tên *</label>
+                  <input type="text" formControlName="hoTen" class="form-control" placeholder="Nhập họ tên" />
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">Email *</label>
+                  <input type="email" formControlName="email" class="form-control" placeholder="Nhập email" />
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">CCCD</label>
+                  <input type="text" formControlName="cccd" class="form-control" placeholder="Nhập CCCD" />
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">SĐT</label>
+                  <input type="tel" formControlName="phoneNumber" class="form-control" placeholder="Nhập số điện thoại" />
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">Ngày sinh</label>
+                  <input type="date" formControlName="ngaySinh" class="form-control" />
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">Giới tính</label>
+                  <select formControlName="gioiTinh" class="form-select">
+                    <option value="">-- Chọn giới tính --</option>
+                    <option value="Nam">Nam</option>
+                    <option value="Nữ">Nữ</option>
+                    <option value="Khác">Khác</option>
+                  </select>
+                </div>
+
+                <div class="col-12">
+                  <label class="form-label">Địa chỉ</label>
+                  <input type="text" formControlName="diaChi" class="form-control" placeholder="Nhập địa chỉ" />
+                </div>
+                <div class="col-12">
+                  <label class="form-label">Giới thiệu bản thân</label>
+                  <textarea formControlName="gioiThieu" class="form-control" rows="3" placeholder="Giới thiệu về bản thân..."></textarea>
+                </div>
+
+                <!-- Kỹ năng -->
+                <div class="col-12">
+                  <label class="form-label">Kỹ năng</label>
+                  <div class="row g-2">
+                    <div class="col-md-6" *ngFor="let knIdx of [0,1,2,3]">
+                      <select class="form-select" (change)="onKyNangChange(knIdx, $event)" [value]="selectedKyNangs[knIdx] || ''">
+                        <option value="">-- Chọn kỹ năng {{knIdx + 1}} --</option>
+                        <option *ngFor="let kn of getAvailableKyNangs(knIdx)" [value]="kn.maKyNang">{{ kn.tenKyNang }}</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Lĩnh vực -->
+                <div class="col-12">
+                  <label class="form-label">Lĩnh vực quan tâm</label>
+                  <div class="row g-2">
+                    <div class="col-md-6" *ngFor="let lvIdx of [0,1,2,3]">
+                      <select class="form-select" (change)="onLinhVucChange(lvIdx, $event)" [value]="selectedLinhVucs[lvIdx] || ''">
+                        <option value="">-- Chọn lĩnh vực {{lvIdx + 1}} --</option>
+                        <option *ngFor="let lv of getAvailableLinhVucs(lvIdx)" [value]="lv.maLinhVuc">{{ lv.tenLinhVuc }}</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </form>
+      </div>
+    </main>
+  </div>
 </div>

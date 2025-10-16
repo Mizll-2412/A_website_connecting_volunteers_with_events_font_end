@@ -1,21 +1,22 @@
 <div class="main-header">
-  <h1>Duyệt Hồ sơ Tổ chức</h1>
-  <div class="header-actions">
-    <input type="text" [(ngModel)]="tuKhoaTimKiem" (input)="timKiem()" placeholder="Tìm kiếm..." />
-    <button (click)="taiLaiDuLieu()">🔄 Làm mới</button>
+  <h1>Hồ sơ Tổ chức</h1>
+   <div class="actions">
+    <input type="text" [(ngModel)]="tuKhoaTimKiem" (input)="timKiem()" placeholder="Tìm kiếm sự kiện..." />
+    <button class="btn btn-primary" (click)="batDauThemMoi()">+ Thêm tổ chức</button>
   </div>
+
 </div>
 
-<div class="statistics">
+<!-- <div class="statistics">
   <div class="stat-card">Chờ duyệt: {{demToChuc(TrangThaiXacMinh.ChoDuyet)}}</div>
   <div class="stat-card">Đã duyệt: {{demToChuc(TrangThaiXacMinh.DaDuyet)}}</div>
   <div class="stat-card">Từ chối: {{demToChuc(TrangThaiXacMinh.TuChoi)}}</div>
-</div>
+</div> -->
 
 <table class="data-table">
   <thead>
     <tr>
-      <th>Mã TC</th><th>Tên tổ chức</th><th>Email</th><th>Địa chỉ</th><th>Ngày tạo</th><th>Trạng thái</th><th>Thao tác</th>
+      <th>Mã TC</th><th>Tên tổ chức</th><th>Email</th><th>Địa chỉ</th><th>Ngày tạo</th><th>Thao tác</th>
     </tr>
   </thead>
   <tbody>
@@ -25,13 +26,17 @@
       <td>{{toChuc.email}}</td>
       <td>{{toChuc.diaChi}}</td>
       <td>{{formatNgayTao(toChuc.ngayTao)}}</td>
-      <td><span [class]="getTrangThaiClass(toChuc.trangThaiXacMinh)">{{getTrangThaiText(toChuc.trangThaiXacMinh)}}</span></td>
+      <!-- <td><span [class]="getTrangThaiClass(toChuc.trangThaiXacMinh)">{{getTrangThaiText(toChuc.trangThaiXacMinh)}}</span></td>
       <td>
         <button (click)="xemChiTiet(toChuc)">👁️</button>
         <button *ngIf="toChuc.trangThaiXacMinh === TrangThaiXacMinh.ChoDuyet" (click)="duyetToChuc(toChuc)">✅</button>
         <button *ngIf="toChuc.trangThaiXacMinh === TrangThaiXacMinh.ChoDuyet" (click)="tuChoiToChuc(toChuc)">❌</button>
         <button class="danger" (click)="xoaToChuc(toChuc)">🗑️</button>
-      </td>
+      </td> -->
+      <td>
+          <button class="btn btn-edit">Sửa</button>
+          <button class="btn btn-delete">Xóa</button>
+        </td>
     </tr>
   </tbody>
 </table>

@@ -333,6 +333,42 @@
 .detail-row.full-width {
   grid-template-columns: 1fr;
 }
+.actions {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+input[type="text"] {
+  width: 60%;
+  padding: 6px;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 10px;
+}
+
+.table th, .table td {
+  padding: 8px;
+  border: 1px solid #ccc;
+  text-align: left;
+}
+
+.btn {
+  padding: 5px 10px;
+  margin-right: 5px;
+  border: none;
+  cursor: pointer;
+  border-radius: 4px;
+}
+
+.btn-primary { background: #007bff; color: #fff; }
+.btn-edit { background: #28a745; color: #fff; }
+.btn-delete { background: #dc3545; color: #fff; }
+.btn-success { background: #198754; color: white; }
+.btn-secondary { background: #6c757d; color: white; }
 
 .detail-row .label {
   font-weight: 600;

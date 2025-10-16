@@ -1,0 +1,144 @@
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--white);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+  padding: 10px 40px;
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+}
+
+/* Logo */
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: bold;
+  font-size: 1.5rem;
+}
+
+.logo img {
+  height: 50px;
+  cursor: pointer;
+}
+
+/* Navigation */
+.nav-links a {
+  color: var(--dark);
+  text-decoration: none;
+  margin: 0 16px;
+  font-weight: 500;
+  transition: color 0.3s;
+}
+
+.nav-links a:hover,
+.nav-links a.active {
+  color: var(--blue);
+}
+
+nav {
+  flex: 1; /* chiếm khoảng giữa */
+  display: flex;
+  justify-content: center;
+}
+
+nav a {
+  margin: 0 1rem;
+  color: #333;
+  text-decoration: none;
+  font-weight: 500;
+  transition: color 0.3s;
+  position: relative;
+}
+
+nav a:hover {
+  color: #2C7BE5;
+}
+
+nav a.active {
+  color: #2C7BE5;
+  font-weight: 600;
+}
+
+nav a.active::after {
+  content: '';
+  position: absolute;
+  bottom: -5px;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background-color: #2C7BE5;
+}
+
+/* Actions (ngôn ngữ, search, login/signup) */
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.lang {
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.search-icon {
+  width: 20px;
+  cursor: pointer;
+  transition: opacity 0.3s;
+}
+
+.search-icon:hover {
+  opacity: 0.7;
+}
+
+/* Buttons */
+.btn {
+  padding: 6px 16px;
+  border-radius: 20px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: 0.3s;
+  border: none;
+}
+
+.login-btn {
+  background: transparent;
+  color: var(--blue);
+  border: 2px solid var(--blue);
+}
+
+.login-btn:hover {
+  background: var(--blue);
+  color: var(--white);
+}
+
+.signup-btn {
+  background: var(--blue);
+  color: var(--white);
+}
+
+.signup-btn:hover {
+  background: #1b5fcc;
+}
+
+/* User Menu */
+.user-menu {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.user-menu .avatar {
+  width: 35px;
+  height: 35px;
+  border-radius: 50%;
+}
+
+.username {
+  font-weight: 600;
+  color: var(--dark);
+}

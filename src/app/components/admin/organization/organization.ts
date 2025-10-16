@@ -66,6 +66,12 @@ export class ToChucComponent implements OnInit {
       2: 'Từ chối'
     }[trangThai]!;
   }
+   batDauThemMoi() {
+    // this.suKienMoi = this.khoiTaoSuKienRong();
+    // this.dangThemMoi = true;
+    // this.suKienDangChinhSua = null;
+  }
+
 
   xemChiTiet(toChuc: any) {
     this.hoSoDangXem = toChuc;

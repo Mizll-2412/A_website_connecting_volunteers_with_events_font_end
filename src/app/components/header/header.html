@@ -1,0 +1,25 @@
+<header class="header">
+  <div class="logo">
+    <img src="logo.png" alt="Logo">
+  </div>
+
+  <nav class="nav-links">
+    <a routerLink="/home" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">Trang chủ</a>
+    <a routerLink="/su-kien" routerLinkActive="active">Sự kiện</a>
+
+    <a *ngIf="role === 'User'" routerLink="/organization" routerLinkActive="active">Tổ chức</a>
+    <a *ngIf="role === 'Organization'" routerLink="/manage-org" routerLinkActive="active">Quản lý tổ chức</a>
+    <a *ngIf="role === 'User'" routerLink="/profile" routerLinkActive="active">Hồ sơ</a>
+    <a *ngIf="role === 'Organization'" routerLink="/list-user" routerLinkActive="active">Hồ sơ nổi bật</a>
+  </nav>
+
+  <div class="actions">
+    <span class="lang">EN</span>
+    <img src="search-interface-symbol.png" alt="Search" class="search-icon">
+
+    <ng-container *ngIf="!isLoggedIn">
+      <button class="btn login-btn" routerLink="/login">Đăng nhập</button>
+      <button class="btn signup-btn" routerLink="/register">Đăng ký</button>
+    </ng-container>
+  </div>
+</header>
