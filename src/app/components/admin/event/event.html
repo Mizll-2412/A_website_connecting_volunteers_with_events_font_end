@@ -1,0 +1,76 @@
+<div class="container">
+  <h2>Quản lý Sự kiện</h2>
+
+  <div class="actions">
+    <input type="text" [(ngModel)]="tuKhoaTimKiem" (input)="timKiem()" placeholder="Tìm kiếm sự kiện..." />
+    <button class="btn btn-primary" (click)="batDauThemMoi()">+ Thêm sự kiện</button>
+  </div>
+
+  <table class="table">
+    <thead>
+      <tr>
+        <th>Mã</th>
+        <th>Tên sự kiện</th>
+        <th>Địa điểm</th>
+        <th>Ngày diễn ra</th>
+        <th>Trạng thái</th>
+        <th>Thao tác</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let sk of danhSachHienThi">
+        <td>{{ sk.maSuKien }}</td>
+        <td>{{ sk.tenSuKien }}</td>
+        <td>{{ sk.diaChi }}</td>
+        <td>{{ formatNgay(sk.ngayBatDau) }} - {{ formatNgay(sk.ngayKetThuc) }}</td>
+        <td>{{ sk.trangThai }}</td>
+        <td>
+          <button class="btn btn-edit" (click)="suaSuKien(sk)">Sửa</button>
+          <button class="btn btn-delete" (click)="xoaSuKien(sk)">Xóa</button>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- Form thêm/sửa -->
+  <div class="form-container" *ngIf="dangThemMoi">
+    <h3>{{ suKienDangChinhSua ? 'Chỉnh sửa sự kiện' : 'Thêm sự kiện mới' }}</h3>
+
+    <div class="form-group">
+      <label>Tên sự kiện</label>
+      <input type="text" [(ngModel)]="suKienMoi.tenSuKien" />
+    </div>
+
+    <div class="form-group">
+      <label>Nội dung</label>
+      <textarea [(ngModel)]="suKienMoi.noiDung"></textarea>
+    </div>
+
+    <div class="form-group">
+      <label>Địa điểm</label>
+      <input type="text" [(ngModel)]="suKienMoi.diaChi" />
+    </div>
+
+    <div class="form-group">
+      <label>Ngày bắt đầu</label>
+      <input type="date" [(ngModel)]="suKienMoi.ngayBatDau" />
+    </div>
+
+    <div class="form-group">
+      <label>Ngày kết thúc</label>
+      <input type="date" [(ngModel)]="suKienMoi.ngayKetThuc" />
+    </div>
+
+    <div class="form-group">
+      <label>Trạng thái</label>
+      <select [(ngModel)]="suKienMoi.trangThai">
+        <option *ngFor="let t of (['Đang tuyển', 'Sắp diễn ra', 'Đang diễn ra', 'Kết thúc', 'Hủy bỏ'])">{{ t }}</option>
+      </select>
+    </div>
+
+    <div class="form-actions">
+      <button class="btn btn-success" (click)="luuSuKien()">Lưu</button>
+      <button class="btn btn-secondary" (click)="huyBo()">Hủy</button>
+    </div>
+  </div>
+</div>

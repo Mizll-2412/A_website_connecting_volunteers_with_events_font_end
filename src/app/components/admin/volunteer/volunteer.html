@@ -1,0 +1,60 @@
+<div class="admin-container">
+  <h2>Quản lý Tình nguyện viên</h2>
+
+  <div class="actions">
+    <input type="text" placeholder="Tìm kiếm theo tên hoặc email..."
+           [(ngModel)]="tuKhoaTimKiem" (input)="timKiem()">
+    <button (click)="taiLaiDuLieu()">Tải lại</button>
+  </div>
+
+  <div class="form-card">
+    <h3>{{ dangSua ? 'Cập nhật thông tin' : 'Thêm tình nguyện viên mới' }}</h3>
+    <form (ngSubmit)="luuTNV()">
+      <div class="form-grid">
+        <input type="text" placeholder="Họ tên" [(ngModel)]="tnvmoi.hoTen" name="hoTen" required>
+        <input type="email" placeholder="Email" [(ngModel)]="tnvmoi.email" name="email" required>
+        <input type="text" placeholder="Giới tính" [(ngModel)]="tnvmoi.gioiTinh" name="gioiTinh">
+        <input type="date" [(ngModel)]="tnvmoi.ngaySinh" name="ngaySinh">
+        <input type="text" placeholder="CCCD" [(ngModel)]="tnvmoi.cccd" name="cccd">
+        <input type="text" placeholder="Địa chỉ" [(ngModel)]="tnvmoi.diaChi" name="diaChi">
+        <input type="number" step="0.1" placeholder="Điểm trung bình" [(ngModel)]="tnvmoi.diemTrungBinh" name="diemTrungBinh">
+        <textarea placeholder="Giới thiệu bản thân" [(ngModel)]="tnvmoi.gioiThieu" name="gioiThieu"></textarea>
+      </div>
+
+      <div class="form-actions">
+        <button type="submit">{{ dangSua ? 'Lưu thay đổi' : 'Thêm mới' }}</button>
+        <button type="button" *ngIf="dangSua" (click)="huyChinhSua()">Hủy</button>
+      </div>
+    </form>
+  </div>
+
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>Ảnh</th>
+        <th>Họ tên</th>
+        <th>Email</th>
+        <th>Giới tính</th>
+        <th>Ngày sinh</th>
+        <th>Địa chỉ</th>
+        <th>Điểm TB</th>
+        <th>Hành động</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let tnv of danhSachHienThi">
+        <td><img [src]="tnv.anhDaiDien || 'assets/default-avatar.png'" class="avatar"></td>
+        <td>{{ tnv.hoTen }}</td>
+        <td>{{ tnv.email }}</td>
+        <td>{{ tnv.gioiTinh }}</td>
+        <td>{{ formatNgay(tnv.ngaySinh) }}</td>
+        <td>{{ tnv.diaChi }}</td>
+        <td>{{ tnv.diemTrungBinh || '-' }}</td>
+        <td>
+          <button class="btn-edit" (click)="suaTNV(tnv)">Sửa</button>
+          <button class="btn-delete" (click)="xoaTNV(tnv)">Xóa</button>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+</div>

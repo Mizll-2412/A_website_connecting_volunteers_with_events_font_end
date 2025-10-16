@@ -1,0 +1,64 @@
+
+<header class="header">
+        <div class="logo">
+            <img src="logo.png" alt="Logo">
+        </div>
+
+        <nav class="nav-links">
+            <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">Trang chủ</a>
+            <a routerLink="/su-kien" routerLinkActive="active">Sự kiện</a>
+            <a *ngIf="role === 'User'" routerLink="/organization" routerLinkActive="active">
+                Tổ chức
+            </a>
+            <a *ngIf="role === 'Organization'" routerLink="/manage-org" routerLinkActive="active">
+                Quản lý tổ chức
+            </a> 
+            <a *ngIf="role === 'User'" routerLink="/profile" routerLinkActive="active">Hồ sơ</a>
+            <a *ngIf="role === 'Organization'" routerLink="/list-user" routerLinkActive="active">Hồ sơ nổi bật</a>
+        </nav>
+
+        <div class="actions">
+            <span class="lang">EN</span>
+            <img src="search-interface-symbol.png" alt="Search" class="search-icon">
+
+            <ng-container *ngIf="!isLoggedIn">
+                <button class="btn login-btn" routerLink="/login">Đăng nhập</button>
+                <button class="btn signup-btn" routerLink="/register">Đăng ký</button>
+            </ng-container>
+
+            <!-- <ng-container *ngIf="isLoggedIn">
+                <div class="user-menu">
+                    <img src="user.png" alt="User" class="avatar">
+                    <span class="username">{{ username }}</span>
+                </div>
+            </ng-container> -->
+        </div>
+    </header>
+
+<main class="main-container">
+    <h2>Danh sách Tổ chức</h2>
+
+    <div class="organization-list">
+      <div class="organization-card" *ngFor="let org of danhSachToChuc">
+        <img [src]="org.anhDaiDien" alt="Ảnh đại diện" />
+
+        <div class="info">
+          <h3>{{ org.tenToChuc }}</h3>
+          <p><strong>Email:</strong> {{ org.email }}</p>
+          <p *ngIf="org.soDienThoai"><strong>Điện thoại:</strong> {{ org.soDienThoai }}</p>
+          <p *ngIf="org.diaChi"><strong>Địa chỉ:</strong> {{ org.diaChi }}</p>
+          <p><strong>Điểm trung bình:</strong> {{ org.diemTrungBinh || 'Chưa có' }}</p>
+
+          <p class="gioi-thieu">{{ org.gioiThieu }}</p>
+
+          <span class="status" [ngClass]="getTrangThaiClass(org.trangThaiXacMinh)">
+            {{ getTrangThaiText(org.trangThaiXacMinh) }}
+          </span>
+
+          <div *ngIf="org.trangThaiXacMinh === 2 && org.lyDoTuChoi" class="reason">
+            <strong>Lý do từ chối:</strong> {{ org.lyDoTuChoi }}
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>

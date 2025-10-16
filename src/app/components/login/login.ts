@@ -36,19 +36,26 @@ export class LoginComponent {
 
     this.authService.login(this.loginData).subscribe({
       next: (response) => {
+        this.isLoading = false;
+
         if (response.success) {
           this.successMessage = response.message;
+
           this.authService.saveToken(response.token!);
           this.authService.saveUser(response.userInfo);
-          this.router.navigate(['/home']);
 
-          setTimeout(() => {
-            this.router.navigate(['/dashboard']);
-          }, 1500);
+        
+          const role = response.userInfo?.role;
+
+          if (role === 'admin') {
+            this.router.navigate(['/admin']);
+            
+          } else {
+            this.router.navigate(['/home']);
+          }
         } else {
           this.errorMessage = response.message;
         }
-        this.isLoading = false;
       },
       error: (error) => {
         this.errorMessage = 'Lỗi kết nối đến server';
