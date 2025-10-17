@@ -1,0 +1,44 @@
+.event-card {
+  transition: transform 0.2s ease-in-out;
+  cursor: pointer;
+}
+
+.event-card:hover {
+  transform: translateY(-5px);
+}
+
+.card {
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.card-header {
+  padding: 1rem 1.25rem;
+}
+
+.badge {
+  padding: 0.5rem 0.75rem;
+  border-radius: 50px;
+  font-weight: 500;
+}
+
+.table th, .table td {
+  padding: 1rem;
+  vertical-align: middle;
+}
+
+.table thead th {
+  border-top: none;
+  background-color: #f8f9fa;
+  font-weight: 600;
+}
+
+.btn-outline-primary {
+  border-radius: 50px;
+}
+
+.rounded-circle {
+  object-fit: cover;
+  border: 5px solid #f8f9fa;
+  box-shadow: 0 0 10px rgba(0,0,0,0.1);
+}

@@ -2,7 +2,7 @@
   <h2 class="mb-4 text-primary">Danh sách Tổ chức</h2>
 
   <div class="organization-list">
-    <div class="organization-card" *ngFor="let org of danhSachToChuc">
+    <div class="organization-card" *ngFor="let org of danhSachToChuc" (click)="viewOrganizationDetails(org.maToChuc)" style="cursor: pointer;">
       <img [src]="org.anhDaiDien" alt="Ảnh đại diện" />
       <div class="info">
         <h3>{{ org.tenToChuc }}</h3>

@@ -65,12 +65,12 @@
       <div class="filter-container mt-4">
         <h5 class="filter-title"><i class="bi bi-building"></i> Tổ chức nổi bật</h5>
         <div class="d-flex flex-column gap-3 mt-3">
-          <div class="organization-card p-3" *ngFor="let org of mockOrganizations">
+          <div class="organization-card p-3" *ngFor="let org of localOrganizations">
             <div class="d-flex align-items-center">
-              <img [src]="'http://localhost:5000' + org.anhDaiDien || 'user.png'" alt="{{ org.tenToChuc }}" class="org-logo me-3">
+              <img [src]="org.logoUrl || 'user.png'" alt="{{ org.name }}" class="org-logo me-3">
               <div>
-                <h6 class="mb-1">{{ org.tenToChuc }}</h6>
-                <p class="small text-muted mb-1">{{ org.gioiThieu }}</p>
+                <h6 class="mb-1">{{ org.name }}</h6>
+                <p class="small text-muted mb-1">{{ org.description || 'Không có mô tả' }}</p>
                 <span class="badge bg-blue">{{ org.eventCount }} sự kiện</span>
               </div>
             </div>
@@ -113,7 +113,7 @@
             </div>
             
             <!-- Event Image -->
-            <img [src]="'http://localhost:5000' + event.hinhAnh || 'tinhnguyen.png'" 
+            <img [src]="event.hinhAnh || 'tinhnguyen.png'" 
                  class="card-img-top" alt="{{ event.tenSuKien }}">
             
             <!-- Event Content -->
@@ -138,7 +138,9 @@
               <!-- Action Buttons -->
               <div class="d-flex justify-content-between mt-4">
                 <button class="btn btn-details" (click)="viewEventDetails(event.maSuKien)">Chi tiết</button>
-                <button class="btn btn-register" (click)="thamGiaSuKien(event.maSuKien)">Đăng ký</button>
+                <button class="btn btn-register" [disabled]="event.isRegistered" (click)="thamGiaSuKien(event.maSuKien)">
+                  {{ event.isRegistered ? 'Đã đăng ký' : 'Đăng ký' }}
+                </button>
               </div>
             </div>
           </div>

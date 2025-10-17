@@ -26,13 +26,13 @@
       <!-- Main Content -->
       <div class="col-lg-8">
         <!-- Event Image -->
-        <img [src]="'http://localhost:5000' + event?.hinhAnh || 'tinhnguyen.png'" class="event-img" alt="{{ event?.tenSuKien }}">
+        <img [src]="event?.hinhAnh || 'tinhnguyen.png'" class="event-img" alt="{{ event?.tenSuKien }}">
         
         <!-- Organization Info -->
         <div class="event-info-card mb-4">
           <h3 class="event-info-title">Tổ chức</h3>
           <div class="organization-info">
-            <img [src]="'http://localhost:5000' + organization?.anhDaiDien || 'user.png'" class="organization-logo" alt="{{ organization?.tenToChuc }}">
+            <img [src]="organization?.anhDaiDien || 'user.png'" class="organization-logo" alt="{{ organization?.tenToChuc }}">
             <div>
               <h5 class="mb-1">{{ organization?.tenToChuc }}</h5>
               <p class="small text-muted mb-1">{{ organization?.gioiThieu }}</p>
@@ -80,7 +80,7 @@
           <div class="row g-4">
             <div class="col-md-4" *ngFor="let similarEvent of similarEvents">
               <div class="card similar-event-card" (click)="navigateToOtherEvent(similarEvent.maSuKien)">
-                <img [src]="'http://localhost:5000' + similarEvent.hinhAnh || 'tinhnguyen.png'" class="card-img-top" alt="{{ similarEvent.tenSuKien }}">
+                <img [src]="similarEvent.hinhAnh || 'tinhnguyen.png'" class="card-img-top" alt="{{ similarEvent.tenSuKien }}">
                 <div class="card-body">
                   <h6 class="card-title">{{ similarEvent.tenSuKien }}</h6>
                   <p class="small text-muted mb-1">{{ similarEvent.noiDung }}</p>
@@ -159,7 +159,7 @@
           </div>
           
           <!-- Volunteer and Already Registered -->
-          <div *ngIf="isLoggedIn && role === 'TinhNguyenVien' && isRegistered">
+          <div *ngIf="isLoggedIn && role === 'User' && isRegistered">
             <div class="registration-info mb-3">
               <p class="mb-1"><i class="bi bi-check-circle me-2"></i>Bạn đã đăng ký tham gia sự kiện này</p>
               <p class="mb-0 small">Vui lòng đến đúng giờ và chuẩn bị những vật dụng cần thiết</p>
@@ -171,7 +171,7 @@
           </div>
           
           <!-- Event Already Started -->
-          <div *ngIf="isLoggedIn && role === 'TinhNguyenVien' && !isRegistered && eventHasStarted()">
+          <div *ngIf="isLoggedIn && role === 'User' && !isRegistered && eventHasStarted()">
             <div class="alert alert-warning mb-3">
               Sự kiện đã bắt đầu, không thể đăng ký tham gia
             </div>

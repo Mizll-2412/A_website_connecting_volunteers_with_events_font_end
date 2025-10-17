@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { User } from '../../models/user';
 import { RouterLink, RouterModule, Router } from '@angular/router';
 import { AuthService } from '../../services/auth';
+import { LocalDataService, Organization } from '../../services/local-data';
 
 export enum TrangThaiXacMinh {
   ChoDuyet = 0,
@@ -35,29 +36,38 @@ export interface ToChuc {
 export class ToChucListComponent implements OnInit {
   danhSachToChuc: ToChuc[] = [];
   user?: User;
-  constructor(private router: Router, private auth: AuthService) {}
+  localOrganizations: Organization[] = [];
   isLoggedIn = false;
   username = '';
   role = '';
 
+  constructor(
+    private router: Router, 
+    private auth: AuthService,
+    private localDataService: LocalDataService
+  ) {}
 
   ngOnDestroy(): void {
   }
+  
   ngOnInit(): void {
     this.isLoggedIn = this.auth.isAuthenticated();
-       if (this.isLoggedIn) {
-        this.username = this.auth.getUsername();
-        this.role = this.auth.getRole();
-  
-      }
-      const userInfo = localStorage.getItem('user');
-          if (userInfo) {
-            this.user = JSON.parse(userInfo);
-      } else {
-              this.router.navigate(['/login']);
-        }
-    // Dữ liệu mẫu, bạn có thể thay bằng API thực tế
-    this.danhSachToChuc = [
+    if (this.isLoggedIn) {
+      this.username = this.auth.getUsername();
+      this.role = this.auth.getRole();
+    }
+    
+    const userInfo = localStorage.getItem('user');
+    if (userInfo) {
+      this.user = JSON.parse(userInfo);
+    }
+    
+    // Lấy dữ liệu tổ chức từ LocalStorage
+    this.loadOrganizationsFromLocalStorage();
+    
+    // Nếu không có dữ liệu trong localStorage, dùng dữ liệu mẫu
+    if (this.danhSachToChuc.length === 0) {
+      this.danhSachToChuc = [
       {
         maToChuc: 1,
         maTaiKhoan: 11,
@@ -97,6 +107,7 @@ export class ToChucListComponent implements OnInit {
         diemTrungBinh: 3.9
       }
     ];
+    }
   }
 
   getTrangThaiText(trangThai: TrangThaiXacMinh): string {
@@ -123,5 +134,48 @@ export class ToChucListComponent implements OnInit {
       default:
         return '';
     }
+  }
+  
+  loadOrganizationsFromLocalStorage(): void {
+    // Lấy danh sách tổ chức từ LocalStorage
+    this.localOrganizations = this.localDataService.getOrganizations();
+    
+    if (this.localOrganizations && this.localOrganizations.length > 0) {
+      // Chuyển đổi dữ liệu từ LocalStorage sang định dạng ToChuc
+      this.danhSachToChuc = this.localOrganizations.map(org => {
+        // Chuyển đổi trạng thái xác minh
+        let trangThaiXacMinh: TrangThaiXacMinh;
+        switch (org.verificationStatus) {
+          case 'verified':
+            trangThaiXacMinh = TrangThaiXacMinh.DaDuyet;
+            break;
+          case 'rejected':
+            trangThaiXacMinh = TrangThaiXacMinh.TuChoi;
+            break;
+          default:
+            trangThaiXacMinh = TrangThaiXacMinh.ChoDuyet;
+            break;
+        }
+        
+        return {
+          maToChuc: org.id,
+          maTaiKhoan: org.userId,
+          tenToChuc: org.name,
+          email: org.email,
+          soDienThoai: org.phone,
+          diaChi: org.address,
+          ngayTao: new Date(), // Không có trường này trong LocalStorage
+          gioiThieu: org.description,
+          anhDaiDien: org.logoUrl || 'https://via.placeholder.com/100',
+          trangThaiXacMinh: trangThaiXacMinh,
+          lyDoTuChoi: org.rejectionReason,
+          diemTrungBinh: org.rating
+        };
+      });
+    }
+  }
+  
+  viewOrganizationDetails(maToChuc: number): void {
+    this.router.navigate(['/organization-detail', maToChuc]);
   }
 }

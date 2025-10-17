@@ -1,0 +1,405 @@
+<div class="container my-4">
+  <div class="row g-4">
+    <!-- Sidebar -->
+    <aside class="col-lg-3">
+      <div class="card border-0 shadow-sm p-3 text-center">
+        <div class="mb-3">
+          <div class="position-relative mx-auto" style="width: 120px; height: 120px;">
+            <img *ngIf="previewUrl" [src]="previewUrl" alt="Logo" class="rounded-circle w-100 h-100 object-fit-cover" />
+            <img *ngIf="!previewUrl" src="/assets/corporate.png" alt="Logo" class="rounded-circle w-100 h-100 object-fit-cover" />
+          </div>
+          <h5 class="mt-3 mb-1">{{ organization?.tenToChuc || 'Tổ chức' }}</h5>
+          <p class="text-muted small">Điểm đánh giá: {{ organization?.diemTrungBinh || 0 }}</p>
+          <span class="badge" [ngClass]="getTrangThaiClass(organization?.trangThaiXacMinh || 0)">
+            {{ getTrangThaiText(organization?.trangThaiXacMinh || 0) }}
+          </span>
+        </div>
+        <div class="list-group">
+          <button class="list-group-item list-group-item-action"
+                  [class.active]="selectedMenuItem === 'profile'"
+                  (click)="selectMenuItem('profile')">
+            Hồ sơ tổ chức
+          </button>
+          <button class="list-group-item list-group-item-action"
+                  [class.active]="selectedMenuItem === 'events'"
+                  (click)="selectMenuItem('events')">
+            Sự kiện
+          </button>
+          <button class="list-group-item list-group-item-action"
+                  [class.active]="selectedMenuItem === 'volunteers'"
+                  (click)="selectMenuItem('volunteers')">
+            Tình nguyện viên
+          </button>
+          <button class="list-group-item list-group-item-action"
+                  [class.active]="selectedMenuItem === 'evaluations'"
+                  (click)="selectMenuItem('evaluations')">
+            Đánh giá & phản hồi
+          </button>
+          <button class="list-group-item list-group-item-action"
+                  [class.active]="selectedMenuItem === 'notifications'"
+                  (click)="selectMenuItem('notifications')">
+            Thông báo
+          </button>
+          <button class="list-group-item list-group-item-action"
+                  [class.active]="selectedMenuItem === 'legal'"
+                  (click)="selectMenuItem('legal')">
+            Giấy tờ pháp lý
+          </button>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Content -->
+    <main class="col-lg-9">
+      <!-- Hồ sơ tổ chức -->
+      <div *ngIf="selectedMenuItem === 'profile'" class="card border-0 shadow-sm p-4">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+          <h4 class="fw-semibold mb-0">Thông tin tổ chức</h4>
+          <button class="btn btn-success" (click)="onSubmit()">
+            {{ organization?.maToChuc ? 'Cập nhật hồ sơ' : 'Đăng ký tổ chức' }}
+          </button>
+        </div>
+
+        <form [formGroup]="organizationForm">
+          <div class="row g-4">
+            <!-- Logo -->
+            <div class="col-md-4 text-center">
+              <div class="position-relative">
+                <input type="file" id="logo" accept="image/*" (change)="onFileSelected($event)" hidden />
+                <label for="logo" class="d-inline-block border border-2 border-success rounded-circle overflow-hidden" style="width: 150px; height: 150px; cursor: pointer;">
+                  <img *ngIf="previewUrl" [src]="previewUrl" alt="Logo" class="w-100 h-100 object-fit-cover" />
+                  <span *ngIf="!previewUrl" class="display-5 text-secondary d-flex align-items-center justify-content-center h-100">+</span>
+                </label>
+              </div>
+              <p class="mt-2 small text-muted">Điểm đánh giá: {{ organization?.diemTrungBinh || 0 }}</p>
+              <p class="mt-2 small" *ngIf="organization?.trangThaiXacMinh === 2 && organization?.lyDoTuChoi">
+                <strong class="text-danger">Lý do từ chối:</strong> {{ organization?.lyDoTuChoi }}
+              </p>
+            </div>
+
+            <!-- Form Fields -->
+            <div class="col-md-8">
+              <div class="row g-3">
+                <div class="col-md-6">
+                  <label class="form-label">Tên tổ chức *</label>
+                  <input type="text" formControlName="tenToChuc" class="form-control" placeholder="Nhập tên tổ chức" />
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">Email *</label>
+                  <input type="email" formControlName="email" class="form-control" placeholder="Nhập email" />
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">Mã số thuế</label>
+                  <input type="text" formControlName="maSoThue" class="form-control" placeholder="Nhập mã số thuế" />
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">SĐT</label>
+                  <input type="tel" formControlName="soDienThoai" class="form-control" placeholder="Nhập số điện thoại" />
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">Người đại diện</label>
+                  <input type="text" formControlName="nguoiDaiDien" class="form-control" placeholder="Nhập tên người đại diện" />
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">SĐT người đại diện</label>
+                  <input type="tel" formControlName="sdtNguoiDaiDien" class="form-control" placeholder="Nhập SĐT người đại diện" />
+                </div>
+
+                <div class="col-12">
+                  <label class="form-label">Địa chỉ</label>
+                  <input type="text" formControlName="diaChi" class="form-control" placeholder="Nhập địa chỉ" />
+                </div>
+                <div class="col-12">
+                  <label class="form-label">Giới thiệu</label>
+                  <textarea formControlName="gioiThieu" class="form-control" rows="3" placeholder="Giới thiệu về tổ chức..."></textarea>
+                </div>
+              </div>
+            </div>
+          </div>
+        </form>
+      </div>
+
+      <!-- Sự kiện -->
+      <div *ngIf="selectedMenuItem === 'events'" class="card border-0 shadow-sm p-4">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+          <h4 class="fw-semibold mb-0">Quản lý sự kiện</h4>
+          <button class="btn btn-success" routerLink="/events/create">
+            <i class="bi bi-plus-circle me-2"></i>Tạo sự kiện mới
+          </button>
+        </div>
+
+        <ul class="nav nav-tabs mb-4">
+          <li class="nav-item">
+            <a class="nav-link" [class.active]="eventsTab === 'all'" (click)="selectEventsTab('all')">
+              Tất cả
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" [class.active]="eventsTab === 'active'" (click)="selectEventsTab('active')">
+              Đang diễn ra
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" [class.active]="eventsTab === 'upcoming'" (click)="selectEventsTab('upcoming')">
+              Sắp diễn ra
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" [class.active]="eventsTab === 'past'" (click)="selectEventsTab('past')">
+              Đã kết thúc
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" [class.active]="eventsTab === 'draft'" (click)="selectEventsTab('draft')">
+              Bản nháp
+            </a>
+          </li>
+        </ul>
+
+        <div class="table-responsive">
+          <table class="table table-hover">
+            <thead class="table-light">
+              <tr>
+                <th>Tên sự kiện</th>
+                <th>Thời gian bắt đầu</th>
+                <th>Trạng thái</th>
+                <th>Số TNV đăng ký</th>
+                <th>Thao tác</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngIf="!events?.length">
+                <td colspan="5" class="text-center py-3">Không có sự kiện nào</td>
+              </tr>
+              <tr *ngFor="let event of events">
+                <td>{{ event.tenSuKien }}</td>
+                <td>{{ event.thoiGianBatDau | date:'dd/MM/yyyy HH:mm' }}</td>
+                <td>
+                  <span class="badge" [ngClass]="getEventStatusClass(event.trangThai)">
+                    {{ getEventStatusText(event.trangThai) }}
+                  </span>
+                </td>
+                <td>{{ event.soLuongDangKy }}/{{ event.soLuongTNV }}</td>
+                <td>
+                  <button class="btn btn-sm btn-outline-primary me-1" [routerLink]="['/events', event.maSuKien]">
+                    Chi tiết
+                  </button>
+                  <button class="btn btn-sm btn-outline-success me-1" [routerLink]="['/events', event.maSuKien, 'edit']">
+                    Sửa
+                  </button>
+                  <button class="btn btn-sm btn-outline-danger" (click)="deleteEvent(event.maSuKien)">
+                    Xóa
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Tình nguyện viên -->
+      <div *ngIf="selectedMenuItem === 'volunteers'" class="card border-0 shadow-sm p-4">
+        <h4 class="fw-semibold mb-4">Quản lý tình nguyện viên</h4>
+        
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <div>
+            <select class="form-select" [(ngModel)]="selectedEvent" (change)="loadVolunteersByEvent()">
+              <option value="">-- Chọn sự kiện --</option>
+              <option *ngFor="let event of allEvents" [value]="event.maSuKien">{{ event.tenSuKien }}</option>
+            </select>
+          </div>
+          <div>
+            <input type="text" class="form-control" placeholder="Tìm kiếm tình nguyện viên..." [(ngModel)]="searchVolunteerTerm" (input)="searchVolunteers()">
+          </div>
+        </div>
+
+        <div class="table-responsive">
+          <table class="table table-hover">
+            <thead class="table-light">
+              <tr>
+                <th>Họ tên</th>
+                <th>Email</th>
+                <th>Vai trò</th>
+                <th>Trạng thái</th>
+                <th>Thao tác</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngIf="!volunteers?.length">
+                <td colspan="5" class="text-center py-3">Không có tình nguyện viên nào</td>
+              </tr>
+              <tr *ngFor="let volunteer of volunteers">
+                <td>{{ volunteer.hoTen }}</td>
+                <td>{{ volunteer.email }}</td>
+                <td>{{ volunteer.vaiTro }}</td>
+                <td>
+                  <span class="badge" [ngClass]="getVolunteerStatusClass(volunteer.trangThai)">
+                    {{ getVolunteerStatusText(volunteer.trangThai) }}
+                  </span>
+                </td>
+                <td>
+                  <button class="btn btn-sm btn-outline-primary me-1" (click)="viewVolunteerProfile(volunteer.maTNV)">
+                    Xem hồ sơ
+                  </button>
+                  <button *ngIf="volunteer.trangThai === 0" class="btn btn-sm btn-success me-1" (click)="approveVolunteer(volunteer.maDangKy)">
+                    Phê duyệt
+                  </button>
+                  <button *ngIf="volunteer.trangThai === 0" class="btn btn-sm btn-danger me-1" (click)="rejectVolunteer(volunteer.maDangKy)">
+                    Từ chối
+                  </button>
+                  <button *ngIf="volunteer.trangThai === 1" class="btn btn-sm btn-warning me-1" (click)="evaluateVolunteer(volunteer.maTNV)">
+                    Đánh giá
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Đánh giá & phản hồi -->
+      <div *ngIf="selectedMenuItem === 'evaluations'" class="card border-0 shadow-sm p-4">
+        <h4 class="fw-semibold mb-4">Đánh giá & phản hồi</h4>
+        
+        <div class="d-flex align-items-center justify-content-center mb-4">
+          <div class="text-center">
+            <div class="display-1 fw-bold text-success">{{ organization?.diemTrungBinh || 0 }}</div>
+            <div class="text-muted">Điểm trung bình</div>
+            <div class="mt-2">
+              <span class="me-2">{{ organization?.tongLuotDanhGia || 0 }} lượt đánh giá</span>
+            </div>
+          </div>
+        </div>
+
+        <hr>
+        
+        <div class="mt-4">
+          <h5 class="mb-3">Đánh giá từ tình nguyện viên</h5>
+          <div *ngIf="!evaluations?.length" class="text-center py-3">
+            <p class="text-muted">Chưa có đánh giá nào</p>
+          </div>
+          <div *ngFor="let eval of evaluations" class="card mb-3">
+            <div class="card-body">
+              <div class="d-flex justify-content-between">
+                <div>
+                  <h6 class="card-subtitle mb-2">{{ eval.tenTNV }}</h6>
+                  <p class="card-text">{{ eval.noiDung }}</p>
+                </div>
+                <div class="text-end">
+                  <div class="fw-bold text-success">{{ eval.diem }}/5 ⭐</div>
+                  <small class="text-muted">{{ eval.ngayDanhGia | date:'dd/MM/yyyy' }}</small>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Thông báo -->
+      <div *ngIf="selectedMenuItem === 'notifications'" class="card border-0 shadow-sm p-4">
+        <h4 class="fw-semibold mb-4">Thông báo</h4>
+        
+        <div class="list-group">
+          <div *ngIf="!notifications?.length" class="text-center py-3">
+            <p class="text-muted">Không có thông báo nào</p>
+          </div>
+          <a *ngFor="let notice of notifications" href="javascript:void(0)" class="list-group-item list-group-item-action" [class.active]="!notice.daDoc" (click)="readNotification(notice.maThongBao)">
+            <div class="d-flex w-100 justify-content-between">
+              <h6 class="mb-1">{{ notice.tieuDe }}</h6>
+              <small>{{ notice.ngayGui | date:'dd/MM/yyyy' }}</small>
+            </div>
+            <p class="mb-1 text-truncate">{{ notice.noiDung }}</p>
+            <small class="text-muted">Từ: {{ notice.nguoiGui }}</small>
+          </a>
+        </div>
+      </div>
+
+      <!-- Giấy tờ pháp lý -->
+      <div *ngIf="selectedMenuItem === 'legal'" class="card border-0 shadow-sm p-4">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+          <h4 class="fw-semibold mb-0">Giấy tờ pháp lý</h4>
+          <button class="btn btn-success" (click)="openUploadForm()">
+            <i class="bi bi-plus-circle me-2"></i>Thêm giấy tờ mới
+          </button>
+        </div>
+
+        <!-- Form tải lên giấy tờ -->
+        <div *ngIf="showUploadForm" class="card mb-4">
+          <div class="card-body">
+            <h5 class="card-title mb-3">Tải lên giấy tờ</h5>
+            
+            <form [formGroup]="documentForm">
+              <div class="mb-3">
+                <label class="form-label">Tên giấy tờ *</label>
+                <input type="text" formControlName="tenGiayTo" class="form-control" placeholder="Nhập tên giấy tờ" />
+              </div>
+              
+              <div class="mb-3">
+                <label class="form-label">Loại giấy tờ *</label>
+                <select formControlName="loaiGiayTo" class="form-select">
+                  <option value="">-- Chọn loại giấy tờ --</option>
+                  <option value="GiayPhepKinhDoanh">Giấy phép kinh doanh</option>
+                  <option value="ThanhLapToChuc">Giấy phép thành lập tổ chức</option>
+                  <option value="ChungNhanHoatDong">Giấy chứng nhận hoạt động</option>
+                  <option value="Khac">Khác</option>
+                </select>
+              </div>
+              
+              <div class="mb-3">
+                <label class="form-label">Mô tả</label>
+                <textarea formControlName="moTa" class="form-control" rows="3" placeholder="Mô tả giấy tờ..."></textarea>
+              </div>
+              
+              <div class="mb-3">
+                <label class="form-label">Tệp đính kèm *</label>
+                <input type="file" class="form-control" (change)="onDocumentSelected($event)" />
+              </div>
+              
+              <div class="text-end">
+                <button type="button" class="btn btn-secondary me-2" (click)="cancelUpload()">Hủy</button>
+                <button type="button" class="btn btn-primary" (click)="uploadDocument()">Tải lên</button>
+              </div>
+            </form>
+          </div>
+        </div>
+
+        <div class="table-responsive">
+          <table class="table table-hover">
+            <thead class="table-light">
+              <tr>
+                <th>Tên giấy tờ</th>
+                <th>Loại</th>
+                <th>Ngày tải lên</th>
+                <th>Trạng thái</th>
+                <th>Thao tác</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngIf="!legalDocuments?.length">
+                <td colspan="5" class="text-center py-3">Chưa có giấy tờ pháp lý nào</td>
+              </tr>
+              <tr *ngFor="let doc of legalDocuments">
+                <td>{{ doc.tenGiayTo }}</td>
+                <td>{{ getDocumentTypeText(doc.loaiGiayTo) }}</td>
+                <td>{{ doc.ngayTao | date:'dd/MM/yyyy' }}</td>
+                <td>
+                  <span class="badge" [ngClass]="getDocumentStatusClass(doc.trangThai)">
+                    {{ getDocumentStatusText(doc.trangThai) }}
+                  </span>
+                </td>
+                <td>
+                  <a class="btn btn-sm btn-outline-primary me-1" [href]="doc.duongDanFile" target="_blank">
+                    Xem
+                  </a>
+                  <button class="btn btn-sm btn-outline-danger" (click)="deleteDocument(doc.maGiayTo)">
+                    Xóa
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>

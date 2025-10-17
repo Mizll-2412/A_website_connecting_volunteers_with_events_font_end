@@ -9,6 +9,7 @@ import { EventService } from '../../services/event';
 import { ToChucService } from '../../services/organization';
 import { ToChucResponseDto } from '../../models/organiztion';
 import { TinhNguyenVien } from '../../models/volunteer';
+import { LocalDataService, Event as LocalEvent, Organization, Volunteer, EventRegistration } from '../../services/local-data';
 import { FormsModule } from '@angular/forms';
 
 @Component({
@@ -178,6 +179,12 @@ export class EventRegisteredComponent implements OnInit, OnDestroy {
   toChucs: ToChucResponseDto[] = [];
   filteredEvents: any[] = [];
   
+  // Dữ liệu từ LocalStorage
+  localEvents: LocalEvent[] = [];
+  localOrganizations: Organization[] = [];
+  localVolunteer?: Volunteer;
+  registrations: EventRegistration[] = [];
+  
   // Biến lưu trữ cho tính năng lọc
   eventTypes = ['Tất cả', 'Phù hợp với bạn', 'Nổi bật', 'Đang diễn ra'];
   selectedEventType = 'Tất cả';
@@ -195,13 +202,15 @@ export class EventRegisteredComponent implements OnInit, OnDestroy {
   isLoggedIn = false;
   username = '';
   role = '';
+  volunteerId: number = 0;
 
   constructor(
     private router: Router,
     private auth: AuthService,
     private eventS: EventService,
     private org: ToChucService,
-    private http: HttpClient
+    private http: HttpClient,
+    private localDataService: LocalDataService
   ) { }
 
   ngOnDestroy(): void {
@@ -218,17 +227,23 @@ export class EventRegisteredComponent implements OnInit, OnDestroy {
     if (userInfo) {
       this.user = JSON.parse(userInfo);
       this.loadVolunteerInfo();
+      
+      // Lấy thông tin TNV từ LocalStorage
+      if (this.user?.maTaiKhoan) {
+        const localVolunteer = this.localDataService.getVolunteerByUserId(this.user.maTaiKhoan);
+        if (localVolunteer) {
+          this.localVolunteer = localVolunteer;
+          this.volunteerId = localVolunteer.id;
+          // Lấy các đăng ký của TNV
+          this.registrations = this.localDataService.getRegistrationsByVolunteer(localVolunteer.id);
+        }
+      }
     }
-
-    // Thêm tên tổ chức vào danh sách lọc
-    this.mockOrganizations.forEach(org => {
-      this.organizations.push(org.tenToChuc);
-    });
-
-    // Ban đầu, hiển thị tất cả sự kiện
-    this.filteredEvents = [...this.mockEvents];
     
-    // Thử API, nếu không hoạt động thì sử dụng mockdata
+    // Lấy dữ liệu từ LocalStorage
+    this.loadLocalData();
+    
+    // Thử API, nếu không hoạt động thì sử dụng LocalStorage
     this.loadSuKien();
     this.loadTochuc();
   }
@@ -281,8 +296,69 @@ export class EventRegisteredComponent implements OnInit, OnDestroy {
     });
   }
 
+  loadLocalData(): void {
+    // Lấy dữ liệu sự kiện và tổ chức từ LocalStorage
+    this.localEvents = this.localDataService.getEvents();
+    this.localOrganizations = this.localDataService.getOrganizations();
+    
+    // Cập nhật danh sách tổ chức cho bộ lọc
+    this.organizations = ['Tất cả'];
+    this.localOrganizations.forEach(org => {
+      this.organizations.push(org.name);
+    });
+    
+    // Chuyển đổi dữ liệu để hiển thị
+    this.convertLocalDataToDisplayFormat();
+  }
+  
+  convertLocalDataToDisplayFormat(): void {
+    // Chuyển đổi dữ liệu từ LocalEvent sang format hiển thị
+    this.filteredEvents = this.localEvents.map(event => {
+      const now = new Date();
+      const startDate = new Date(event.startDate);
+      const endDate = new Date(event.endDate);
+      const isOngoing = now >= startDate && now <= endDate;
+      
+      // Tính matchRate giả lập dựa trên kỹ năng và lĩnh vực nếu có TNV đăng nhập
+      let matchRate = 0;
+      if (this.localVolunteer) {
+        const commonSkills = event.requireSkills.filter(skill => 
+          this.localVolunteer?.skills.includes(skill));
+        const commonFields = event.fields.filter(field => 
+          this.localVolunteer?.fields.includes(field));
+          
+        if (event.requireSkills.length > 0 && event.fields.length > 0) {
+          matchRate = Math.round((commonSkills.length / event.requireSkills.length * 0.6 + 
+                             commonFields.length / event.fields.length * 0.4) * 100);
+        }
+      } else {
+        // Nếu không có TNV, gán giá trị ngẫu nhiên
+        matchRate = Math.round(Math.random() * 30) + 60; // 60-90
+      }
+      
+      // Kiểm tra đã đăng ký chưa
+      const isRegistered = this.registrations.some(reg => reg.eventId === event.id);
+      
+      return {
+        maSuKien: event.id,
+        tenSuKien: event.title,
+        noiDung: event.description,
+        diaChi: event.location,
+        ngayBatDau: new Date(event.startDate),
+        ngayKetThuc: new Date(event.endDate),
+        hinhAnh: '/uploads/avatars/1_20251015005804.png', // Default image
+        maToChuc: event.organizationId,
+        trangThai: event.status === 'active' ? 'Đã duyệt' : 'Đã hủy',
+        isFeatured: event.id % 2 === 0, // Giả lập: các ID chẵn là nổi bật
+        matchRate: matchRate,
+        isOngoing: isOngoing,
+        isRegistered: isRegistered
+      };
+    });
+  }
+  
   applyFilters(): void {
-    let results = [...this.mockEvents];
+    let results = this.convertLocalEventsToDisplay();
     
     // Lọc theo loại sự kiện
     if (this.selectedEventType === 'Phù hợp với bạn') {
@@ -301,9 +377,9 @@ export class EventRegisteredComponent implements OnInit, OnDestroy {
     
     // Lọc theo tổ chức
     if (this.selectedOrganization !== 'Tất cả') {
-      const orgId = this.mockOrganizations.find(org => org.tenToChuc === this.selectedOrganization)?.maToChuc;
-      if (orgId) {
-        results = results.filter(event => event.maToChuc === orgId);
+      const org = this.localOrganizations.find(o => o.name === this.selectedOrganization);
+      if (org) {
+        results = results.filter(event => event.maToChuc === org.id);
       }
     }
     
@@ -319,19 +395,65 @@ export class EventRegisteredComponent implements OnInit, OnDestroy {
     
     this.filteredEvents = results;
   }
+  
+  convertLocalEventsToDisplay(): any[] {
+    return this.localEvents.map(event => {
+      const now = new Date();
+      const startDate = new Date(event.startDate);
+      const endDate = new Date(event.endDate);
+      const isOngoing = now >= startDate && now <= endDate;
+      
+      // Tính matchRate giả lập dựa trên kỹ năng và lĩnh vực nếu có TNV đăng nhập
+      let matchRate = 0;
+      if (this.localVolunteer) {
+        const commonSkills = event.requireSkills.filter(skill => 
+          this.localVolunteer?.skills.includes(skill));
+        const commonFields = event.fields.filter(field => 
+          this.localVolunteer?.fields.includes(field));
+          
+        if (event.requireSkills.length > 0 && event.fields.length > 0) {
+          matchRate = Math.round((commonSkills.length / event.requireSkills.length * 0.6 + 
+                             commonFields.length / event.fields.length * 0.4) * 100);
+        }
+      } else {
+        // Nếu không có TNV, gán giá trị ngẫu nhiên
+        matchRate = Math.round(Math.random() * 30) + 60; // 60-90
+      }
+      
+      // Kiểm tra đã đăng ký chưa
+      const isRegistered = this.registrations.some(reg => reg.eventId === event.id);
+      
+      return {
+        maSuKien: event.id,
+        tenSuKien: event.title,
+        noiDung: event.description,
+        diaChi: event.location,
+        ngayBatDau: new Date(event.startDate),
+        ngayKetThuc: new Date(event.endDate),
+        hinhAnh: '/uploads/avatars/1_20251015005804.png', // Default image
+        maToChuc: event.organizationId,
+        trangThai: event.status === 'active' ? 'Đã duyệt' : 'Đã hủy',
+        isFeatured: event.id % 2 === 0, // Giả lập: các ID chẵn là nổi bật
+        matchRate: matchRate,
+        isOngoing: isOngoing,
+        isRegistered: isRegistered
+      };
+    });
+  }
 
   resetFilters(): void {
     this.selectedEventType = 'Tất cả';
     this.selectedLocation = 'Tất cả';
     this.selectedOrganization = 'Tất cả';
     this.searchKeyword = '';
-    this.filteredEvents = [...this.mockEvents];
+    this.convertLocalDataToDisplayFormat();
   }
 
   thamGiaSuKien(maSuKien: number): void {
-    if (!this.volunteer || !this.volunteer.maTNV) {
+    // Kiểm tra xem đã có thông tin TNV chưa
+    if (!this.localVolunteer) {
       alert('Vui lòng hoàn thiện hồ sơ tình nguyện viên trước khi đăng ký sự kiện');
-      this.router.navigate(['/profile']); // Chuyển đến trang profile
+      this.router.navigate(['/volunteer-profile']); // Chuyển đến trang profile
       return;
     }
 
@@ -339,30 +461,59 @@ export class EventRegisteredComponent implements OnInit, OnDestroy {
       alert('Chỉ tình nguyện viên mới có thể đăng ký sự kiện');
       return;
     }
+    
+    // Kiểm tra đã đăng ký chưa
+    const isAlreadyRegistered = this.registrations.some(reg => reg.eventId === maSuKien);
+    if (isAlreadyRegistered) {
+      alert('Bạn đã đăng ký sự kiện này rồi');
+      return;
+    }
 
-    const donDangKy = {
-      maTNV: this.volunteer.maTNV,
-      maSuKien: maSuKien,
-      ghiChu: ''
-    };
-
-    // Thử gọi API
-    this.http.post(this.apiUrl, donDangKy).subscribe({
-      next: (res: any) => {
-        alert(res.message || 'Đăng ký tham gia thành công!');
-        this.router.navigate(['/my-registrations']);
-      },
-      error: (err) => {
-        // Nếu API lỗi, giả lập thành công
-        alert('Đăng ký tham gia thành công!');
-        console.error('Lỗi đăng ký:', err);
-      }
+    // Đăng ký sự kiện trong localStorage
+    const registration = this.localDataService.createRegistration({
+      eventId: maSuKien,
+      volunteerId: this.localVolunteer.id,
+      volunteerName: this.localVolunteer.name,
+      status: 'pending'
     });
+
+    if (registration) {
+      alert('Đăng ký tham gia thành công! Vui lòng đợi ban tổ chức phê duyệt.');
+      // Cập nhật lại danh sách đăng ký
+      this.registrations = this.localDataService.getRegistrationsByVolunteer(this.localVolunteer.id);
+      // Cập nhật hiển thị
+      this.convertLocalDataToDisplayFormat();
+    } else {
+      alert('Có lỗi xảy ra khi đăng ký. Hãy thử lại sau!');
+    }
+    
+    // Thử gọi API
+    if (this.volunteer && this.volunteer.maTNV) {
+      const donDangKy = {
+        maTNV: this.volunteer.maTNV,
+        maSuKien: maSuKien,
+        ghiChu: ''
+      };
+      
+      this.http.post(this.apiUrl, donDangKy).subscribe({
+        next: (res: any) => {
+          console.log('API đăng ký thành công:', res);
+        },
+        error: (err) => {
+          console.error('Lỗi đăng ký qua API:', err);
+        }
+      });
+    }
   }
 
   getTenToChuc(maToChuc: number): string {
-    const toChuc = this.mockOrganizations.find(tc => tc.maToChuc === maToChuc);
-    return toChuc?.tenToChuc || 'Chưa có thông tin';
+    // Kiểm tra trong dữ liệu LocalStorage
+    const toChuc = this.localOrganizations.find(tc => tc.id === maToChuc);
+    if (toChuc) return toChuc.name;
+    
+    // Nếu không có, kiểm tra trong mockdata cũ
+    const mockToChuc = this.mockOrganizations.find(tc => tc.maToChuc === maToChuc);
+    return mockToChuc?.tenToChuc || 'Chưa có thông tin';
   }
 
   viewEventDetails(maSuKien: number): void {

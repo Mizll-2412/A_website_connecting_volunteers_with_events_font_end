@@ -1,0 +1,408 @@
+<div class="container my-4">
+  <div class="row g-4">
+    <!-- Sidebar -->
+    <aside class="col-lg-3">
+      <div class="card border-0 shadow-sm p-3 text-center">
+        <div class="mb-3">
+          <div class="position-relative mx-auto" style="width: 120px; height: 120px;">
+            <img *ngIf="previewUrl" [src]="previewUrl" alt="Avatar" class="rounded-circle w-100 h-100 object-fit-cover" />
+            <img *ngIf="!previewUrl" src="/assets/user.png" alt="Avatar" class="rounded-circle w-100 h-100 object-fit-cover" />
+          </div>
+          <h5 class="mt-3 mb-1">{{ admin?.hoTen || 'Quản trị viên' }}</h5>
+          <p class="text-muted small">Admin</p>
+        </div>
+        <div class="list-group">
+          <button class="list-group-item list-group-item-action"
+                  [class.active]="selectedMenuItem === 'profile'"
+                  (click)="selectMenuItem('profile')">
+            Hồ sơ cá nhân
+          </button>
+          <button class="list-group-item list-group-item-action"
+                  [class.active]="selectedMenuItem === 'notifications'"
+                  (click)="selectMenuItem('notifications')">
+            Quản lý thông báo
+          </button>
+          <button class="list-group-item list-group-item-action"
+                  [class.active]="selectedMenuItem === 'approvals'"
+                  (click)="selectMenuItem('approvals')">
+            Phê duyệt
+          </button>
+          <button class="list-group-item list-group-item-action"
+                  [class.active]="selectedMenuItem === 'stats'"
+                  (click)="selectMenuItem('stats')">
+            Thống kê hệ thống
+          </button>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Content -->
+    <main class="col-lg-9">
+      <!-- Hồ sơ cá nhân -->
+      <div *ngIf="selectedMenuItem === 'profile'" class="card border-0 shadow-sm p-4">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+          <h4 class="fw-semibold mb-0">Thông tin cá nhân</h4>
+          <button class="btn btn-success" (click)="onSubmit()">
+            Cập nhật thông tin
+          </button>
+        </div>
+
+        <form [formGroup]="profileForm">
+          <div class="row g-4">
+            <!-- Avatar -->
+            <div class="col-md-4 text-center">
+              <div class="position-relative">
+                <input type="file" id="avatar" accept="image/*" (change)="onFileSelected($event)" hidden />
+                <label for="avatar" class="d-inline-block border border-2 border-success rounded-circle overflow-hidden" style="width: 150px; height: 150px; cursor: pointer;">
+                  <img *ngIf="previewUrl" [src]="previewUrl" alt="Avatar" class="w-100 h-100 object-fit-cover" />
+                  <span *ngIf="!previewUrl" class="display-5 text-secondary d-flex align-items-center justify-content-center h-100">+</span>
+                </label>
+              </div>
+              <p class="mt-2 small text-muted">Vị trí: {{ admin?.chucVu || 'Quản trị viên' }}</p>
+            </div>
+
+            <!-- Form Fields -->
+            <div class="col-md-8">
+              <div class="row g-3">
+                <div class="col-md-6">
+                  <label class="form-label">Họ Tên *</label>
+                  <input type="text" formControlName="hoTen" class="form-control" placeholder="Nhập họ tên" />
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">Email *</label>
+                  <input type="email" formControlName="email" class="form-control" placeholder="Nhập email" />
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">CCCD</label>
+                  <input type="text" formControlName="cccd" class="form-control" placeholder="Nhập CCCD" />
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">SĐT</label>
+                  <input type="tel" formControlName="soDienThoai" class="form-control" placeholder="Nhập số điện thoại" />
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">Ngày sinh</label>
+                  <input type="date" formControlName="ngaySinh" class="form-control" />
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">Giới tính</label>
+                  <select formControlName="gioiTinh" class="form-select">
+                    <option value="">-- Chọn giới tính --</option>
+                    <option value="Nam">Nam</option>
+                    <option value="Nữ">Nữ</option>
+                    <option value="Khác">Khác</option>
+                  </select>
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">Chức vụ</label>
+                  <input type="text" formControlName="chucVu" class="form-control" placeholder="Nhập chức vụ" />
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">Phòng ban</label>
+                  <input type="text" formControlName="phongBan" class="form-control" placeholder="Nhập phòng ban" />
+                </div>
+                <div class="col-12">
+                  <label class="form-label">Địa chỉ</label>
+                  <input type="text" formControlName="diaChi" class="form-control" placeholder="Nhập địa chỉ" />
+                </div>
+              </div>
+            </div>
+          </div>
+        </form>
+      </div>
+
+      <!-- Quản lý thông báo -->
+      <div *ngIf="selectedMenuItem === 'notifications'" class="card border-0 shadow-sm p-4">
+        <h4 class="fw-semibold mb-4">Quản lý thông báo</h4>
+        
+        <div class="mb-4">
+          <button class="btn btn-primary" (click)="openNewNotificationForm()">
+            <i class="bi bi-plus-circle me-2"></i>Tạo thông báo mới
+          </button>
+        </div>
+
+        <!-- Form tạo thông báo mới -->
+        <div *ngIf="showNewNotificationForm" class="card mb-4">
+          <div class="card-body">
+            <h5 class="card-title mb-3">Tạo thông báo mới</h5>
+            
+            <form [formGroup]="notificationForm">
+              <div class="mb-3">
+                <label class="form-label">Tiêu đề *</label>
+                <input type="text" formControlName="tieuDe" class="form-control" placeholder="Nhập tiêu đề" />
+              </div>
+              
+              <div class="mb-3">
+                <label class="form-label">Nội dung *</label>
+                <textarea formControlName="noiDung" class="form-control" rows="4" placeholder="Nhập nội dung thông báo"></textarea>
+              </div>
+              
+              <div class="mb-3">
+                <label class="form-label">Gửi đến *</label>
+                <select formControlName="loaiNguoiNhan" class="form-select">
+                  <option value="">-- Chọn người nhận --</option>
+                  <option value="all">Tất cả</option>
+                  <option value="volunteers">Tất cả tình nguyện viên</option>
+                  <option value="organizations">Tất cả tổ chức</option>
+                  <option value="specific">Người dùng cụ thể</option>
+                </select>
+              </div>
+              
+              <div *ngIf="notificationForm.get('loaiNguoiNhan')?.value === 'specific'" class="mb-3">
+                <label class="form-label">Chọn người nhận</label>
+                <div class="input-group">
+                  <input type="text" class="form-control" placeholder="Tìm kiếm người dùng..." />
+                  <button class="btn btn-outline-secondary" type="button">Tìm</button>
+                </div>
+                
+                <div class="mt-2 p-2 border rounded" style="max-height: 150px; overflow-y: auto;">
+                  <div *ngFor="let user of searchedUsers" class="form-check">
+                    <input class="form-check-input" type="checkbox" [value]="user.id" [id]="'user-' + user.id">
+                    <label class="form-check-label" [for]="'user-' + user.id">
+                      {{ user.name }} ({{ user.role }})
+                    </label>
+                  </div>
+                </div>
+              </div>
+              
+              <div class="text-end">
+                <button type="button" class="btn btn-secondary me-2" (click)="cancelNotificationForm()">Hủy</button>
+                <button type="button" class="btn btn-primary" (click)="sendNotification()">Gửi thông báo</button>
+              </div>
+            </form>
+          </div>
+        </div>
+
+        <!-- Danh sách thông báo đã gửi -->
+        <div class="table-responsive">
+          <table class="table table-hover">
+            <thead class="table-light">
+              <tr>
+                <th style="width: 20%">Tiêu đề</th>
+                <th style="width: 30%">Nội dung</th>
+                <th style="width: 15%">Người nhận</th>
+                <th style="width: 15%">Ngày gửi</th>
+                <th style="width: 10%">Đã đọc</th>
+                <th style="width: 10%">Thao tác</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngIf="!sentNotifications?.length">
+                <td colspan="6" class="text-center py-3">Chưa có thông báo nào được gửi</td>
+              </tr>
+              <tr *ngFor="let notice of sentNotifications">
+                <td>{{ notice.tieuDe }}</td>
+                <td>{{ notice.noiDung | slice:0:50 }}{{ notice.noiDung.length > 50 ? '...' : '' }}</td>
+                <td>{{ notice.loaiNguoiNhan }}</td>
+                <td>{{ notice.ngayGui | date:'dd/MM/yyyy' }}</td>
+                <td>{{ notice.soNguoiDoc }}/{{ notice.tongSoNguoiNhan }}</td>
+                <td>
+                  <button class="btn btn-sm btn-outline-info me-1" (click)="viewNotificationDetail(notice.maThongBao)">
+                    <i class="bi bi-eye"></i>
+                  </button>
+                  <button class="btn btn-sm btn-outline-danger" (click)="deleteNotification(notice.maThongBao)">
+                    <i class="bi bi-trash"></i>
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Phê duyệt -->
+      <div *ngIf="selectedMenuItem === 'approvals'" class="card border-0 shadow-sm p-4">
+        <h4 class="fw-semibold mb-4">Phê duyệt</h4>
+        
+        <ul class="nav nav-tabs mb-4">
+          <li class="nav-item">
+            <a class="nav-link" [class.active]="approvalTab === 'organizations'" (click)="selectApprovalTab('organizations')">
+              Tổ chức
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" [class.active]="approvalTab === 'events'" (click)="selectApprovalTab('events')">
+              Sự kiện
+            </a>
+          </li>
+        </ul>
+        
+        <!-- Phê duyệt tổ chức -->
+        <div *ngIf="approvalTab === 'organizations'">
+          <div class="table-responsive">
+            <table class="table table-hover">
+              <thead class="table-light">
+                <tr>
+                  <th>Tên tổ chức</th>
+                  <th>Email</th>
+                  <th>Ngày đăng ký</th>
+                  <th>Trạng thái</th>
+                  <th>Thao tác</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngIf="!pendingOrganizations?.length">
+                  <td colspan="5" class="text-center py-3">Không có tổ chức cần phê duyệt</td>
+                </tr>
+                <tr *ngFor="let org of pendingOrganizations">
+                  <td>{{ org.tenToChuc }}</td>
+                  <td>{{ org.email }}</td>
+                  <td>{{ org.ngayTao | date:'dd/MM/yyyy' }}</td>
+                  <td><span class="badge bg-warning">Chờ xác minh</span></td>
+                  <td>
+                    <button class="btn btn-sm btn-outline-info me-1" (click)="viewOrganizationDetail(org.maToChuc)">
+                      Chi tiết
+                    </button>
+                    <button class="btn btn-sm btn-success me-1" (click)="approveOrganization(org.maToChuc)">
+                      Duyệt
+                    </button>
+                    <button class="btn btn-sm btn-danger" (click)="rejectOrganization(org.maToChuc)">
+                      Từ chối
+                    </button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        
+        <!-- Phê duyệt sự kiện -->
+        <div *ngIf="approvalTab === 'events'">
+          <div class="table-responsive">
+            <table class="table table-hover">
+              <thead class="table-light">
+                <tr>
+                  <th>Tên sự kiện</th>
+                  <th>Tổ chức</th>
+                  <th>Thời gian bắt đầu</th>
+                  <th>Trạng thái</th>
+                  <th>Thao tác</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngIf="!pendingEvents?.length">
+                  <td colspan="5" class="text-center py-3">Không có sự kiện cần phê duyệt</td>
+                </tr>
+                <tr *ngFor="let event of pendingEvents">
+                  <td>{{ event.tenSuKien }}</td>
+                  <td>{{ event.tenToChuc }}</td>
+                  <td>{{ event.thoiGianBatDau | date:'dd/MM/yyyy HH:mm' }}</td>
+                  <td><span class="badge bg-warning">Chờ duyệt</span></td>
+                  <td>
+                    <button class="btn btn-sm btn-outline-info me-1" (click)="viewEventDetail(event.maSuKien)">
+                      Chi tiết
+                    </button>
+                    <button class="btn btn-sm btn-success me-1" (click)="approveEvent(event.maSuKien)">
+                      Duyệt
+                    </button>
+                    <button class="btn btn-sm btn-danger" (click)="rejectEvent(event.maSuKien)">
+                      Từ chối
+                    </button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Thống kê hệ thống -->
+      <div *ngIf="selectedMenuItem === 'stats'" class="card border-0 shadow-sm p-4">
+        <h4 class="fw-semibold mb-4">Thống kê hệ thống</h4>
+        
+        <div class="row g-4">
+          <!-- Tổng quan -->
+          <div class="col-md-3">
+            <div class="card border-0 shadow-sm bg-primary text-white">
+              <div class="card-body text-center">
+                <h3>{{ stats?.totalVolunteers || 0 }}</h3>
+                <p class="mb-0">Tình nguyện viên</p>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="card border-0 shadow-sm bg-success text-white">
+              <div class="card-body text-center">
+                <h3>{{ stats?.totalOrganizations || 0 }}</h3>
+                <p class="mb-0">Tổ chức</p>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="card border-0 shadow-sm bg-info text-white">
+              <div class="card-body text-center">
+                <h3>{{ stats?.totalEvents || 0 }}</h3>
+                <p class="mb-0">Sự kiện</p>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="card border-0 shadow-sm bg-warning text-dark">
+              <div class="card-body text-center">
+                <h3>{{ stats?.totalRegistrations || 0 }}</h3>
+                <p class="mb-0">Lượt đăng ký</p>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Biểu đồ thống kê -->
+        <div class="row mt-4">
+          <div class="col-12">
+            <div class="card">
+              <div class="card-header">
+                <h5 class="card-title mb-0">Thống kê người dùng mới</h5>
+              </div>
+              <div class="card-body">
+                <!-- Nơi đặt component biểu đồ -->
+                <div class="chart-container" style="position: relative; height:300px; width:100%">
+                  <!-- Sẽ tích hợp chart.js hoặc các thư viện biểu đồ khác -->
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Thống kê chi tiết -->
+        <div class="row mt-4">
+          <div class="col-md-6">
+            <div class="card">
+              <div class="card-header">
+                <h5 class="card-title mb-0">Top tổ chức có nhiều sự kiện nhất</h5>
+              </div>
+              <div class="card-body">
+                <ul class="list-group list-group-flush">
+                  <li *ngIf="!topOrganizations?.length" class="list-group-item text-center">
+                    Không có dữ liệu
+                  </li>
+                  <li *ngFor="let org of topOrganizations; let i = index" class="list-group-item d-flex justify-content-between align-items-center">
+                    <span>{{ i + 1 }}. {{ org.tenToChuc }}</span>
+                    <span class="badge bg-primary rounded-pill">{{ org.soSuKien }} sự kiện</span>
+                  </li>
+                </ul>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div class="card">
+              <div class="card-header">
+                <h5 class="card-title mb-0">Top TNV tích cực nhất</h5>
+              </div>
+              <div class="card-body">
+                <ul class="list-group list-group-flush">
+                  <li *ngIf="!topVolunteers?.length" class="list-group-item text-center">
+                    Không có dữ liệu
+                  </li>
+                  <li *ngFor="let vol of topVolunteers; let i = index" class="list-group-item d-flex justify-content-between align-items-center">
+                    <span>{{ i + 1 }}. {{ vol.hoTen }}</span>
+                    <span class="badge bg-success rounded-pill">{{ vol.soSuKienThamGia }} sự kiện</span>
+                  </li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>

@@ -2,7 +2,15 @@
   <div class="row g-4">
     <!-- Sidebar -->
     <aside class="col-lg-3">
-      <div class="card border-0 shadow-sm p-3">
+      <div class="card border-0 shadow-sm p-3 text-center">
+        <div class="mb-3">
+          <div class="position-relative mx-auto" style="width: 120px; height: 120px;">
+            <img *ngIf="previewUrl" [src]="previewUrl" alt="Avatar" class="rounded-circle w-100 h-100 object-fit-cover" />
+            <img *ngIf="!previewUrl" src="/assets/user.png" alt="Avatar" class="rounded-circle w-100 h-100 object-fit-cover" />
+          </div>
+          <h5 class="mt-3 mb-1">{{ volunteer?.hoTen || 'Tình nguyện viên' }}</h5>
+          <p class="text-muted small">Điểm đánh giá: {{ volunteer?.diemTrungBinh || 0 }}</p>
+        </div>
         <div class="list-group">
           <button class="list-group-item list-group-item-action"
                   [class.active]="selectedMenuItem === 'profile'"
@@ -10,8 +18,8 @@
             Hồ sơ cá nhân
           </button>
           <button class="list-group-item list-group-item-action"
-                  [class.active]="selectedMenuItem === 'family'"
-                  (click)="selectMenuItem('family')">
+                  [class.active]="selectedMenuItem === 'events'"
+                  (click)="selectMenuItem('events')">
             Sự kiện đã tham gia
           </button>
           <button class="list-group-item list-group-item-action"
@@ -24,17 +32,22 @@
                   (click)="selectMenuItem('ratings')">
             Đánh giá & điểm uy tín
           </button>
+          <button class="list-group-item list-group-item-action"
+                  [class.active]="selectedMenuItem === 'notifications'"
+                  (click)="selectMenuItem('notifications')">
+            Thông báo
+          </button>
         </div>
       </div>
     </aside>
 
     <!-- Content -->
     <main class="col-lg-9">
-      <div class="card border-0 shadow-sm p-4">
+      <div *ngIf="selectedMenuItem === 'profile'" class="card border-0 shadow-sm p-4">
         <div class="d-flex justify-content-between align-items-center mb-4">
           <h4 class="fw-semibold mb-0">Thông tin cá nhân</h4>
           <button class="btn btn-success" (click)="onSubmit()">
-            {{ volunteer?.maTNV ? 'Cập nhật hồ sơ' : 'Tạo hồ sơ' }}
+            Lưu thông tin
           </button>
         </div>
 
@@ -50,6 +63,7 @@
                 </label>
               </div>
               <p class="mt-2 small text-muted">Điểm đánh giá: {{ volunteer?.diemTrungBinh || 0 }}</p>
+              <p class="mt-2 small text-muted">Trạng thái: <span class="badge bg-success">{{ volunteer?.trangThai || 'Hoạt động' }}</span></p>
             </div>
 
             <!-- Form Fields -->
@@ -101,7 +115,7 @@
                     <div class="col-md-6" *ngFor="let knIdx of [0,1,2,3]">
                       <select class="form-select" (change)="onKyNangChange(knIdx, $event)" [value]="selectedKyNangs[knIdx] || ''">
                         <option value="">-- Chọn kỹ năng {{knIdx + 1}} --</option>
-                        <option *ngFor="let kn of getAvailableKyNangs(knIdx)" [value]="kn.maKyNang">{{ kn.tenKyNang }}</option>
+                        <option *ngFor="let kn of localSkills" [value]="kn.id" [selected]="selectedKyNangs[knIdx] === kn.id">{{ kn.name }}</option>
                       </select>
                     </div>
                   </div>
@@ -114,7 +128,7 @@
                     <div class="col-md-6" *ngFor="let lvIdx of [0,1,2,3]">
                       <select class="form-select" (change)="onLinhVucChange(lvIdx, $event)" [value]="selectedLinhVucs[lvIdx] || ''">
                         <option value="">-- Chọn lĩnh vực {{lvIdx + 1}} --</option>
-                        <option *ngFor="let lv of getAvailableLinhVucs(lvIdx)" [value]="lv.maLinhVuc">{{ lv.tenLinhVuc }}</option>
+                        <option *ngFor="let lv of localFields" [value]="lv.id" [selected]="selectedLinhVucs[lvIdx] === lv.id">{{ lv.name }}</option>
                       </select>
                     </div>
                   </div>
@@ -123,6 +137,125 @@
             </div>
           </div>
         </form>
+      </div>
+
+      <!-- Sự kiện đã tham gia -->
+      <div *ngIf="selectedMenuItem === 'events'" class="card border-0 shadow-sm p-4">
+        <h4 class="fw-semibold mb-4">Sự kiện đã tham gia</h4>
+        <div class="table-responsive">
+          <table class="table table-hover">
+            <thead class="table-light">
+              <tr>
+                <th>Tên sự kiện</th>
+                <th>Ngày tham gia</th>
+                <th>Vai trò</th>
+                <th>Trạng thái</th>
+                <th>Đánh giá</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngIf="!thamGiaSuKiens?.length">
+                <td colspan="5" class="text-center py-3">Chưa tham gia sự kiện nào</td>
+              </tr>
+              <tr *ngFor="let thamGia of thamGiaSuKiens">
+                <td>{{ thamGia.tenSuKien }}</td>
+                <td>{{ thamGia.ngayDangKy | date:'dd/MM/yyyy' }}</td>
+                <td>{{ thamGia.vaiTro }}</td>
+                <td>
+                  <span class="badge" [ngClass]="{
+                    'bg-success': thamGia.trangThai === 'Đã hoàn thành',
+                    'bg-primary': thamGia.trangThai === 'Đang tham gia',
+                    'bg-warning': thamGia.trangThai === 'Chờ phê duyệt',
+                    'bg-danger': thamGia.trangThai === 'Đã từ chối'
+                  }">{{ thamGia.trangThai }}</span>
+                </td>
+                <td>
+                  <button class="btn btn-sm btn-outline-primary" *ngIf="thamGia.trangThai === 'Đã hoàn thành' && !thamGia.daDanhGia" (click)="danhGiaSuKien(thamGia.maSuKien)">Đánh giá</button>
+                  <span *ngIf="thamGia.daDanhGia">{{ thamGia.diemDanhGia }}/5 ⭐</span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Giấy chứng nhận -->
+      <div *ngIf="selectedMenuItem === 'certificates'" class="card border-0 shadow-sm p-4">
+        <h4 class="fw-semibold mb-4">Giấy chứng nhận</h4>
+        <div class="row g-4">
+          <div *ngIf="!giayChungNhans?.length" class="col-12 text-center py-4">
+            <p class="text-muted">Chưa có giấy chứng nhận nào</p>
+          </div>
+          <div *ngFor="let gcn of giayChungNhans" class="col-md-6 col-lg-4">
+            <div class="card h-100">
+              <div class="card-body">
+                <h5 class="card-title">{{ gcn.tenSuKien }}</h5>
+                <p class="card-text">Ngày cấp: {{ gcn.ngayCap | date:'dd/MM/yyyy' }}</p>
+                <p class="card-text text-muted">{{ gcn.noiDung }}</p>
+              </div>
+              <div class="card-footer bg-white border-top-0">
+                <a href="{{ gcn.linkDownload }}" target="_blank" class="btn btn-outline-primary btn-sm">Tải xuống</a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Đánh giá & điểm uy tín -->
+      <div *ngIf="selectedMenuItem === 'ratings'" class="card border-0 shadow-sm p-4">
+        <h4 class="fw-semibold mb-4">Đánh giá & điểm uy tín</h4>
+        
+        <div class="d-flex align-items-center justify-content-center mb-4">
+          <div class="text-center">
+            <div class="display-1 fw-bold text-success">{{ volunteer?.diemTrungBinh || 0 }}</div>
+            <div class="text-muted">Điểm trung bình</div>
+            <div class="mt-2">
+              <span class="me-2">{{ volunteer?.tongLuotDanhGia || 0 }} lượt đánh giá</span>
+            </div>
+          </div>
+        </div>
+
+        <hr>
+        
+        <div class="mt-4">
+          <h5 class="mb-3">Đánh giá từ tổ chức</h5>
+          <div *ngIf="!danhGias?.length" class="text-center py-3">
+            <p class="text-muted">Chưa có đánh giá nào</p>
+          </div>
+          <div *ngFor="let dg of danhGias" class="card mb-3">
+            <div class="card-body">
+              <div class="d-flex justify-content-between">
+                <div>
+                  <h6 class="card-subtitle mb-2">{{ dg.tenToChuc }}</h6>
+                  <p class="card-text">{{ dg.noiDung }}</p>
+                </div>
+                <div class="text-end">
+                  <div class="fw-bold text-success">{{ dg.diem }}/5 ⭐</div>
+                  <small class="text-muted">{{ dg.ngayDanhGia | date:'dd/MM/yyyy' }}</small>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Thông báo -->
+      <div *ngIf="selectedMenuItem === 'notifications'" class="card border-0 shadow-sm p-4">
+        <h4 class="fw-semibold mb-4">Thông báo</h4>
+        
+        <div class="list-group">
+          <div *ngIf="!thongBaos?.length" class="text-center py-3">
+            <p class="text-muted">Không có thông báo nào</p>
+          </div>
+          <a *ngFor="let tb of thongBaos" href="javascript:void(0)" class="list-group-item list-group-item-action" [class.active]="!tb.daDoc" (click)="docThongBao(tb.maThongBao)">
+            <div class="d-flex w-100 justify-content-between">
+              <h6 class="mb-1">{{ tb.tieuDe }}</h6>
+              <small>{{ tb.ngayGui | date:'dd/MM/yyyy' }}</small>
+            </div>
+            <p class="mb-1 text-truncate">{{ tb.noiDung }}</p>
+            <small class="text-muted">Từ: {{ tb.nguoiGui }}</small>
+          </a>
+        </div>
       </div>
     </main>
   </div>

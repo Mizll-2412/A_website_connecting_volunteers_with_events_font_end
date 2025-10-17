@@ -137,6 +137,16 @@ export class Header implements OnInit {
   
   navigateToProfile(): void {
     this.isUserMenuOpen = false;
+    
+    // Chuyển hướng dựa vào vai trò
+    if (this.role === 'Organization') {
+      this.router.navigate(['/organization-profile']);
+    } else if (this.role === 'Admin') {
+      this.router.navigate(['/admin-profile']);
+    } else {
+      // Mặc định là User/TNV
+      this.router.navigate(['/volunteer-profile']);
+    }
   }
 
   // Phương thức cho thông báo
