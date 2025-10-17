@@ -1,51 +1,132 @@
-<!-- Hero Section -->
-<section class="hero-section text-white text-center d-flex align-items-center justify-content-center"
-  style="background-image: url('tinhnguyen.png'); background-size: cover; background-position: center; height: 400px;">
-  <h1 class="fw-bold display-5 bg-dark bg-opacity-50 p-3 rounded">Cùng nhau tạo nên thay đổi</h1>
-</section>
+<!-- Carousel Section -->
+<div class="carousel-container">
+  <div *ngFor="let item of carouselItems; let i = index" 
+       class="carousel-slide" 
+       [ngClass]="{'active': i === activeCarouselIndex}"
+       [ngStyle]="{'background-image': 'url(' + item.imageUrl + ')'}">
+    <div class="carousel-content">
+      <h1 class="display-4 fw-bold mb-3">{{ item.title }}</h1>
+      <p class="lead mb-4">{{ item.description }}</p>
+      <a [routerLink]="['/su-kien']" class="btn btn-blue btn-lg px-4 py-2 me-2">Khám phá các sự kiện</a>
+      <a [routerLink]="['/register']" class="btn btn-outline-light btn-lg px-4 py-2">Đăng ký ngay</a>
+    </div>
+  </div>
+  <div class="carousel-indicators">
+    <div *ngFor="let item of carouselItems; let i = index" 
+         class="carousel-indicator" 
+         [ngClass]="{'active': i === activeCarouselIndex}" 
+         (click)="setCarouselSlide(i)"></div>
+  </div>
+</div>
 
-<!-- Featured Projects -->
-<section class="py-5 bg-light text-center">
+<!-- Suitable Projects Section (For Volunteer role) -->
+<section class="py-5" *ngIf="role === 'TinhNguyenVien'">
   <div class="container">
-    <h2 class="text-primary mb-4">Dự án nổi bật</h2>
-    <div class="row g-4 justify-content-center">
-      <div class="col-md-3" *ngFor="let suKien of suKiens">
-        <div class="card h-100 shadow-sm border-0">
-          <img [src]="'http://localhost:5000'+ suKien.hinhAnh || 'tinhnguyen.png'" class="card-img-top" alt="{{ suKien.tenSuKien }}">
-          <div class="card-body">
-            <h5 class="card-title">{{ suKien.tenSuKien }}</h5>
-            <p class="card-text small text-muted">{{ suKien.noiDung }}</p>
-            <p class="mb-1"><strong>Địa chỉ:</strong> {{ suKien.diaChi }}</p>
-            <p><strong>Bắt đầu:</strong> {{ suKien.ngayBatDau | date:'dd/MM/yyyy' }}</p>
-            <a [routerLink]="['/su-kien', suKien.maSuKien]" class="btn btn-link text-primary p-0">Chi tiết ></a>
+    <div class="section-container">
+      <h2 class="section-title text-blue">Sự kiện phù hợp với bạn</h2>
+      <p class="text-muted mb-4">Những sự kiện được đề xuất dựa trên sở thích và kỹ năng của bạn</p>
+      
+      <div class="row g-4">
+        <div class="col-md-6 col-lg-3" *ngFor="let project of suitableProjects">
+          <div class="card project-card shadow-sm border-0">
+            <div class="match-badge">{{ project.matchRate }}% phù hợp</div>
+            <img [src]="'http://localhost:5000' + project.hinhAnh || 'tinhnguyen.png'" class="card-img-top" alt="{{ project.tenSuKien }}">
+            <div class="card-body">
+              <h5 class="card-title">{{ project.tenSuKien }}</h5>
+              <p class="card-text small text-muted mb-3">{{ project.noiDung }}</p>
+              <p class="mb-1 small"><i class="bi bi-geo-alt me-1"></i> {{ project.diaChi }}</p>
+              <p class="small mb-3"><i class="bi bi-calendar-event me-1"></i> {{ project.ngayBatDau | date:'dd/MM/yyyy' }}</p>
+              <div class="d-flex justify-content-between align-items-center">
+                <a [routerLink]="['/su-kien', project.maSuKien]" class="btn btn-sm btn-blue">Chi tiết</a>
+                <button class="btn btn-sm btn-outline-success">Đăng ký</button>
+              </div>
+            </div>
           </div>
         </div>
       </div>
     </div>
   </div>
 </section>
-<!-- Hero Section -->
-<section class="hero-section text-white text-center d-flex align-items-center justify-content-center"
-  style="background-image: url('tinhnguyen.png'); background-size: cover; background-position: center; height: 400px;">
-  <h1 class="fw-bold display-5 bg-dark bg-opacity-50 p-3 rounded">Cùng nhau tạo nên thay đổi</h1>
+
+<!-- Top Projects Section -->
+<section class="py-5 bg-gray">
+  <div class="section-container">
+    <h2 class="section-title text-blue">Top sự kiện nổi bật hôm nay</h2>
+    <p class="text-muted mb-4">Những sự kiện được quan tâm nhiều nhất</p>
+    
+    <div class="row g-4">
+      <div class="col-md-6 col-lg-3" *ngFor="let project of topProjects">
+        <div class="card project-card shadow-sm border-0">
+          <div class="popularity-badge">{{ project.luotXem }} lượt xem</div>
+          <img [src]="'http://localhost:5000' + project.hinhAnh || 'tinhnguyen.png'" class="card-img-top" alt="{{ project.tenSuKien }}">
+          <div class="card-body">
+            <h5 class="card-title">{{ project.tenSuKien }}</h5>
+            <p class="card-text small text-muted mb-3">{{ project.noiDung }}</p>
+            <p class="mb-1 small"><i class="bi bi-geo-alt me-1"></i> {{ project.diaChi }}</p>
+            <p class="small mb-3"><i class="bi bi-calendar-event me-1"></i> {{ project.ngayBatDau | date:'dd/MM/yyyy' }}</p>
+            <div class="d-flex justify-content-between align-items-center">
+              <a [routerLink]="['/su-kien', project.maSuKien]" class="btn btn-sm btn-blue">Chi tiết</a>
+              <button class="btn btn-sm btn-outline-success">Đăng ký</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="text-center mt-4">
+      <a [routerLink]="['/su-kien']" class="btn btn-blue px-4 py-2">Xem tất cả sự kiện</a>
+    </div>
+  </div>
 </section>
 
-<!-- AI Section -->
-<section class="py-5 bg-light text-center">
-  <div class="container">
-    <h2 class="text-success mb-4">VOAT (Volunteer Of All Time)</h2>
+<!-- Ongoing Events Section -->
+<section class="py-5">
+  <div class="section-container">
+    <h2 class="section-title text-blue">Sự kiện đang diễn ra</h2>
+    <p class="text-muted mb-4">Tham gia ngay với vai trò tình nguyện viên</p>
+    
     <div class="row g-4">
+      <div class="col-md-6 col-lg-3" *ngFor="let event of ongoingEvents">
+        <div class="card project-card shadow-sm border-0">
+          <div class="ongoing-badge">Đang diễn ra</div>
+          <img [src]="'http://localhost:5000' + event.hinhAnh || 'tinhnguyen.png'" class="card-img-top" alt="{{ event.tenSuKien }}">
+          <div class="card-body">
+            <h5 class="card-title">{{ event.tenSuKien }}</h5>
+            <p class="card-text small text-muted mb-3">{{ event.noiDung }}</p>
+            <p class="mb-1 small"><i class="bi bi-geo-alt me-1"></i> {{ event.diaChi }}</p>
+            <p class="small mb-3"><i class="bi bi-calendar-event me-1"></i> {{ event.ngayBatDau | date:'dd/MM/yyyy' }} - {{ event.ngayKetThuc | date:'dd/MM/yyyy' }}</p>
+            <div class="d-flex justify-content-between align-items-center">
+              <a [routerLink]="['/su-kien', event.maSuKien]" class="btn btn-sm btn-blue">Chi tiết</a>
+              <button class="btn btn-sm btn-outline-success">Đăng ký</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="text-center mt-4">
+      <a [routerLink]="['/su-kien']" class="btn btn-blue px-4 py-2">Xem tất cả sự kiện</a>
+    </div>
+  </div>
+</section>
+
+<!-- Volunteers Highlight Section -->
+<section class="py-5 bg-gray">
+  <div class="section-container">
+    <h2 class="section-title centered text-center text-blue">VOAT (Volunteer Of All Time)</h2>
+    <p class="text-muted mb-4 text-center">Những tình nguyện viên xuất sắc</p>
+    
+    <div class="row g-4 mt-2">
       <div class="col-6 col-md-3" *ngFor="let tn of tinhNguyenViens">
-        <div class="card border-0 shadow-sm">
-          <img [src]="'http://localhost:5000' + tn.anhDaiDien" alt="{{tn.hoTen}}" class="card-img-top" style="height:250px; object-fit:cover;">
+        <div class="card border-0 shadow-sm text-center project-card">
+          <img [src]="'http://localhost:5000' + tn.anhDaiDien || 'user.png'" alt="{{tn.hoTen}}" class="card-img-top" style="height:250px; object-fit:cover;">
+          <div class="card-body">
+            <h5 class="card-title">{{tn.hoTen || 'Tình nguyện viên'}}</h5>
+              <p class="small text-muted">Đã tham gia {{tn.suKienDaThamGia || 5}} sự kiện</p>
+          </div>
         </div>
       </div>
     </div>
   </div>
 </section>
 
-<footer class="bg-primary text-white text-center py-3">
-  <div class="container">
-    <p class="mb-0">© 2025 Volunteer Of All Time</p>
-  </div>
-</footer>

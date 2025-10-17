@@ -1,25 +1,110 @@
-<header class="header">
-  <div class="logo">
-    <img src="logo.png" alt="Logo">
-  </div>
+<header class="header" [class.scrolled]="isScrolled" [class.hidden]="isHeaderHidden">
+  <div class="header-container">
+    <!-- LOGO -->
+    <div class="logo" routerLink="/home">
+      <img src="logo.png" alt="Logo">
+      <span class="logo-text">Tình Nguyện Viên</span>
+    </div>
 
-  <nav class="nav-links">
-    <a routerLink="/home" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">Trang chủ</a>
-    <a routerLink="/su-kien" routerLinkActive="active">Sự kiện</a>
+    <!-- Mobile Menu Toggle -->
+    <button class="mobile-menu-toggle" (click)="toggleMobileMenu()">
+      <i class="fas" [class.fa-bars]="!isMobileMenuOpen" [class.fa-times]="isMobileMenuOpen"></i>
+    </button>
 
-    <a *ngIf="role === 'User'" routerLink="/organization" routerLinkActive="active">Tổ chức</a>
-    <a *ngIf="role === 'Organization'" routerLink="/manage-org" routerLinkActive="active">Quản lý tổ chức</a>
-    <a *ngIf="role === 'User'" routerLink="/profile" routerLinkActive="active">Hồ sơ</a>
-    <a *ngIf="role === 'Organization'" routerLink="/list-user" routerLinkActive="active">Hồ sơ nổi bật</a>
-  </nav>
+    <!-- Desktop Navigation - Link -->
+    <nav class="nav-links desktop-nav">
+      <a routerLink="/home" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">Trang chủ</a>
+      <a routerLink="/su-kien" routerLinkActive="active">Sự kiện</a>
+      <a *ngIf="role === 'User'" routerLink="/organization" routerLinkActive="active">Tổ chức</a>
+      <a *ngIf="role === 'Organization'" routerLink="/manage-org" routerLinkActive="active">Quản lý tổ chức</a>
+      <a *ngIf="role === 'Organization'" routerLink="/list-user" routerLinkActive="active">Hồ sơ nổi bật</a>
+      <a *ngIf="role === 'Admin'" routerLink="/admin" routerLinkActive="active">Quản trị</a>
+    </nav>
 
-  <div class="actions">
-    <span class="lang">EN</span>
-    <img src="search-interface-symbol.png" alt="Search" class="search-icon">
+    <div class="actions">
+      <!-- Thông báo -->
+      <div class="notification" (click)="toggleNotifications($event)">
+        <i class="fas fa-bell"></i>
+        <span class="notification-badge" *ngIf="notificationCount > 0">{{ notificationCount }}</span>
+        
+        <div *ngIf="showNotifications" class="notification-dropdown">
+          <div class="notification-header">
+            <h4>Thông báo</h4>
+            <a href="javascript:void(0)" (click)="markAllAsRead()">Đánh dấu đã đọc</a>
+          </div>
+          <div class="notification-list">
+            <div *ngIf="notifications.length === 0" class="empty-notification">
+              Không có thông báo mới
+            </div>
+            <div *ngFor="let notification of notifications" class="notification-item" [class.unread]="!notification.read">
+              <div class="notification-content">
+                <p>{{ notification.content }}</p>
+                <span class="notification-time">{{ notification.time }}</span>
+              </div>
+            </div>
+          </div>
+          <div class="notification-footer">
+            <a routerLink="/notifications">Xem tất cả</a>
+          </div>
+        </div>
+      </div>
 
-    <ng-container *ngIf="!isLoggedIn">
-      <button class="btn login-btn" routerLink="/login">Đăng nhập</button>
-      <button class="btn signup-btn" routerLink="/register">Đăng ký</button>
-    </ng-container>
+      <ng-container *ngIf="!isLoggedIn">
+        <button class="btn login-btn" routerLink="/login">Đăng nhập</button>
+        <button class="btn signup-btn" routerLink="/register">Đăng ký</button>
+      </ng-container>
+
+      <!-- Avatar và menu dropdown -->
+      <div *ngIf="isLoggedIn" class="user-menu" (click)="toggleUserMenu($event)" [class.active]="isUserMenuOpen">
+        <img [src]="userAvatar || 'user.png'" alt="Avatar" class="avatar">
+        <span class="username">{{ username }}</span>
+        <i class="fas fa-chevron-down"></i>
+        
+        <div *ngIf="isUserMenuOpen" class="dropdown-menu" (click)="$event.stopPropagation()">
+          <a routerLink="/profile" class="dropdown-item" (click)="navigateToProfile()">
+            <i class="fas fa-user"></i>
+            <span>Hồ sơ</span>
+          </a>
+          <div class="dropdown-divider"></div>
+          <a href="javascript:void(0)" (click)="logout()" class="dropdown-item">
+            <i class="fas fa-sign-out-alt"></i>
+            <span>Đăng xuất</span>
+          </a>
+        </div>
+      </div>
+    </div>
   </div>
 </header>
+
+<!-- Mobile Navigation -->
+<div class="mobile-nav" [class.open]="isMobileMenuOpen">
+  <nav class="nav-links">
+    <a routerLink="/home" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }" (click)="closeMobileMenu()">
+      <i class="fas fa-home mr-2"></i> Trang chủ
+    </a>
+    <a routerLink="/su-kien" routerLinkActive="active" (click)="closeMobileMenu()">
+      <i class="fas fa-calendar-alt mr-2"></i> Sự kiện
+    </a>
+    <a *ngIf="role === 'User'" routerLink="/organization" routerLinkActive="active" (click)="closeMobileMenu()">
+      <i class="fas fa-building mr-2"></i> Tổ chức
+    </a>
+    <a *ngIf="role === 'Organization'" routerLink="/manage-org" routerLinkActive="active" (click)="closeMobileMenu()">
+      <i class="fas fa-tasks mr-2"></i> Quản lý tổ chức
+    </a>
+    <a *ngIf="role === 'Organization'" routerLink="/list-user" routerLinkActive="active" (click)="closeMobileMenu()">
+      <i class="fas fa-users mr-2"></i> Hồ sơ nổi bật
+    </a>
+    <a *ngIf="role === 'Admin'" routerLink="/admin" routerLinkActive="active" (click)="closeMobileMenu()">
+      <i class="fas fa-user-shield mr-2"></i> Quản trị
+    </a>
+    <!-- Thêm các mục từ dropdown của avatar vào mobile menu -->
+    <a routerLink="/profile" routerLinkActive="active" (click)="closeMobileMenu()">
+      <i class="fas fa-user-circle mr-2"></i> Hồ sơ cá nhân
+    </a>
+    <a href="javascript:void(0)" (click)="logout(); closeMobileMenu()">
+      <i class="fas fa-sign-out-alt mr-2"></i> Đăng xuất
+    </a>
+  </nav>
+</div>
+
+<div class="header-spacer"></div>

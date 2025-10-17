@@ -1,0 +1,194 @@
+<main>
+  <!-- Event Header Section -->
+  <header class="event-header">
+    <div class="container event-header-content">
+      <div class="row">
+        <div class="col-12">
+          <h1 class="event-title">{{ event?.tenSuKien }}</h1>
+          <div class="event-status-badge bg-green">{{ event?.trangThai }}</div>
+          <div class="d-flex align-items-center">
+            <div class="event-detail-info me-4">
+              <i class="bi bi-calendar-event"></i>
+              <span>{{ formatDate(event?.ngayBatDau) }}</span>
+            </div>
+            <div class="event-detail-info">
+              <i class="bi bi-geo-alt"></i>
+              <span>{{ event?.diaChi }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <div class="container py-5">
+    <div class="row g-4">
+      <!-- Main Content -->
+      <div class="col-lg-8">
+        <!-- Event Image -->
+        <img [src]="'http://localhost:5000' + event?.hinhAnh || 'tinhnguyen.png'" class="event-img" alt="{{ event?.tenSuKien }}">
+        
+        <!-- Organization Info -->
+        <div class="event-info-card mb-4">
+          <h3 class="event-info-title">Tổ chức</h3>
+          <div class="organization-info">
+            <img [src]="'http://localhost:5000' + organization?.anhDaiDien || 'user.png'" class="organization-logo" alt="{{ organization?.tenToChuc }}">
+            <div>
+              <h5 class="mb-1">{{ organization?.tenToChuc }}</h5>
+              <p class="small text-muted mb-1">{{ organization?.gioiThieu }}</p>
+              <a [href]="'https://' + organization?.website" target="_blank" class="small text-blue">
+                <i class="bi bi-link-45deg"></i> {{ organization?.website }}
+              </a>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Event Description -->
+        <div class="event-info-card">
+          <h3 class="event-info-title">Chi tiết sự kiện</h3>
+          <p>{{ event?.moTaChiTiet }}</p>
+        </div>
+        
+        <!-- Event Requirements -->
+        <div class="event-info-card">
+          <h3 class="event-info-title">Yêu cầu</h3>
+          <p>{{ event?.yeuCau }}</p>
+        </div>
+        
+        <!-- Event Benefits -->
+        <div class="event-info-card">
+          <h3 class="event-info-title">Quyền lợi</h3>
+          <p>{{ event?.quyenLoi }}</p>
+        </div>
+        
+        <!-- Event Timeline -->
+        <div class="event-info-card">
+          <h3 class="event-info-title">Lịch trình</h3>
+          <div class="timeline">
+            <div class="timeline-item" *ngFor="let item of event?.timeline">
+              <div class="timeline-date">{{ item.time }}</div>
+              <div class="timeline-content">
+                <p>{{ item.activity }}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Similar Events -->
+        <div class="event-info-card">
+          <h3 class="event-info-title">Sự kiện tương tự</h3>
+          <div class="row g-4">
+            <div class="col-md-4" *ngFor="let similarEvent of similarEvents">
+              <div class="card similar-event-card" (click)="navigateToOtherEvent(similarEvent.maSuKien)">
+                <img [src]="'http://localhost:5000' + similarEvent.hinhAnh || 'tinhnguyen.png'" class="card-img-top" alt="{{ similarEvent.tenSuKien }}">
+                <div class="card-body">
+                  <h6 class="card-title">{{ similarEvent.tenSuKien }}</h6>
+                  <p class="small text-muted mb-1">{{ similarEvent.noiDung }}</p>
+                  <div class="d-flex align-items-center small text-muted">
+                    <i class="bi bi-calendar-event me-1"></i>
+                    <span>{{ similarEvent.ngayBatDau | date:'dd/MM/yyyy' }}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Sidebar -->
+      <div class="col-lg-4">
+        <!-- Registration Card -->
+        <div class="registration-card">
+          <div class="d-flex justify-content-center mb-3" *ngIf="event?.matchRate">
+            <div class="match-rate">{{ event?.matchRate }}%</div>
+          </div>
+          
+          <h4 class="text-center mb-3">Thông tin đăng ký</h4>
+          
+          <div class="d-flex justify-content-between mb-3">
+            <span class="text-muted">Số lượng cần:</span>
+            <span class="fw-semibold">{{ event?.soLuongTNV }} tình nguyện viên</span>
+          </div>
+          
+          <div class="d-flex justify-content-between mb-3">
+            <span class="text-muted">Đã đăng ký:</span>
+            <span class="fw-semibold">{{ event?.soLuongDaDangKy }} tình nguyện viên</span>
+          </div>
+          
+          <div class="d-flex justify-content-between mb-3">
+            <span class="text-muted">Thời gian bắt đầu:</span>
+            <span class="fw-semibold">{{ event?.ngayBatDau | date:'dd/MM/yyyy, HH:mm' }}</span>
+          </div>
+          
+          <div class="d-flex justify-content-between mb-3">
+            <span class="text-muted">Thời gian kết thúc:</span>
+            <span class="fw-semibold">{{ event?.ngayKetThuc | date:'dd/MM/yyyy, HH:mm' }}</span>
+          </div>
+          
+          <div class="progress mb-3" *ngIf="event?.soLuongTNV">
+            <div class="progress-bar bg-blue" 
+                 [style.width]="(event?.soLuongDaDangKy / event?.soLuongTNV) * 100 + '%'">
+              {{ ((event?.soLuongDaDangKy / event?.soLuongTNV) * 100).toFixed(0) }}%
+            </div>
+          </div>
+
+          <!-- Not Logged In -->
+          <div *ngIf="!isLoggedIn">
+            <div class="alert alert-info mb-3">
+              Vui lòng đăng nhập để đăng ký tham gia sự kiện này
+            </div>
+            <a [routerLink]="['/login']" class="btn btn-blue w-100">Đăng nhập</a>
+          </div>
+          
+          <!-- Not a Volunteer -->
+          <div *ngIf="isLoggedIn && role !== 'User'">
+            <div class="alert alert-info mb-3">
+              Chỉ tình nguyện viên mới có thể đăng ký tham gia sự kiện
+            </div>
+          </div>
+          
+          <!-- Volunteer and Not Registered -->
+          <div *ngIf="isLoggedIn && role === 'User' && !isRegistered && !eventHasStarted()">
+            <div class="mb-3">
+              <label class="form-label">Ghi chú (nếu có)</label>
+              <textarea class="form-control" rows="3" [(ngModel)]="registrationNote"></textarea>
+            </div>
+            <button class="btn btn-register" (click)="registerForEvent()">
+              Đăng ký tham gia
+            </button>
+          </div>
+          
+          <!-- Volunteer and Already Registered -->
+          <div *ngIf="isLoggedIn && role === 'TinhNguyenVien' && isRegistered">
+            <div class="registration-info mb-3">
+              <p class="mb-1"><i class="bi bi-check-circle me-2"></i>Bạn đã đăng ký tham gia sự kiện này</p>
+              <p class="mb-0 small">Vui lòng đến đúng giờ và chuẩn bị những vật dụng cần thiết</p>
+            </div>
+            
+            <button class="btn btn-cancel" *ngIf="!eventHasStarted()" (click)="cancelRegistration()">
+              Hủy đăng ký
+            </button>
+          </div>
+          
+          <!-- Event Already Started -->
+          <div *ngIf="isLoggedIn && role === 'TinhNguyenVien' && !isRegistered && eventHasStarted()">
+            <div class="alert alert-warning mb-3">
+              Sự kiện đã bắt đầu, không thể đăng ký tham gia
+            </div>
+          </div>
+        </div>
+        
+        <!-- Event Location -->
+        <div class="event-info-card">
+          <h3 class="event-info-title">Địa điểm</h3>
+          <p><i class="bi bi-geo-alt text-blue me-2"></i>{{ event?.diaChi }}</p>
+          <div class="ratio ratio-16x9">
+            <iframe 
+              src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3724.0951782985247!2d105.84380731481649!3d21.028891285998492!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3135abeb91e3a127%3A0xb22ad3f6c33f60f8!2zQ8O0bmcgdmnDqm4gVGjhu5FuZyBOaOG6pXQ!5e0!3m2!1sen!2sus!4v1635122745896!5m2!1sen!2sus" 
+              allowfullscreen="" loading="lazy"></iframe>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>

@@ -1,13 +1,5 @@
-:root {
-  --blue: #2C7BE5;
-  --green: #4CAF50;
-  --orange: #FF9800;
-  --light-gray: #F5F5F5;
-  --white: #FFFFFF;
-}
-
 .nav-link.active {
-  color: var(--green) !important;
+  color: var(--success) !important;
   font-weight: 600;
   position: relative;
 }
@@ -18,10 +10,10 @@
   left: 0;
   right: 0;
   height: 2px;
-  background-color: var(--green);
+  background-color: var(--success);
 }
 
 button.list-group-item.active {
-  background-color: var(--green) !important;
-  border-color: var(--green) !important;
+  background-color: var(--success) !important;
+  border-color: var(--success) !important;
 }

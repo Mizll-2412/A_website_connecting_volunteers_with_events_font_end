@@ -1,0 +1,249 @@
+/* CSS sử dụng biến toàn cục từ styles.css */
+
+body {
+  background-color: var(--light-gray);
+  font-family: 'Roboto', sans-serif;
+}
+
+.event-header {
+  background-color: var(--primary);
+  padding: 3rem 0;
+  color: var(--white);
+  position: relative;
+}
+
+.event-header::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.2);
+}
+
+.event-header-content {
+  position: relative;
+  z-index: 1;
+}
+
+.event-title {
+  font-size: 2.5rem;
+  font-weight: bold;
+  margin-bottom: 1rem;
+}
+
+.event-status-badge {
+  font-size: 0.9rem;
+  padding: 0.5rem 1.5rem;
+  border-radius: 30px;
+  display: inline-block;
+  font-weight: 500;
+  margin-bottom: 1rem;
+}
+
+.event-info-card {
+  background-color: var(--white);
+  border-radius: 10px;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.event-info-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin-bottom: 1.25rem;
+  color: var(--dark);
+  position: relative;
+  padding-bottom: 0.75rem;
+}
+
+.event-info-title::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 40px;
+  height: 3px;
+  background-color: var(--primary);
+}
+
+.event-img {
+  width: 100%;
+  height: 400px;
+  object-fit: cover;
+  border-radius: 10px;
+  margin-bottom: 1.5rem;
+}
+
+.event-detail-info {
+  display: flex;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.event-detail-info i {
+  color: var(--primary);
+  font-size: 1.2rem;
+  margin-right: 0.75rem;
+  width: 20px;
+  text-align: center;
+}
+
+.organization-info {
+  display: flex;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.organization-logo {
+  width: 60px;
+  height: 60px;
+  object-fit: cover;
+  border-radius: 8px;
+  margin-right: 1rem;
+}
+
+.registration-card {
+  background-color: var(--white);
+  border-radius: 10px;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+  /* position: sticky; */
+  top: 20px;
+}
+
+.btn-register {
+  background-color: var(--success);
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 0.75rem 1.5rem;
+  font-weight: 500;
+  font-size: 1.1rem;
+  transition: background-color 0.2s;
+  width: 100%;
+  margin-top: 1rem;
+}
+
+.btn-register:hover {
+  background-color: #3d9c40;
+}
+
+.btn-cancel {
+  background-color: #dc3545;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 0.75rem 1.5rem;
+  font-weight: 500;
+  font-size: 1.1rem;
+  transition: background-color 0.2s;
+  width: 100%;
+  margin-top: 1rem;
+}
+
+.btn-cancel:hover {
+  background-color: #bd2130;
+}
+
+.match-rate {
+  background-color: var(--primary);
+  color: white;
+  border-radius: 50%;
+  width: 60px;
+  height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  font-size: 1.1rem;
+  margin-bottom: 1rem;
+}
+
+.registration-info {
+  background-color: rgba(76, 175, 80, 0.1);
+  border-left: 4px solid var(--success);
+  padding: 1rem;
+  margin-top: 1.5rem;
+  border-radius: 0 4px 4px 0;
+}
+
+.timeline {
+  position: relative;
+  margin: 2rem 0;
+  padding-left: 2rem;
+}
+
+.timeline::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 6px;
+  bottom: 6px;
+  width: 2px;
+  background-color: #e0e0e0;
+}
+
+.timeline-item {
+  position: relative;
+  padding-bottom: 1.5rem;
+}
+
+.timeline-item:last-child {
+  padding-bottom: 0;
+}
+
+.timeline-item::before {
+  content: '';
+  position: absolute;
+  left: -2rem;
+  top: 6px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background-color: var(--primary);
+  border: 2px solid white;
+  box-shadow: 0 0 0 2px var(--primary);
+}
+
+.timeline-date {
+  font-weight: 600;
+  color: var(--primary);
+  margin-bottom: 0.25rem;
+}
+
+.similar-event-card {
+  transition: transform 0.3s, box-shadow 0.3s;
+  border-radius: 8px;
+  overflow: hidden;
+  height: 100%;
+  background-color: var(--white);
+  border: none;
+}
+
+.similar-event-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+}
+
+.similar-event-card img {
+  height: 160px;
+  object-fit: cover;
+}
+
+@media (max-width: 767px) {
+  .event-title {
+    font-size: 2rem;
+  }
+  
+  .event-img {
+    height: 300px;
+  }
+  
+  .registration-card {
+    position: static;
+  }
+}

@@ -1,51 +1,157 @@
-<main class="container my-5">
+<main class="container py-5">
+  <div class="row mb-4">
+    <div class="col-12">
+      <h1 class="section-title">Khám phá sự kiện</h1>
+    </div>
+  </div>
+
   <div class="row g-4">
-    <!-- LEFT PANEL -->
-    <section class="col-lg-8">
-      <div class="card shadow-sm border-0 p-4">
-        <h2 class="text-primary mb-4">Sự kiện phù hợp</h2>
-        <div class="row g-4">
-          <div class="col-md-6 col-xl-4" *ngFor="let sk of suKiens">
-            <div class="card h-100 border-0 shadow-sm hover-shadow">
-              <img [src]="'http://localhost:5000' + sk.hinhAnh" class="card-img-top" alt="Ảnh sự kiện" style="height:180px; object-fit:cover;">
-              <div class="card-body d-flex flex-column justify-content-between">
-                <div>
-                  <h5 class="card-title">{{ sk.tenSuKien }}</h5>
-                  <p class="card-text small text-muted">{{ sk.noiDung }}</p>
-                  <p class="mb-1"><strong>Ngày:</strong> {{ sk.ngayBatDau | date:'dd/MM/yyyy' }}</p>
-                  <span class="badge"
-                        [ngClass]="{
-                          'bg-success': sk.trangThai === 'Đã duyệt',
-                          'bg-warning text-dark': sk.trangThai === 'Chờ duyệt',
-                          'bg-danger': sk.trangThai === 'Từ chối'
-                        }">
-                    {{ sk.trangThai }}
-                  </span>
-                </div>
-                <div class="mt-3">
-                  <button class="btn btn-primary w-100" (click)="thamGiaSuKien(sk.maSuKien)">Tham gia</button>
-                </div>
+    <!-- LEFT PANEL - FILTERS -->
+    <aside class="col-lg-3">
+      <!-- Search Filter -->
+      <div class="filter-container mb-4">
+        <h5 class="filter-title"><i class="bi bi-search"></i> Tìm kiếm</h5>
+        <div class="mb-3">
+          <input type="text" class="form-control" placeholder="Tìm kiếm sự kiện..." 
+                 [(ngModel)]="searchKeyword" (input)="applyFilters()">
+        </div>
+      </div>
+      
+      <!-- Event Type Filter -->
+      <div class="filter-container mb-4">
+        <h5 class="filter-title"><i class="bi bi-funnel"></i> Loại sự kiện</h5>
+        <div class="d-flex flex-wrap">
+          <button *ngFor="let type of eventTypes" 
+                  class="btn btn-filter mb-2 me-2"
+                  [ngClass]="{'active': selectedEventType === type}"
+                  (click)="selectedEventType = type; applyFilters()">
+            {{ type }}
+          </button>
+        </div>
+      </div>
+      
+      <!-- Location Filter -->
+      <div class="filter-container mb-4">
+        <h5 class="filter-title"><i class="bi bi-geo-alt"></i> Địa điểm</h5>
+        <div class="d-flex flex-wrap">
+          <button *ngFor="let location of locations" 
+                  class="btn btn-filter mb-2 me-2"
+                  [ngClass]="{'active': selectedLocation === location}"
+                  (click)="selectedLocation = location; applyFilters()">
+            {{ location }}
+          </button>
+        </div>
+      </div>
+      
+      <!-- Organization Filter -->
+      <div class="filter-container mb-4">
+        <h5 class="filter-title"><i class="bi bi-building"></i> Tổ chức</h5>
+        <div class="d-flex flex-wrap">
+          <button *ngFor="let org of organizations" 
+                  class="btn btn-filter mb-2 me-2"
+                  [ngClass]="{'active': selectedOrganization === org}"
+                  (click)="selectedOrganization = org; applyFilters()">
+            {{ org }}
+          </button>
+        </div>
+      </div>
+      
+      <!-- Reset Filters -->
+      <button class="btn btn-outline-secondary w-100" (click)="resetFilters()">
+        <i class="bi bi-arrow-repeat me-2"></i>Đặt lại bộ lọc
+      </button>
+      
+      <!-- Organizations Information -->
+      <div class="filter-container mt-4">
+        <h5 class="filter-title"><i class="bi bi-building"></i> Tổ chức nổi bật</h5>
+        <div class="d-flex flex-column gap-3 mt-3">
+          <div class="organization-card p-3" *ngFor="let org of mockOrganizations">
+            <div class="d-flex align-items-center">
+              <img [src]="'http://localhost:5000' + org.anhDaiDien || 'user.png'" alt="{{ org.tenToChuc }}" class="org-logo me-3">
+              <div>
+                <h6 class="mb-1">{{ org.tenToChuc }}</h6>
+                <p class="small text-muted mb-1">{{ org.gioiThieu }}</p>
+                <span class="badge bg-blue">{{ org.eventCount }} sự kiện</span>
               </div>
             </div>
           </div>
         </div>
       </div>
-    </section>
+    </aside>
 
-    <!-- RIGHT PANEL -->
-    <aside class="col-lg-4">
-      <div class="card shadow-sm border-0 p-4">
-        <h3 class="text-primary mb-3">Tổ chức</h3>
-        <div class="d-flex flex-column gap-3">
-          <div class="d-flex align-items-center border rounded p-2 shadow-sm" *ngFor="let s of toChucs">
-            <img [src]="'http://localhost:5000' + s.anhDaiDien" alt="Ảnh tổ chức" class="rounded" width="70" height="70" style="object-fit:cover;">
-            <div class="ms-3">
-              <h6 class="mb-1 fw-semibold">{{ s.tenToChuc }}</h6>
-              <p class="mb-0 small text-muted">{{ s.gioiThieu }}</p>
+    <!-- RIGHT PANEL - EVENTS LIST -->
+    <section class="col-lg-9">
+      <!-- Results Count -->
+      <div class="d-flex justify-content-between align-items-center mb-4">
+        <p class="mb-0">Hiển thị {{ filteredEvents.length }} sự kiện</p>
+        <div class="dropdown">
+          <button class="btn btn-outline-secondary dropdown-toggle" type="button" id="sortDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+            Sắp xếp
+          </button>
+          <ul class="dropdown-menu" aria-labelledby="sortDropdown">
+            <li><a class="dropdown-item" href="#">Mới nhất</a></li>
+            <li><a class="dropdown-item" href="#">Sắp diễn ra</a></li>
+            <li><a class="dropdown-item" href="#">Phổ biến nhất</a></li>
+          </ul>
+        </div>
+      </div>
+      
+      <!-- Events Grid -->
+      <div class="row g-4">
+        <div class="col-md-6 col-lg-4" *ngFor="let event of filteredEvents">
+          <div class="card event-card shadow-sm">
+            <!-- Event Badge -->
+            <div class="event-badge" 
+                 [ngClass]="{
+                   'badge-featured': event.isFeatured && !event.isOngoing,
+                   'badge-ongoing': event.isOngoing,
+                   'badge-suitable': event.matchRate >= 90 && !event.isOngoing && !event.isFeatured
+                 }">
+              <span *ngIf="event.isOngoing">Đang diễn ra</span>
+              <span *ngIf="event.isFeatured && !event.isOngoing">Nổi bật</span>
+              <span *ngIf="event.matchRate >= 90 && !event.isOngoing && !event.isFeatured">{{ event.matchRate }}% phù hợp</span>
+            </div>
+            
+            <!-- Event Image -->
+            <img [src]="'http://localhost:5000' + event.hinhAnh || 'tinhnguyen.png'" 
+                 class="card-img-top" alt="{{ event.tenSuKien }}">
+            
+            <!-- Event Content -->
+            <div class="card-body">
+              <h5 class="card-title">{{ event.tenSuKien }}</h5>
+              <p class="small text-muted mb-3">{{ event.noiDung }}</p>
+              
+              <!-- Event Info -->
+              <div class="event-info">
+                <i class="bi bi-building"></i>
+                <span>{{ getTenToChuc(event.maToChuc) }}</span>
+              </div>
+              <div class="event-info">
+                <i class="bi bi-geo-alt"></i>
+                <span>{{ event.diaChi }}</span>
+              </div>
+              <div class="event-info">
+                <i class="bi bi-calendar-event"></i>
+                <span>{{ event.ngayBatDau | date:'dd/MM/yyyy' }}</span>
+              </div>
+              
+              <!-- Action Buttons -->
+              <div class="d-flex justify-content-between mt-4">
+                <button class="btn btn-details" (click)="viewEventDetails(event.maSuKien)">Chi tiết</button>
+                <button class="btn btn-register" (click)="thamGiaSuKien(event.maSuKien)">Đăng ký</button>
+              </div>
             </div>
           </div>
         </div>
       </div>
-    </aside>
+      
+      <!-- Empty State -->
+      <div class="text-center my-5" *ngIf="filteredEvents.length === 0">
+        <i class="bi bi-search" style="font-size: 3rem; color: #ccc;"></i>
+        <h4 class="mt-3">Không tìm thấy sự kiện nào</h4>
+        <p class="text-muted">Vui lòng thử lại với bộ lọc khác</p>
+        <button class="btn btn-outline-primary mt-2" (click)="resetFilters()">Đặt lại bộ lọc</button>
+      </div>
+    </section>
   </div>
 </main>
