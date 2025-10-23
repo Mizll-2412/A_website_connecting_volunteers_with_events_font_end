@@ -7,7 +7,7 @@ import { SuKienResponseDto } from '../models/event';
   providedIn: 'root'
 })
 export class EventService {
-  private apiUrl = 'http://localhost:5000/api/sukien'; 
+  private apiUrl = 'https://a-website-connecting-volunteers-with.onrender.com/api/sukien'; 
 
   constructor(private http: HttpClient) {}
 

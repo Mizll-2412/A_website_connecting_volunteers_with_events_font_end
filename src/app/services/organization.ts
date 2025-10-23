@@ -7,7 +7,7 @@ import { ToChuc, ToChucResponseDto, DuyetToChucRequest, TrangThaiXacMinh } from 
 })
 export class ToChucService {
 //   private apiUrl = `${environment.apiUrl}/api/organization`;
-  private apiUrl = 'http://localhost:5000/api/organization';
+  private apiUrl = 'https://a-website-connecting-volunteers-with.onrender.com/api/organization';
   private toChucSubject = new BehaviorSubject<ToChuc[]>([]);
   public toChuc$ = this.toChucSubject.asObservable();
 

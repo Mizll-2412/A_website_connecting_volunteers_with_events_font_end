@@ -7,7 +7,7 @@ import { TinhNguyenVienResponeDTos } from '../models/volunteer';
   providedIn: 'root'
 })
 export class TinhNguyenVienService {
-  private apiUrl = 'http://localhost:5000/api/tinhnguyenvien'; 
+  private apiUrl = 'https://a-website-connecting-volunteers-with.onrender.com/api/tinhnguyenvien'; 
 
   constructor(private http: HttpClient) {}
 

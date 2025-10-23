@@ -29,7 +29,7 @@ export interface AuthResponse {
   providedIn: 'root'
 })
 export class AuthService {
-  private apiUrl = 'http://localhost:5000/api';
+  private apiUrl = 'https://a-website-connecting-volunteers-with.onrender.com/api';
 
   constructor(private http: HttpClient) { }
 
