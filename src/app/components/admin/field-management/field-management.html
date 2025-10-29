@@ -1,0 +1,115 @@
+<div class="container-fluid py-4">
+  <h2 class="mb-4">Quản lý lĩnh vực</h2>
+
+  <!-- Thông báo -->
+  <div *ngIf="errorMessage" class="alert alert-danger alert-dismissible fade show" role="alert">
+    {{ errorMessage }}
+    <button type="button" class="btn-close" (click)="errorMessage = ''"></button>
+  </div>
+
+  <div *ngIf="successMessage" class="alert alert-success alert-dismissible fade show" role="alert">
+    {{ successMessage }}
+    <button type="button" class="btn-close" (click)="successMessage = ''"></button>
+  </div>
+
+  <!-- Form thêm lĩnh vực -->
+  <div class="card mb-4">
+    <div class="card-header">
+      <h5 class="mb-0">Thêm lĩnh vực mới</h5>
+    </div>
+    <div class="card-body">
+      <form (ngSubmit)="addField()" class="row g-3">
+        <div class="col-md-6">
+          <label for="fieldName" class="form-label">Tên lĩnh vực</label>
+          <input type="text" class="form-control" id="fieldName" [(ngModel)]="newField.tenLinhVuc" name="tenLinhVuc" required>
+        </div>
+        <div class="col-md-6">
+          <label for="fieldDesc" class="form-label">Mô tả (Tùy chọn)</label>
+          <input type="text" class="form-control" id="fieldDesc" [(ngModel)]="newField.moTa" name="moTa">
+        </div>
+        <div class="col-12">
+          <button type="submit" class="btn btn-primary" [disabled]="isLoading">
+            <span *ngIf="isLoading" class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
+            Thêm lĩnh vực
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Danh sách lĩnh vực -->
+  <div class="card">
+    <div class="card-header">
+      <h5 class="mb-0">Danh sách lĩnh vực</h5>
+    </div>
+    <div class="card-body">
+      <!-- Loading state -->
+      <div *ngIf="isLoading" class="text-center py-3">
+        <div class="spinner-border text-primary" role="status">
+          <span class="visually-hidden">Đang tải...</span>
+        </div>
+        <p class="mt-2 mb-0">Đang tải dữ liệu...</p>
+      </div>
+
+      <!-- Empty state -->
+      <div *ngIf="!isLoading && fields.length === 0" class="text-center py-3">
+        <p class="mb-0">Chưa có lĩnh vực nào được tạo</p>
+      </div>
+
+      <!-- Fields list -->
+      <div class="table-responsive" *ngIf="!isLoading && fields.length > 0">
+        <table class="table table-hover">
+          <thead>
+            <tr>
+              <th scope="col">ID</th>
+              <th scope="col">Tên lĩnh vực</th>
+              <th scope="col">Mô tả</th>
+              <th scope="col">Thao tác</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let field of fields">
+              <!-- Normal view -->
+              <ng-container *ngIf="editingField?.maLinhVuc !== field.maLinhVuc">
+                <td>{{ field.maLinhVuc }}</td>
+                <td>{{ field.tenLinhVuc }}</td>
+                <td>{{ field.moTa || 'N/A' }}</td>
+                <td>
+                  <div class="btn-group btn-group-sm">
+                    <button type="button" class="btn btn-outline-primary" (click)="startEditing(field)">
+                      <i class="bi bi-pencil"></i> Sửa
+                    </button>
+                    <button type="button" class="btn btn-outline-danger" (click)="deleteField(field.maLinhVuc!)">
+                      <i class="bi bi-trash"></i> Xóa
+                    </button>
+                  </div>
+                </td>
+              </ng-container>
+
+              <!-- Edit mode -->
+              <ng-container *ngIf="editingField?.maLinhVuc === field.maLinhVuc">
+                <td>{{ field.maLinhVuc }}</td>
+                <td>
+                  <input type="text" class="form-control form-control-sm" [(ngModel)]="editingField!.tenLinhVuc">
+                </td>
+                <td>
+                  <input type="text" class="form-control form-control-sm" [(ngModel)]="editingField!.moTa">
+                </td>
+                <td>
+                  <div class="btn-group btn-group-sm">
+                    <button type="button" class="btn btn-outline-success" (click)="updateField()">
+                      <i class="bi bi-check"></i> Lưu
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary" (click)="cancelEditing()">
+                      <i class="bi bi-x"></i> Hủy
+                    </button>
+                  </div>
+                </td>
+              </ng-container>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>

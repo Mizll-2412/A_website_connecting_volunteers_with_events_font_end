@@ -1,9 +1,32 @@
 <main class="main-container container mt-4">
   <h2 class="mb-4 text-primary">Danh sách Tổ chức</h2>
+  
+  <!-- Loading indicator -->
+  <div *ngIf="isLoading" class="text-center my-5">
+    <div class="spinner-border text-primary" role="status">
+      <span class="visually-hidden">Đang tải...</span>
+    </div>
+    <p class="mt-2">Đang tải danh sách tổ chức...</p>
+  </div>
+  
+  <!-- Error message -->
+  <div *ngIf="errorMessage && !isLoading" class="alert alert-danger">
+    {{ errorMessage }}
+  </div>
+  
+  <!-- Empty state -->
+  <div *ngIf="!isLoading && !errorMessage && danhSachToChuc.length === 0" class="text-center my-5">
+    <p>Chưa có tổ chức nào được tạo.</p>
+  </div>
 
-  <div class="organization-list">
+  <!-- Organization list -->
+  <div class="organization-list" *ngIf="!isLoading && danhSachToChuc.length > 0">
     <div class="organization-card" *ngFor="let org of danhSachToChuc">
-      <img [src]="org.anhDaiDien" alt="Ảnh đại diện" />
+      <!-- Hiển thị hình ảnh từ API với fallback -->
+      <img [src]="org.anhDaiDien ? 'http://localhost:5000' + org.anhDaiDien : 'https://via.placeholder.com/100'" 
+           alt="Ảnh đại diện" 
+           onerror="this.src='https://via.placeholder.com/100'"/>
+      
       <div class="info">
         <h3>{{ org.tenToChuc }}</h3>
         <p><strong>Email:</strong> {{ org.email }}</p>

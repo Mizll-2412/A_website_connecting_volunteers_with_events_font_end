@@ -1,0 +1,199 @@
+<div class="organization-verification">
+  <div class="card mb-4">
+    <div class="card-header d-flex justify-content-between align-items-center">
+      <h4>Quản lý xác minh tổ chức</h4>
+      <div class="d-flex gap-2">
+        <select class="form-select" [(ngModel)]="filterStatus" (change)="filterOrganizations()">
+          <option value="all">Tất cả trạng thái</option>
+          <option value="0">Chờ xác minh</option>
+          <option value="1">Đã xác minh</option>
+          <option value="2">Đã từ chối</option>
+        </select>
+        <input type="text" class="form-control" placeholder="Tìm kiếm..." [(ngModel)]="searchTerm" (input)="filterOrganizations()">
+      </div>
+    </div>
+    
+    <div class="card-body">
+      <div class="table-responsive">
+        <table class="table table-hover">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Tên tổ chức</th>
+              <th>Email</th>
+              <th>Số điện thoại</th>
+              <th>Ngày đăng ký</th>
+              <th>Trạng thái</th>
+              <th>Thao tác</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let org of filteredOrganizations">
+              <td>{{org.maToChuc}}</td>
+              <td>{{org.tenToChuc || 'Chưa cập nhật'}}</td>
+              <td>{{org.email}}</td>
+              <td>{{org.soDienThoai || 'Chưa cập nhật'}}</td>
+              <td>{{org.ngayTao | date:'dd/MM/yyyy'}}</td>
+              <td>
+                <span class="badge rounded-pill" [ngClass]="{
+                  'bg-warning': org.trangThaiXacMinh === null || org.trangThaiXacMinh === 0,
+                  'bg-success': org.trangThaiXacMinh === 1,
+                  'bg-danger': org.trangThaiXacMinh === 2
+                }">{{getVerificationStatus(org.trangThaiXacMinh)}}</span>
+                <small *ngIf="org.trangThaiXacMinh === 2 && org.lyDoTuChoi" class="d-block text-danger">
+                  {{org.lyDoTuChoi}}
+                </small>
+              </td>
+              <td>
+                <div class="btn-group" role="group">
+                  <button class="btn btn-sm btn-outline-info" (click)="viewOrganizationDetails(org)">
+                    <i class="bi bi-eye"></i> Chi tiết
+                  </button>
+                  <button *ngIf="org.trangThaiXacMinh === null || org.trangThaiXacMinh === 0" 
+                    class="btn btn-sm btn-outline-success" (click)="verifyOrganization(org, true)">
+                    <i class="bi bi-check-circle"></i> Xác minh
+                  </button>
+                  <button *ngIf="org.trangThaiXacMinh === null || org.trangThaiXacMinh === 0" 
+                    class="btn btn-sm btn-outline-danger" (click)="verifyOrganization(org, false)">
+                    <i class="bi bi-x-circle"></i> Từ chối
+                  </button>
+                  <button *ngIf="org.trangThaiXacMinh === 2" 
+                    class="btn btn-sm btn-outline-success" (click)="verifyOrganization(org, true)">
+                    <i class="bi bi-arrow-repeat"></i> Xác minh lại
+                  </button>
+                </div>
+              </td>
+            </tr>
+            <tr *ngIf="filteredOrganizations.length === 0">
+              <td colspan="7" class="text-center">Không có tổ chức nào phù hợp với bộ lọc</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  
+  <div class="card">
+    <div class="card-header">
+      <h4>Thống kê trạng thái</h4>
+    </div>
+    <div class="card-body">
+      <div class="row text-center">
+        <div class="col-md-4">
+          <div class="p-3 border rounded bg-light">
+            <h2 class="text-warning">{{getPendingCount()}}</h2>
+            <p class="mb-0">Chờ xác minh</p>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="p-3 border rounded bg-light">
+            <h2 class="text-success">{{getVerifiedCount()}}</h2>
+            <p class="mb-0">Đã xác minh</p>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="p-3 border rounded bg-light">
+            <h2 class="text-danger">{{getRejectedCount()}}</h2>
+            <p class="mb-0">Đã từ chối</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal chi tiết tổ chức -->
+<div class="modal fade" id="orgDetailsModal" tabindex="-1" aria-labelledby="orgDetailsModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content" *ngIf="selectedOrganization">
+      <div class="modal-header">
+        <h5 class="modal-title" id="orgDetailsModalLabel">Chi tiết tổ chức</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div class="row">
+          <div class="col-md-4 text-center mb-3">
+            <img [src]="selectedOrganization.anhDaiDien ? 'http://localhost:5000' + selectedOrganization.anhDaiDien : 'assets/images/organization-placeholder.png'" 
+              class="img-fluid rounded" alt="Logo tổ chức" style="max-height: 200px;"
+              onerror="this.src='assets/images/organization-placeholder.png'">
+          </div>
+          <div class="col-md-8">
+            <h4>{{selectedOrganization.tenToChuc || 'Chưa cập nhật tên tổ chức'}}</h4>
+            <p><strong>Email:</strong> {{selectedOrganization.email}}</p>
+            <p><strong>Số điện thoại:</strong> {{selectedOrganization.soDienThoai || 'Chưa cập nhật'}}</p>
+            <p><strong>Địa chỉ:</strong> {{selectedOrganization.diaChi || 'Chưa cập nhật'}}</p>
+            <p><strong>Ngày đăng ký:</strong> {{selectedOrganization.ngayTao | date:'dd/MM/yyyy'}}</p>
+            <p><strong>Giới thiệu:</strong> {{selectedOrganization.gioiThieu || 'Chưa cập nhật'}}</p>
+            
+            <div *ngIf="selectedOrganization.trangThaiXacMinh === 2" class="alert alert-danger">
+              <strong>Lý do từ chối:</strong> {{selectedOrganization.lyDoTuChoi || 'Không có lý do được cung cấp'}}
+            </div>
+          </div>
+        </div>
+        
+        <div class="mt-4">
+          <h5>Giấy tờ pháp lý</h5>
+          <div class="list-group">
+            <div *ngIf="!selectedOrganization.giayToPhapLys || selectedOrganization.giayToPhapLys.length === 0" 
+              class="text-center p-3">
+              <p class="text-muted">Tổ chức chưa tải lên giấy tờ pháp lý</p>
+            </div>
+            <a *ngFor="let doc of selectedOrganization.giayToPhapLys" 
+              [href]="'http://localhost:5000' + doc.duongDan" 
+              target="_blank" 
+              class="list-group-item list-group-item-action">
+              <div class="d-flex w-100 justify-content-between">
+                <h5 class="mb-1">{{doc.tenGiayTo || 'Giấy tờ pháp lý'}}</h5>
+                <small>{{doc.ngayTao | date:'dd/MM/yyyy'}}</small>
+              </div>
+              <p class="mb-1">{{doc.moTa || 'Không có mô tả'}}</p>
+              <small>Nhấn để xem tài liệu</small>
+            </a>
+          </div>
+        </div>
+        
+        <div class="mt-4">
+          <h5>Sự kiện đã tạo</h5>
+          <div class="table-responsive">
+            <table class="table table-sm table-hover">
+              <thead>
+                <tr>
+                  <th>Tên sự kiện</th>
+                  <th>Ngày bắt đầu</th>
+                  <th>Trạng thái</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngIf="!selectedOrganization.suKiens || selectedOrganization.suKiens.length === 0">
+                  <td colspan="3" class="text-center">Chưa có sự kiện nào</td>
+                </tr>
+                <tr *ngFor="let event of selectedOrganization.suKiens">
+                  <td>{{event.tenSuKien}}</td>
+                  <td>{{event.ngayBatDau | date:'dd/MM/yyyy'}}</td>
+                  <td>
+                    <span class="badge" [ngClass]="{
+                      'bg-warning': event.trangThai === 'Đang tuyển',
+                      'bg-success': event.trangThai === 'Đang diễn ra',
+                      'bg-secondary': event.trangThai === 'Đã kết thúc'
+                    }">{{event.trangThai || 'Đang tuyển'}}</span>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+        <div *ngIf="selectedOrganization.trangThaiXacMinh === null || selectedOrganization.trangThaiXacMinh === 0">
+          <button type="button" class="btn btn-success me-2" (click)="verifyOrganization(selectedOrganization, true)">
+            <i class="bi bi-check-circle"></i> Xác minh
+          </button>
+          <button type="button" class="btn btn-danger" (click)="verifyOrganization(selectedOrganization, false)">
+            <i class="bi bi-x-circle"></i> Từ chối
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

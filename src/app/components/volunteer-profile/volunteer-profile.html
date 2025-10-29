@@ -56,11 +56,11 @@
             <div class="col-md-8">
               <div class="row g-3">
                 <div class="col-md-6">
-                  <label class="form-label">Họ Tên *</label>
+                  <label class="form-label">Họ Tên</label>
                   <input type="text" formControlName="hoTen" class="form-control" placeholder="Nhập họ tên" />
                 </div>
                 <div class="col-md-6">
-                  <label class="form-label">Email *</label>
+                  <label class="form-label">Email</label>
                   <input type="email" formControlName="email" class="form-control" placeholder="Nhập email" />
                 </div>
                 <div class="col-md-6">
@@ -69,7 +69,7 @@
                 </div>
                 <div class="col-md-6">
                   <label class="form-label">SĐT</label>
-                  <input type="tel" formControlName="phoneNumber" class="form-control" placeholder="Nhập số điện thoại" />
+                  <input type="tel" formControlName="soDienThoai" class="form-control" placeholder="Nhập số điện thoại" />
                 </div>
                 <div class="col-md-6">
                   <label class="form-label">Ngày sinh</label>
@@ -99,7 +99,7 @@
                   <label class="form-label">Kỹ năng</label>
                   <div class="row g-2">
                     <div class="col-md-6" *ngFor="let knIdx of [0,1,2,3]">
-                      <select class="form-select" (change)="onKyNangChange(knIdx, $event)" [value]="selectedKyNangs[knIdx] || ''">
+                      <select class="form-select" (change)="onKyNangChange(knIdx, $event)" [ngModel]="selectedKyNangs[knIdx]" [ngModelOptions]="{standalone: true}">
                         <option value="">-- Chọn kỹ năng {{knIdx + 1}} --</option>
                         <option *ngFor="let kn of getAvailableKyNangs(knIdx)" [value]="kn.maKyNang">{{ kn.tenKyNang }}</option>
                       </select>
@@ -112,7 +112,7 @@
                   <label class="form-label">Lĩnh vực quan tâm</label>
                   <div class="row g-2">
                     <div class="col-md-6" *ngFor="let lvIdx of [0,1,2,3]">
-                      <select class="form-select" (change)="onLinhVucChange(lvIdx, $event)" [value]="selectedLinhVucs[lvIdx] || ''">
+                      <select class="form-select" (change)="onLinhVucChange(lvIdx, $event)" [ngModel]="selectedLinhVucs[lvIdx]" [ngModelOptions]="{standalone: true}">
                         <option value="">-- Chọn lĩnh vực {{lvIdx + 1}} --</option>
                         <option *ngFor="let lv of getAvailableLinhVucs(lvIdx)" [value]="lv.maLinhVuc">{{ lv.tenLinhVuc }}</option>
                       </select>

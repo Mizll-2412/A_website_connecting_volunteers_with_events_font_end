@@ -1,0 +1,107 @@
+<div class="container py-5">
+  <div class="row mb-4">
+    <div class="col">
+      <h2 class="mb-0">Danh sách đăng ký sự kiện</h2>
+      <p class="text-muted">Quản lý các sự kiện bạn đã đăng ký tham gia</p>
+    </div>
+  </div>
+
+  <!-- Lỗi hoặc đang tải -->
+  <div *ngIf="isLoading" class="text-center py-5">
+    <div class="spinner-border text-primary" role="status">
+      <span class="visually-hidden">Đang tải...</span>
+    </div>
+    <p class="mt-2">Đang tải dữ liệu...</p>
+  </div>
+
+  <div *ngIf="errorMessage && !isLoading" class="alert alert-danger">
+    {{ errorMessage }}
+  </div>
+
+  <!-- Bộ lọc -->
+  <div class="row mb-4" *ngIf="!isLoading && !errorMessage">
+    <div class="col-md-4 mb-3 mb-md-0">
+      <div class="input-group">
+        <span class="input-group-text"><i class="bi bi-search"></i></span>
+        <input type="text" class="form-control" placeholder="Tìm kiếm..." [(ngModel)]="searchTerm" (input)="applyFilters()">
+      </div>
+    </div>
+    <div class="col-md-4 mb-3 mb-md-0">
+      <select class="form-select" [(ngModel)]="statusFilter" (change)="applyFilters()">
+        <option value="all">Tất cả trạng thái</option>
+        <option value="pending">Chờ duyệt</option>
+        <option value="approved">Đã duyệt</option>
+        <option value="rejected">Từ chối</option>
+      </select>
+    </div>
+    <div class="col-md-4">
+      <select class="form-select" [(ngModel)]="sortBy" (change)="applyFilters()">
+        <option value="date">Sắp xếp theo ngày đăng ký</option>
+        <option value="event">Sắp xếp theo tên sự kiện</option>
+        <option value="status">Sắp xếp theo trạng thái</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- Danh sách đăng ký -->
+  <div class="row" *ngIf="!isLoading && !errorMessage">
+    <div class="col-12">
+      <div class="card">
+        <div class="table-responsive">
+          <table class="table table-hover mb-0">
+            <thead>
+              <tr>
+                <th>Sự kiện</th>
+                <th>Ngày diễn ra</th>
+                <th>Ngày đăng ký</th>
+                <th>Ghi chú</th>
+                <th>Trạng thái</th>
+                <th>Thao tác</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let reg of filteredRegistrations">
+                <td>
+                  <a [routerLink]="['/su-kien', reg.maSuKien]" class="text-decoration-none">
+                    {{ reg.event?.tenSuKien || 'Đang tải...' }}
+                  </a>
+                </td>
+                <td>
+                  <span *ngIf="reg.event?.ngayBatDau">
+                    {{ reg.event.ngayBatDau | date:'dd/MM/yyyy' }}
+                  </span>
+                  <span *ngIf="!reg.event?.ngayBatDau">-</span>
+                </td>
+                <td>{{ reg.ngayDangKy | date:'dd/MM/yyyy' }}</td>
+                <td>{{ reg.ghiChu || '-' }}</td>
+                <td>
+                  <span [class]="getStatusClass(reg.trangThai)">
+                    <i class="bi" [ngClass]="{
+                      'bi-hourglass-split': reg.trangThai === 0,
+                      'bi-check-circle': reg.trangThai === 1,
+                      'bi-x-circle': reg.trangThai === 2
+                    }"></i>
+                    {{ getStatusText(reg.trangThai) }}
+                  </span>
+                </td>
+                <td>
+                  <button *ngIf="canCancelRegistration(reg)" 
+                          class="btn btn-sm btn-outline-danger"
+                          (click)="cancelRegistration(reg)">
+                    <i class="bi bi-trash"></i> Hủy đăng ký
+                  </button>
+                </td>
+              </tr>
+              <tr *ngIf="filteredRegistrations.length === 0">
+                <td colspan="6" class="text-center py-4">
+                  <p class="mb-0">Bạn chưa đăng ký tham gia sự kiện nào</p>
+                  <a [routerLink]="['/su-kien']" class="btn btn-primary mt-3">Khám phá sự kiện</a>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

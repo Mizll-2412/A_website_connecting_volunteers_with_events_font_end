@@ -1,0 +1,118 @@
+<div class="admin-dashboard">
+  <div class="header">
+    <h1>Bảng điều khiển</h1>
+    <div class="header-actions">
+      <button class="btn-refresh" (click)="refreshStats()">
+        <i class="fas fa-sync-alt"></i> Làm mới
+      </button>
+    </div>
+  </div>
+
+  <div class="statistics">
+    <div class="stat-card">
+      <div class="stat-value">{{stats.users || 0}}</div>
+      <div class="stat-label">Tài khoản</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value">{{stats.organizations || 0}}</div>
+      <div class="stat-label">Tổ chức</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value">{{stats.events || 0}}</div>
+      <div class="stat-label">Sự kiện</div>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="col-12 col-xl-6 mb-4">
+      <div class="table-container">
+        <h3 class="p-3 border-bottom">Tổ chức chờ xác minh</h3>
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Tên tổ chức</th>
+              <th>Ngày đăng ký</th>
+              <th>Trạng thái</th>
+              <th>Thao tác</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let org of pendingOrganizations">
+              <td>{{org.tenToChuc}}</td>
+              <td>{{org.ngayTao | date:'dd/MM/yyyy'}}</td>
+              <td><span class="badge badge-pending">Chờ duyệt</span></td>
+              <td>
+                <button class="btn-action btn-view" routerLink="/admin/verify-organizations">Xem chi tiết</button>
+              </td>
+            </tr>
+            <tr *ngIf="pendingOrganizations.length === 0">
+              <td colspan="4" class="text-center py-3">Không có tổ chức nào đang chờ xác minh</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="col-12 col-xl-6 mb-4">
+      <div class="table-container">
+        <h3 class="p-3 border-bottom">Sự kiện mới nhất</h3>
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Tên sự kiện</th>
+              <th>Tổ chức</th>
+              <th>Ngày bắt đầu</th>
+              <th>Thao tác</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let event of recentEvents">
+              <td>{{event.tenSuKien}}</td>
+              <td>{{event.tenToChuc}}</td>
+              <td>{{event.ngayBatDau | date:'dd/MM/yyyy'}}</td>
+              <td>
+                <button class="btn-action btn-view" routerLink="/admin/sukien">Xem chi tiết</button>
+              </td>
+            </tr>
+            <tr *ngIf="recentEvents.length === 0">
+              <td colspan="4" class="text-center py-3">Không có sự kiện nào</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="col-12 mb-4">
+      <div class="table-container">
+        <h3 class="p-3 border-bottom">Tài khoản mới đăng ký</h3>
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Họ tên</th>
+              <th>Email</th>
+              <th>Vai trò</th>
+              <th>Ngày đăng ký</th>
+              <th>Thao tác</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let user of recentUsers">
+              <td>{{user.hoTen}}</td>
+              <td>{{user.email}}</td>
+              <td><span class="badge badge-type">{{user.vaiTro}}</span></td>
+              <td>{{user.ngayTao | date:'dd/MM/yyyy'}}</td>
+              <td>
+                <button class="btn-action btn-view" routerLink="/admin/users">Xem chi tiết</button>
+              </td>
+            </tr>
+            <tr *ngIf="recentUsers.length === 0">
+              <td colspan="5" class="text-center py-3">Không có tài khoản mới</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>

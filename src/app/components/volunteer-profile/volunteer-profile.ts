@@ -1,26 +1,18 @@
 import { Component, OnInit } from '@angular/core';
-import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
+import { FormBuilder, FormGroup, Validators, ReactiveFormsModule, FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { RouterModule, Router } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
-import { TinhNguyenVien, TinhNguyenVienResponeDTos } from '../../models/volunteer';
+import { TinhNguyenVien, TinhNguyenVienResponeDTos, KyNang, LinhVuc } from '../../models/volunteer';
 import { User } from '../../models/user';
 import { AuthService } from '../../services/auth';
 
-interface KyNang {
-  maKyNang: number;
-  tenKyNang: string;
-}
-
-interface LinhVuc {
-  maLinhVuc: number;
-  tenLinhVuc: string;
-}
+// Sử dụng interface từ models/volunteer.ts
 
 @Component({
   selector: 'app-volunteer-profile',
   standalone: true,
-  imports: [CommonModule, RouterModule, ReactiveFormsModule],
+  imports: [CommonModule, RouterModule, ReactiveFormsModule, FormsModule],
   templateUrl: './volunteer-profile.html',
   styleUrls: ['./volunteer-profile.css']
 })
@@ -63,16 +55,24 @@ export class VolunteerProfileComponent implements OnInit {
     if (this.isLoggedIn) {
       this.username = this.auth.getUsername();
       this.role = this.auth.getRole();
+      
+      // Nếu người dùng là tổ chức, chuyển hướng đến trang quản lý tổ chức
+      if (this.role === 'Organization') {
+        this.router.navigate(['/manage-org']);
+        return;
+      } else if (this.role === 'Admin') {
+        // Có thể chuyển hướng admin đến trang quản trị nếu cần
+        // this.router.navigate(['/admin']);
+      }
     }
-
   }
 
   initForm(): void {
     this.registrationForm = this.fb.group({
-      hoTen: ['', Validators.required],
+      hoTen: [''],
       cccd: [''],
-      phoneNumber: [''],
-      email: ['', [Validators.required, Validators.email]],
+      soDienThoai: [''],
+      email: [''],
       ngaySinh: [''],
       gioiTinh: [''],
       diaChi: [''],
@@ -96,7 +96,9 @@ export class VolunteerProfileComponent implements OnInit {
     // Lấy thông tin tình nguyện viên theo mã tài khoản
     this.http.get<any>(`${this.apiUrl}/by-account/${this.user.maTaiKhoan}`).subscribe({
       next: (response) => {
+        console.log('API response:', response);
         this.volunteer = response.data || response;
+        console.log('Volunteer data:', this.volunteer);
         this.populateForm();
         
         if (this.volunteer?.anhDaiDien) {
@@ -104,12 +106,18 @@ export class VolunteerProfileComponent implements OnInit {
         }
         
         if (this.volunteer?.kyNangIds) {
+          // Reset selected values
+          this.selectedKyNangs = [null, null, null, null];
+          
           this.volunteer.kyNangIds.forEach((id, index) => {
             if (index < 4) this.selectedKyNangs[index] = id;
           });
         }
         
         if (this.volunteer?.linhVucIds) {
+          // Reset selected values
+          this.selectedLinhVucs = [null, null, null, null];
+          
           this.volunteer.linhVucIds.forEach((id, index) => {
             if (index < 4) this.selectedLinhVucs[index] = id;
           });
@@ -126,15 +134,24 @@ export class VolunteerProfileComponent implements OnInit {
 
   populateForm(): void {
     if (this.volunteer) {
+      console.log('Populating form with data:', this.volunteer);
+      
+      // Ensure all form fields are properly reset first
+      this.registrationForm.reset();
+      
+      // Then set values from the volunteer object
       this.registrationForm.patchValue({
-        hoTen: this.volunteer.hoTen,
-        cccd: this.volunteer.cccd,
-        email: this.volunteer.email,
-        ngaySinh: this.volunteer.ngaySinh,
-        gioiTinh: this.volunteer.gioiTinh,
-        diaChi: this.volunteer.diaChi,
-        gioiThieu: this.volunteer.gioiThieu
+        hoTen: this.volunteer.hoTen || '',
+        cccd: this.volunteer.cccd || '',
+        soDienThoai: this.volunteer.soDienThoai || '',
+        email: this.volunteer.email || '',
+        ngaySinh: this.volunteer.ngaySinh || '',
+        gioiTinh: this.volunteer.gioiTinh || '',
+        diaChi: this.volunteer.diaChi || '',
+        gioiThieu: this.volunteer.gioiThieu || ''
       });
+      
+      console.log('Form values after population:', this.registrationForm.value);
     }
   }
 
@@ -173,12 +190,16 @@ export class VolunteerProfileComponent implements OnInit {
   onKyNangChange(index: number, event: Event): void {
     const value = (event.target as HTMLSelectElement).value;
     this.selectedKyNangs[index] = value ? Number(value) : null;
+    console.log(`Kỹ năng ${index + 1} changed to:`, this.selectedKyNangs[index]);
+    console.log('Current selectedKyNangs:', this.selectedKyNangs);
   }
 
   // Xử lý khi chọn lĩnh vực
   onLinhVucChange(index: number, event: Event): void {
     const value = (event.target as HTMLSelectElement).value;
     this.selectedLinhVucs[index] = value ? Number(value) : null;
+    console.log(`Lĩnh vực ${index + 1} changed to:`, this.selectedLinhVucs[index]);
+    console.log('Current selectedLinhVucs:', this.selectedLinhVucs);
   }
 
   onFileSelected(event: Event): void {
@@ -195,10 +216,11 @@ export class VolunteerProfileComponent implements OnInit {
   }
 
   async onSubmit(): Promise<void> {
-    if (this.registrationForm.invalid) {
-      alert('Vui lòng điền đầy đủ thông tin bắt buộc');
-      return;
-    }
+    // Không kiểm tra form invalid nữa
+    // if (this.registrationForm.invalid) {
+    //   alert('Vui lòng điền đầy đủ thông tin bắt buộc');
+    //   return;
+    // }
 
     if (!this.volunteer?.maTNV) {
       await this.createVolunteer();
@@ -215,6 +237,7 @@ export class VolunteerProfileComponent implements OnInit {
       hoTen: formData.hoTen,
       email: formData.email,
       cccd: formData.cccd,
+      soDienThoai: formData.soDienThoai,
       ngaySinh: formData.ngaySinh,
       gioiTinh: formData.gioiTinh,
       diaChi: formData.diaChi,
@@ -251,6 +274,7 @@ export class VolunteerProfileComponent implements OnInit {
     formData.append('hoTen', formValue.hoTen);
     formData.append('email', formValue.email);
     formData.append('cccd', formValue.cccd || '');
+    formData.append('soDienThoai', formValue.soDienThoai || '');
     formData.append('ngaySinh', formValue.ngaySinh || '');
     formData.append('gioiTinh', formValue.gioiTinh || '');
     formData.append('diaChi', formValue.diaChi || '');

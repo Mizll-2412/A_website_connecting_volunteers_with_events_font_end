@@ -1,0 +1,201 @@
+<div class="featured-profiles-container">
+  <div class="container py-4">
+    <!-- Header -->
+    <div class="section-header mb-4">
+      <h2 class="section-title">Hồ Sơ Tình Nguyện Viên Nổi Bật</h2>
+      <p class="section-description">Tìm kiếm những tình nguyện viên phù hợp với tổ chức của bạn</p>
+    </div>
+
+    <!-- Thanh tìm kiếm và lọc -->
+    <div class="search-filter-section mb-4">
+      <div class="card">
+        <div class="card-body">
+          <!-- Tìm kiếm -->
+          <div class="search-box mb-3">
+            <div class="input-group">
+              <input 
+                type="text" 
+                class="form-control" 
+                placeholder="Tìm kiếm theo tên, email, địa chỉ..." 
+                [(ngModel)]="searchQuery"
+                (keyup.enter)="search()"
+              >
+              <button class="btn btn-primary" type="button" (click)="search()">
+                <i class="fas fa-search"></i> Tìm kiếm
+              </button>
+            </div>
+          </div>
+
+          <!-- Bộ lọc -->
+          <div class="filter-options">
+            <div class="accordion" id="filterAccordion">
+              <!-- Lọc theo kỹ năng -->
+              <div class="accordion-item">
+                <h2 class="accordion-header" id="headingSkills">
+                  <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseSkills" aria-expanded="false" aria-controls="collapseSkills">
+                    Lọc theo kỹ năng
+                  </button>
+                </h2>
+                <div id="collapseSkills" class="accordion-collapse collapse" aria-labelledby="headingSkills">
+                  <div class="accordion-body">
+                    <div class="skill-tags">
+                      <div *ngFor="let skill of skills" class="skill-tag" [class.selected]="selectedSkills.includes(skill.maKyNang)" (click)="toggleSkill(skill.maKyNang)">
+                        {{ skill.tenKyNang }}
+                      </div>
+                      <div *ngIf="skills.length === 0" class="no-data-message">Không có dữ liệu kỹ năng</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- Lọc theo lĩnh vực -->
+              <div class="accordion-item">
+                <h2 class="accordion-header" id="headingFields">
+                  <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseFields" aria-expanded="false" aria-controls="collapseFields">
+                    Lọc theo lĩnh vực
+                  </button>
+                </h2>
+                <div id="collapseFields" class="accordion-collapse collapse" aria-labelledby="headingFields">
+                  <div class="accordion-body">
+                    <div class="field-tags">
+                      <div *ngFor="let field of fields" class="field-tag" [class.selected]="selectedFields.includes(field.maLinhVuc)" (click)="toggleField(field.maLinhVuc)">
+                        {{ field.tenLinhVuc }}
+                      </div>
+                      <div *ngIf="fields.length === 0" class="no-data-message">Không có dữ liệu lĩnh vực</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Nút xóa bộ lọc -->
+            <div class="d-flex justify-content-end mt-2">
+              <button class="btn btn-outline-secondary" (click)="clearFilters()">
+                <i class="fas fa-times-circle"></i> Xóa bộ lọc
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Trạng thái loading -->
+    <div *ngIf="isLoading" class="text-center my-5">
+      <div class="spinner-border text-primary" role="status"></div>
+      <p class="mt-2">Đang tải dữ liệu...</p>
+    </div>
+
+    <!-- Thông báo lỗi -->
+    <div *ngIf="errorMessage && !isLoading" class="alert alert-danger">
+      {{ errorMessage }}
+    </div>
+
+    <!-- Danh sách tình nguyện viên -->
+    <div *ngIf="!isLoading && !errorMessage" class="volunteer-list">
+      <div *ngIf="filteredVolunteers.length === 0" class="text-center py-5">
+        <i class="fas fa-search fa-3x text-muted mb-3"></i>
+        <h4>Không tìm thấy tình nguyện viên nào phù hợp</h4>
+        <p class="text-muted">Vui lòng thử lại với bộ lọc khác</p>
+      </div>
+
+      <div class="row">
+        <div *ngFor="let volunteer of getCurrentPageItems()" class="col-md-6 col-lg-4 mb-4">
+          <div class="card volunteer-card h-100">
+            <div class="card-body">
+              <!-- Avatar và thông tin cơ bản -->
+              <div class="d-flex align-items-center mb-3">
+                <div class="volunteer-avatar">
+                  <img [src]="volunteer.anhDaiDien ? 'http://localhost:5000' + volunteer.anhDaiDien : 'user.png'" alt="Avatar">
+                </div>
+                <div class="volunteer-info ms-3">
+                  <h5 class="volunteer-name">{{ volunteer.hoTen }}</h5>
+                  <div class="volunteer-rating">
+                    <span *ngFor="let type of getStarRating(volunteer.danhGiaTrungBinh)" class="star">
+                      <i class="fas" [ngClass]="{
+                        'fa-star': type === 'full',
+                        'fa-star-half-alt': type === 'half',
+                        'fa-star text-muted': type === 'empty'
+                      }"></i>
+                    </span>
+                    <span class="rating-number" *ngIf="volunteer.danhGiaTrungBinh">
+                      {{ volunteer.danhGiaTrungBinh | number:'1.1-1' }}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Giới thiệu -->
+              <p class="volunteer-bio text-muted mb-3">{{ volunteer.gioiThieu || 'Chưa có thông tin giới thiệu' }}</p>
+
+              <!-- Kỹ năng và lĩnh vực -->
+              <div class="volunteer-tags mb-3">
+                <div class="tags-section">
+                  <span class="tags-title">Kỹ năng:</span>
+                  <div class="tags-list">
+                    <span *ngFor="let skill of volunteer.kyNangs" class="tag skill-tag">
+                      {{ skill.tenKyNang }}
+                    </span>
+                    <span *ngIf="!volunteer.kyNangs || volunteer.kyNangs.length === 0" class="text-muted">Chưa cập nhật</span>
+                  </div>
+                </div>
+                <div class="tags-section">
+                  <span class="tags-title">Lĩnh vực:</span>
+                  <div class="tags-list">
+                    <span *ngFor="let field of volunteer.linhVucs" class="tag field-tag">
+                      {{ field.tenLinhVuc }}
+                    </span>
+                    <span *ngIf="!volunteer.linhVucs || volunteer.linhVucs.length === 0" class="text-muted">Chưa cập nhật</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Thông tin liên hệ -->
+              <div class="volunteer-contact">
+                <div class="contact-item">
+                  <i class="fas fa-envelope"></i>
+                  <span>{{ volunteer.email }}</span>
+                </div>
+                <div class="contact-item" *ngIf="volunteer.soDienThoai">
+                  <i class="fas fa-phone-alt"></i>
+                  <span>{{ volunteer.soDienThoai }}</span>
+                </div>
+                <div class="contact-item" *ngIf="volunteer.diaChi">
+                  <i class="fas fa-map-marker-alt"></i>
+                  <span>{{ volunteer.diaChi }}</span>
+                </div>
+              </div>
+
+              <!-- Nút xem chi tiết -->
+              <button class="btn btn-primary w-100 mt-3" (click)="viewVolunteerProfile(volunteer.maTNV)">
+                Xem chi tiết
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Phân trang -->
+      <div *ngIf="totalPages > 1" class="pagination-container mt-4">
+        <nav aria-label="Phân trang">
+          <ul class="pagination justify-content-center">
+            <li class="page-item" [class.disabled]="currentPage === 1">
+              <a class="page-link" href="javascript:void(0)" (click)="prevPage()">
+                <i class="fas fa-chevron-left"></i>
+              </a>
+            </li>
+            
+            <li *ngFor="let page of getPages()" class="page-item" [class.active]="currentPage === page">
+              <a class="page-link" href="javascript:void(0)" (click)="goToPage(page)">{{ page }}</a>
+            </li>
+            
+            <li class="page-item" [class.disabled]="currentPage === totalPages">
+              <a class="page-link" href="javascript:void(0)" (click)="nextPage()">
+                <i class="fas fa-chevron-right"></i>
+              </a>
+            </li>
+          </ul>
+        </nav>
+      </div>
+    </div>
+  </div>
+</div>

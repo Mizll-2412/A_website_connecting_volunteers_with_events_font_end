@@ -63,6 +63,10 @@ export interface SuKienResponseDto {
   hinhAnh?: string;
   linhVucIds?: number[];
   kyNangIds?: number[];
+  // Thêm các trường cần thiết cho giao diện người dùng
+  matchRate?: number;
+  isFeatured?: boolean;
+  isOngoing?: boolean;
 }
 
 // Enum cho trạng thái sự kiện
