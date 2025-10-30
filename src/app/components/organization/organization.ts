@@ -3,6 +3,8 @@ import { CommonModule } from '@angular/common';
 import { User } from '../../models/user';
 import { RouterLink, RouterModule, Router } from '@angular/router';
 import { AuthService } from '../../services/auth';
+import { ToChucService } from '../../services/organization';
+import { HttpErrorResponse } from '@angular/common/http';
 
 export enum TrangThaiXacMinh {
   ChoDuyet = 0,
@@ -35,28 +37,88 @@ export interface ToChuc {
 export class ToChucListComponent implements OnInit {
   danhSachToChuc: ToChuc[] = [];
   user?: User;
-  constructor(private router: Router, private auth: AuthService) {}
   isLoggedIn = false;
   username = '';
   role = '';
+  isLoading = false;
+  errorMessage = '';
+  
+  constructor(
+    private router: Router, 
+    private auth: AuthService,
+    private toChucService: ToChucService
+  ) {}
 
 
   ngOnDestroy(): void {
   }
   ngOnInit(): void {
     this.isLoggedIn = this.auth.isAuthenticated();
-       if (this.isLoggedIn) {
-        this.username = this.auth.getUsername();
-        this.role = this.auth.getRole();
+    if (this.isLoggedIn) {
+      this.username = this.auth.getUsername();
+      this.role = this.auth.getRole();
+    }
+    
+    const userInfo = localStorage.getItem('user');
+    if (userInfo) {
+      this.user = JSON.parse(userInfo);
+    } else {
+      this.router.navigate(['/login']);
+      return;
+    }
+    
+    // Gọi API lấy danh sách tổ chức
+    this.loadOrganizations();
+  }
   
-      }
-      const userInfo = localStorage.getItem('user');
-          if (userInfo) {
-            this.user = JSON.parse(userInfo);
-      } else {
-              this.router.navigate(['/login']);
+  loadOrganizations(): void {
+    this.isLoading = true;
+    this.errorMessage = '';
+    
+    this.toChucService.getAllOrganizations().subscribe({
+      next: (response: any) => {
+        console.log('Dữ liệu tổ chức từ API:', response);
+        
+        // Xử lý dữ liệu trả về
+        if (response && response.data && Array.isArray(response.data)) {
+          this.danhSachToChuc = this.mapToChucData(response.data);
+        } else if (Array.isArray(response)) {
+          this.danhSachToChuc = this.mapToChucData(response);
+        } else {
+          this.errorMessage = 'Không thể đọc dữ liệu tổ chức';
+          this.useMockData(); // Sử dụng dữ liệu mẫu nếu API trả về dữ liệu không đúng định dạng
         }
-    // Dữ liệu mẫu, bạn có thể thay bằng API thực tế
+        
+        this.isLoading = false;
+      },
+      error: (err: HttpErrorResponse) => {
+        console.error('Lỗi khi tải danh sách tổ chức:', err);
+        this.errorMessage = 'Không thể tải danh sách tổ chức. Vui lòng thử lại sau.';
+        this.useMockData(); // Sử dụng dữ liệu mẫu khi gặp lỗi
+        this.isLoading = false;
+      }
+    });
+  }
+  
+  mapToChucData(data: any[]): ToChuc[] {
+    return data.map(item => ({
+      maToChuc: item.maToChuc,
+      maTaiKhoan: item.maTaiKhoan,
+      tenToChuc: item.tenToChuc || 'Không có tên',
+      email: item.email || '',
+      soDienThoai: item.soDienThoai,
+      diaChi: item.diaChi,
+      ngayTao: item.ngayTao ? new Date(item.ngayTao) : undefined,
+      gioiThieu: item.gioiThieu || 'Chưa có thông tin giới thiệu',
+      anhDaiDien: item.anhDaiDien,
+      trangThaiXacMinh: item.trangThaiXacMinh !== undefined ? item.trangThaiXacMinh : TrangThaiXacMinh.ChoDuyet,
+      lyDoTuChoi: item.lyDoTuChoi,
+      diemTrungBinh: item.diemTrungBinh
+    }));
+  }
+  
+  useMockData(): void {
+    // Dữ liệu mẫu khi API gặp lỗi
     this.danhSachToChuc = [
       {
         maToChuc: 1,

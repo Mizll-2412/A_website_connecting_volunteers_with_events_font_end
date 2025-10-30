@@ -1,0 +1,115 @@
+<div class="container-fluid py-4">
+  <h2 class="mb-4">Quản lý kỹ năng</h2>
+
+  <!-- Thông báo -->
+  <div *ngIf="errorMessage" class="alert alert-danger alert-dismissible fade show" role="alert">
+    {{ errorMessage }}
+    <button type="button" class="btn-close" (click)="errorMessage = ''"></button>
+  </div>
+
+  <div *ngIf="successMessage" class="alert alert-success alert-dismissible fade show" role="alert">
+    {{ successMessage }}
+    <button type="button" class="btn-close" (click)="successMessage = ''"></button>
+  </div>
+
+  <!-- Form thêm kỹ năng -->
+  <div class="card mb-4">
+    <div class="card-header">
+      <h5 class="mb-0">Thêm kỹ năng mới</h5>
+    </div>
+    <div class="card-body">
+      <form (ngSubmit)="addSkill()" class="row g-3">
+        <div class="col-md-6">
+          <label for="skillName" class="form-label">Tên kỹ năng</label>
+          <input type="text" class="form-control" id="skillName" [(ngModel)]="newSkill.tenKyNang" name="tenKyNang" required>
+        </div>
+        <div class="col-md-6">
+          <label for="skillDesc" class="form-label">Mô tả (Tùy chọn)</label>
+          <input type="text" class="form-control" id="skillDesc" [(ngModel)]="newSkill.moTa" name="moTa">
+        </div>
+        <div class="col-12">
+          <button type="submit" class="btn btn-primary" [disabled]="isLoading">
+            <span *ngIf="isLoading" class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
+            Thêm kỹ năng
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Danh sách kỹ năng -->
+  <div class="card">
+    <div class="card-header">
+      <h5 class="mb-0">Danh sách kỹ năng</h5>
+    </div>
+    <div class="card-body">
+      <!-- Loading state -->
+      <div *ngIf="isLoading" class="text-center py-3">
+        <div class="spinner-border text-primary" role="status">
+          <span class="visually-hidden">Đang tải...</span>
+        </div>
+        <p class="mt-2 mb-0">Đang tải dữ liệu...</p>
+      </div>
+
+      <!-- Empty state -->
+      <div *ngIf="!isLoading && skills.length === 0" class="text-center py-3">
+        <p class="mb-0">Chưa có kỹ năng nào được tạo</p>
+      </div>
+
+      <!-- Skills list -->
+      <div class="table-responsive" *ngIf="!isLoading && skills.length > 0">
+        <table class="table table-hover">
+          <thead>
+            <tr>
+              <th scope="col">ID</th>
+              <th scope="col">Tên kỹ năng</th>
+              <th scope="col">Mô tả</th>
+              <th scope="col">Thao tác</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let skill of skills">
+              <!-- Normal view -->
+              <ng-container *ngIf="editingSkill?.maKyNang !== skill.maKyNang">
+                <td>{{ skill.maKyNang }}</td>
+                <td>{{ skill.tenKyNang }}</td>
+                <td>{{ skill.moTa || 'N/A' }}</td>
+                <td>
+                  <div class="btn-group btn-group-sm">
+                    <button type="button" class="btn btn-outline-primary" (click)="startEditing(skill)">
+                      <i class="bi bi-pencil"></i> Sửa
+                    </button>
+                    <button type="button" class="btn btn-outline-danger" (click)="deleteSkill(skill.maKyNang!)">
+                      <i class="bi bi-trash"></i> Xóa
+                    </button>
+                  </div>
+                </td>
+              </ng-container>
+
+              <!-- Edit mode -->
+              <ng-container *ngIf="editingSkill?.maKyNang === skill.maKyNang">
+                <td>{{ skill.maKyNang }}</td>
+                <td>
+                  <input type="text" class="form-control form-control-sm" [(ngModel)]="editingSkill!.tenKyNang">
+                </td>
+                <td>
+                  <input type="text" class="form-control form-control-sm" [(ngModel)]="editingSkill!.moTa">
+                </td>
+                <td>
+                  <div class="btn-group btn-group-sm">
+                    <button type="button" class="btn btn-outline-success" (click)="updateSkill()">
+                      <i class="bi bi-check"></i> Lưu
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary" (click)="cancelEditing()">
+                      <i class="bi bi-x"></i> Hủy
+                    </button>
+                  </div>
+                </td>
+              </ng-container>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>

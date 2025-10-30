@@ -1,150 +1,401 @@
-<div class="event-management">
-    <!-- Header -->
-    <header class="header">
-        <div class="logo">
-            <img src="logo.png" alt="Logo">
+<main class="container py-4">
+  <!-- Loading & Error States -->
+  <div *ngIf="isLoading" class="text-center my-5">
+    <div class="spinner-border text-primary" role="status">
+      <span class="visually-hidden">Đang tải...</span>
+    </div>
+    <p class="mt-2">Đang tải dữ liệu...</p>
+  </div>
+
+  <div *ngIf="errorMessage && !isLoading" class="alert alert-danger">
+    {{ errorMessage }}
+  </div>
+
+  <!-- Main Content when loaded -->
+  <div *ngIf="!isLoading">
+    <!-- Page Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+      <h1 class="h2 mb-0">Quản lý tổ chức</h1>
+      <div *ngIf="organization">
+        <span class="badge bg-info me-2">{{ organization.tenToChuc || 'Chưa cập nhật tên' }}</span>
+        <span class="badge" [ngClass]="{
+          'bg-success': isVerified,
+          'bg-warning': !isVerified && !isRejected,
+          'bg-danger': isRejected
+        }">
+          {{ isVerified ? 'Đã xác minh' : (isRejected ? 'Bị từ chối' : 'Chờ xác minh') }}
+        </span>
+        <button class="btn btn-outline-secondary btn-sm ms-2" (click)="navigateToOrgSettings()">
+          <i class="bi bi-gear"></i> Cài đặt tổ chức
+        </button>
+      </div>
+    </div>
+    
+    <!-- Notification for unverified organization -->
+    <div *ngIf="!isVerified" class="alert" [ngClass]="{
+      'alert-warning': !isRejected,
+      'alert-danger': isRejected
+    }">
+      <div class="d-flex align-items-center">
+        <i class="bi" [ngClass]="{
+          'bi-exclamation-triangle-fill': !isRejected,
+          'bi-x-circle-fill': isRejected
+        }"></i>
+        <div class="ms-2">
+          <strong>{{ isRejected ? 'Tổ chức đã bị từ chối xác minh!' : 'Tổ chức đang chờ xác minh!' }}</strong>
+          <p class="mb-0">{{ errorMessage }}</p>
+          <p class="mb-0 mt-2">
+            <small>Tổ chức cần được xác minh để có thể tạo và quản lý sự kiện. 
+              <a href="#" (click)="navigateToOrgSettings()">Cập nhật thông tin tổ chức</a> để tăng khả năng được xác minh.</small>
+          </p>
         </div>
-
-        <nav class="nav-links">
-            <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">Trang chủ</a>
-            <a routerLink="/events" routerLinkActive="active">Sự kiện</a>
-            <a *ngIf="role === 'User'" routerLink="/organizations" routerLinkActive="active">
-                Tổ chức
-            </a>
-            <a *ngIf="role === 'Organization'" routerLink="/manage-org" routerLinkActive="active">
-                Quản lý tổ chức
-            </a> 
-            <a *ngIf="role === 'User'" routerLink="/profile" routerLinkActive="active">Hồ sơ</a>
-            <a *ngIf="role === 'Organization'" routerLink="/list-user" routerLinkActive="active">Hồ sơ nổi bật</a>
-        </nav>
-
-        <div class="actions">
-            <span class="lang">EN</span>
-            <img src="search-interface-symbol.png" alt="Search" class="search-icon">
-
-            <ng-container *ngIf="!isLoggedIn">
-                <button class="btn login-btn" routerLink="/login">Đăng nhập</button>
-                <button class="btn signup-btn" routerLink="/register">Đăng ký</button>
-            </ng-container>
-
-            <ng-container *ngIf="isLoggedIn">
-                <div class="user-menu">
-                    <img src="user.png" alt="User" class="avatar">
-                    <span class="username">{{ username }}</span>
-                </div>
-            </ng-container>
-        </div>
-    </header>
-
-
-    <div class="container">
-        <!-- Event Info Card -->
-        <div class="event-card">
-            <div class="event-header">
-                <h2>Sự kiện</h2>
-                <button class="btn-edit" (click)="editEvent()">
-                    Sửa sự kiện
-                </button>
-            </div>
-
-            <div class="event-content">
-                <div class="event-image">
-                    <img *ngIf="eventData.image" [src]="eventData.image" alt="Event">
-                    <span *ngIf="!eventData.image">Image</span>
-                </div>
-
-                <div class="event-details">
-                    <h3>{{ eventData.title }}</h3>
-                    <p><strong>Địa điểm:</strong> {{ eventData.location }}</p>
-                    <p><strong>Ngày bắt đầu:</strong> {{ eventData.startDate }}</p>
-                    <p><strong>Ngày kết thúc:</strong> {{ eventData.endDate }}</p>
-
-                    <div class="event-status">
-                        <h4>Trạng thái</h4>
-                        <button class="btn-status" [class.confirmed]="eventData.status === 'confirmed'">
-                            ✓ Đã xác nhận
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Tabs -->
-        <div class="tabs-container">
-            <div class="tabs-nav">
-                <button class="tab-button" [class.active]="selectedTab === 'event'" (click)="selectTab('event')">
-                    Hồ sơ tình nguyện viên đăng ký
-                </button>
-                <button class="tab-button" [class.active]="selectedTab === 'report'" (click)="selectTab('report')">
-                    Báo cáo sự kiện
-                </button>
-            </div>
-
-            <div class="tabs-content">
-                <!-- Volunteers Tab -->
-                <div *ngIf="selectedTab === 'event'" class="tab-panel">
-                    <h3>Hồ sơ tình nguyện viên đăng ký</h3>
-
-                    <div class="table-container">
-                        <table class="volunteers-table">
-                            <thead>
-                                <tr>
-                                    <th>Ảnh</th>
-                                    <th>Họ tên</th>
-                                    <th>Email</th>
-                                    <th>Tuổi</th>
-                                    <th>Kỹ năng</th>
-                                    <th>Trạng thái</th>
-                                    <th>Hành động</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr *ngFor="let volunteer of volunteers">
-                                    <td>
-                                        <div class="avatar"></div>
-                                    </td>
-                                    <td>{{ volunteer.name }}</td>
-                                    <td>{{ volunteer.email }}</td>
-                                    <td>{{ volunteer.age || '-' }}</td>
-                                    <td>{{ volunteer.skills }}</td>
-                                    <td>
-                                        <span class="status-badge"
-                                            [style.background]="getStatusColor(volunteer.status)">
-                                            {{ getStatusLabel(volunteer.status) }}
-                                        </span>
-                                    </td>
-                                    <td>
-                                        <button *ngIf="volunteer.status === 'pending'" class="btn-accept"
-                                            (click)="acceptVolunteer(volunteer)">
-                                            Chấp nhận
-                                        </button>
-                                        <button *ngIf="volunteer.status === 'pending'" class="btn-reject"
-                                            (click)="rejectVolunteer(volunteer)">
-                                            Từ chối
-                                        </button>
-                                        <span *ngIf="volunteer.status !== 'pending'" class="action-done">
-                                            {{ volunteer.status === 'accepted' ? '✓ Đã xử lý' : '✗ Đã từ chối' }}
-                                        </span>
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-
-                <!-- Report Tab -->
-                <div *ngIf="selectedTab === 'report'" class="tab-panel">
-                    <h3>Báo cáo sự kiện</h3>
-                    <div class="report-placeholder">
-                        Nội dung báo cáo sự kiện sẽ hiển thị ở đây
-                    </div>
-                </div>
-            </div>
-        </div>
+      </div>
     </div>
 
-    <!-- Footer
-    <footer class="footer">
-        Footer
-    </footer> -->
-</div>
+    <!-- Page Content based on selected tab -->
+    <div [ngSwitch]="selectedTab">
+      <!-- Events List Tab -->
+      <div *ngSwitchCase="'events'">
+        <div class="card">
+          <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">Danh sách sự kiện</h5>
+            <button class="btn btn-primary" 
+                    [disabled]="!isVerified"
+                    [title]="!isVerified ? 'Tổ chức cần được xác minh để tạo sự kiện' : ''"
+                    (click)="createEvent()">
+              <i class="bi bi-plus"></i> Tạo sự kiện mới
+            </button>
+          </div>
+          <div class="card-body">
+            <div class="table-responsive">
+              <table class="table table-hover">
+                <thead>
+                  <tr>
+                    <th>Tên sự kiện</th>
+                    <th>Địa điểm</th>
+                    <th>Ngày bắt đầu</th>
+                    <th>Ngày kết thúc</th>
+                    <th>Trạng thái</th>
+                    <th>Thao tác</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let event of events">
+                    <td>{{ event.tenSuKien }}</td>
+                    <td>{{ event.diaChi }}</td>
+                    <td>{{ formatDate(event.ngayBatDau) }}</td>
+                    <td>{{ formatDate(event.ngayKetThuc) }}</td>
+                    <td>
+                      <span class="badge" [ngClass]="{
+                        'bg-success': event.trangThai === 'Đã duyệt',
+                        'bg-warning': event.trangThai === 'Đang tuyển',
+                        'bg-danger': event.trangThai === 'Đã hủy'
+                      }">
+                        {{ event.trangThai || 'Đang tuyển' }}
+                      </span>
+                    </td>
+                    <td>
+                      <div class="btn-group btn-group-sm">
+                        <button class="btn btn-outline-primary" (click)="selectEvent(event)">
+                          <i class="bi bi-eye"></i> Chi tiết
+                        </button>
+                        <button class="btn btn-outline-secondary" (click)="editEvent(event)">
+                          <i class="bi bi-pencil"></i> Sửa
+                        </button>
+                        <button class="btn btn-outline-danger" (click)="deleteEvent(event)">
+                          <i class="bi bi-trash"></i> Xóa
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                  <tr *ngIf="events.length === 0">
+                    <td colspan="6" class="text-center py-3">
+                      <p class="mb-0">Chưa có sự kiện nào</p>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Event Details Tab -->
+      <div *ngSwitchCase="'event-detail'" class="row">
+        <div class="col-12 mb-3">
+          <button class="btn btn-outline-secondary" (click)="backToEvents()">
+            <i class="bi bi-arrow-left"></i> Quay lại danh sách
+          </button>
+        </div>
+
+        <div class="col-md-4">
+          <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+              <h5 class="mb-0">Thông tin sự kiện</h5>
+              <button class="btn btn-sm btn-outline-primary" (click)="editEvent(selectedEvent!)">
+                <i class="bi bi-pencil"></i> Sửa
+              </button>
+            </div>
+            <div class="card-body" *ngIf="selectedEvent">
+              <img [src]="selectedEvent.hinhAnh ? 'http://localhost:5000' + selectedEvent.hinhAnh : 'assets/event-default.jpg'" 
+                   class="img-fluid rounded mb-3" alt="Event Image">
+              <h4>{{ selectedEvent.tenSuKien }}</h4>
+              <p class="text-muted">{{ selectedEvent.noiDung }}</p>
+              
+              <dl class="row mt-3">
+                <dt class="col-sm-5">Địa điểm</dt>
+                <dd class="col-sm-7">{{ selectedEvent.diaChi }}</dd>
+                
+                <dt class="col-sm-5">Ngày bắt đầu</dt>
+                <dd class="col-sm-7">{{ formatDate(selectedEvent.ngayBatDau) }}</dd>
+                
+                <dt class="col-sm-5">Ngày kết thúc</dt>
+                <dd class="col-sm-7">{{ formatDate(selectedEvent.ngayKetThuc) }}</dd>
+                
+                <dt class="col-sm-5">Số lượng TNV</dt>
+                <dd class="col-sm-7">{{ selectedEvent.soLuongTNV || 0 }}</dd>
+                
+                <dt class="col-sm-5">Đã đăng ký</dt>
+                <dd class="col-sm-7">{{ selectedEvent.soLuongDaDangKy || 0 }}</dd>
+              </dl>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-md-8">
+          <div class="card">
+            <div class="card-header">
+              <h5 class="mb-0">Danh sách đăng ký tham gia</h5>
+            </div>
+            <div class="card-body">
+              <!-- Loading state for volunteers -->
+              <div *ngIf="isLoadingVolunteers" class="text-center py-3">
+                <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
+                <span class="ms-2">Đang tải danh sách...</span>
+              </div>
+
+              <!-- Volunteers list -->
+              <div *ngIf="!isLoadingVolunteers">
+                <div class="table-responsive">
+                  <table class="table table-hover">
+                    <thead>
+                      <tr>
+                        <th>Họ tên</th>
+                        <th>Email</th>
+                        <th>Số điện thoại</th>
+                        <th>Trạng thái</th>
+                        <th>Thao tác</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr *ngFor="let volunteer of eventVolunteers">
+                        <td>{{ volunteer.hoTen }}</td>
+                        <td>{{ volunteer.email }}</td>
+                        <td>{{ volunteer.soDienThoai || 'Chưa cập nhật' }}</td>
+                        <td>
+                          <span class="badge" 
+                                [ngClass]="{
+                                  'bg-warning': volunteer.trangThai === 0,
+                                  'bg-success': volunteer.trangThai === 1,
+                                  'bg-danger': volunteer.trangThai === 2
+                                }">
+                            {{ getStatusText(volunteer.trangThai!) }}
+                          </span>
+                        </td>
+                        <td>
+                          <div class="btn-group btn-group-sm">
+                            <button *ngIf="volunteer.trangThai === 0" 
+                                    class="btn btn-outline-success"
+                                    (click)="approveVolunteer(volunteer)">
+                              <i class="bi bi-check2"></i> Duyệt
+                            </button>
+                            <button *ngIf="volunteer.trangThai === 0" 
+                                    class="btn btn-outline-danger"
+                                    (click)="rejectVolunteer(volunteer)">
+                              <i class="bi bi-x"></i> Từ chối
+                            </button>
+                            <button class="btn btn-outline-info">
+                              <i class="bi bi-person"></i> Xem hồ sơ
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                      <tr *ngIf="eventVolunteers.length === 0">
+                        <td colspan="5" class="text-center py-3">
+                          <p class="mb-0">Chưa có tình nguyện viên đăng ký tham gia</p>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Create/Edit Event Tab -->
+      <div *ngSwitchCase="'create-event'" class="card">
+        <div class="card-header">
+          <h5 class="mb-0">{{ isEditingEvent ? 'Sửa sự kiện' : 'Tạo sự kiện mới' }}</h5>
+        </div>
+        <div class="card-body">
+          <form (ngSubmit)="saveEvent()">
+            <div class="mb-3">
+              <label for="eventTitle" class="form-label">Tên sự kiện</label>
+              <input type="text" class="form-control" id="eventTitle" [(ngModel)]="newEvent.tenSuKien" name="tenSuKien" required>
+            </div>
+            
+            <div class="mb-3">
+              <label for="eventDescription" class="form-label">Mô tả sự kiện</label>
+              <textarea class="form-control" id="eventDescription" rows="4" [(ngModel)]="newEvent.noiDung" name="noiDung" required></textarea>
+            </div>
+            
+            <div class="row mb-3">
+              <div class="col-md-6">
+                <label for="eventStartDate" class="form-label">Ngày bắt đầu</label>
+                <input type="date" class="form-control" id="eventStartDate" [(ngModel)]="newEvent.ngayBatDau" name="ngayBatDau" required>
+              </div>
+              <div class="col-md-6">
+                <label for="eventEndDate" class="form-label">Ngày kết thúc</label>
+                <input type="date" class="form-control" id="eventEndDate" [(ngModel)]="newEvent.ngayKetThuc" name="ngayKetThuc" required>
+              </div>
+            </div>
+
+            <div class="row mb-3">
+              <div class="col-md-6">
+                <label for="recruitStartDate" class="form-label">Ngày bắt đầu tuyển</label>
+                <input type="date" class="form-control" id="recruitStartDate" [(ngModel)]="newEvent.tuyenBatDau" name="tuyenBatDau">
+              </div>
+              <div class="col-md-6">
+                <label for="recruitEndDate" class="form-label">Ngày kết thúc tuyển</label>
+                <input type="date" class="form-control" id="recruitEndDate" [(ngModel)]="newEvent.tuyenKetThuc" name="tuyenKetThuc">
+              </div>
+            </div>
+            
+            <div class="mb-3">
+              <label for="eventLocation" class="form-label">Địa điểm</label>
+              <input type="text" class="form-control" id="eventLocation" [(ngModel)]="newEvent.diaChi" name="diaChi" required>
+            </div>
+            
+            <div class="mb-3">
+              <label for="eventVolunteerCount" class="form-label">Số lượng tình nguyện viên</label>
+              <input type="number" class="form-control" id="eventVolunteerCount" [(ngModel)]="newEvent.soLuongTNV" name="soLuongTNV">
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label">Hình ảnh sự kiện</label>
+              <input type="file" class="form-control" accept="image/*" (change)="onFileSelected($event)">
+              <div *ngIf="previewUrl" class="mt-2">
+                <img [src]="previewUrl" alt="Preview" style="max-height: 200px; max-width: 100%;" class="img-thumbnail">
+              </div>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label">Lĩnh vực liên quan</label>
+              <div class="d-flex flex-wrap gap-2">
+                <div *ngFor="let field of linhVucs" class="form-check">
+                  <input class="form-check-input" type="checkbox" 
+                         [id]="'field' + field.maLinhVuc" 
+                         [checked]="isLinhVucSelected(field.maLinhVuc)" 
+                         (change)="toggleLinhVuc(field.maLinhVuc)">
+                  <label class="form-check-label" [for]="'field' + field.maLinhVuc">
+                    {{ field.tenLinhVuc }}
+                  </label>
+                </div>
+                <div *ngIf="linhVucs.length === 0" class="text-muted fst-italic">
+                  Chưa có lĩnh vực nào được tạo
+                </div>
+              </div>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label">Kỹ năng cần thiết</label>
+              <div class="d-flex flex-wrap gap-2">
+                <div *ngFor="let skill of kyNangs" class="form-check">
+                  <input class="form-check-input" type="checkbox" 
+                         [id]="'skill' + skill.maKyNang" 
+                         [checked]="isKyNangSelected(skill.maKyNang)" 
+                         (change)="toggleKyNang(skill.maKyNang)">
+                  <label class="form-check-label" [for]="'skill' + skill.maKyNang">
+                    {{ skill.tenKyNang }}
+                  </label>
+                </div>
+                <div *ngIf="kyNangs.length === 0" class="text-muted fst-italic">
+                  Chưa có kỹ năng nào được tạo
+                </div>
+              </div>
+            </div>
+            
+            <div class="d-flex justify-content-end gap-2">
+              <button type="button" class="btn btn-outline-secondary" (click)="cancelEdit()">Hủy</button>
+              <button type="submit" class="btn btn-primary">
+                {{ isEditingEvent ? 'Cập nhật sự kiện' : 'Tạo sự kiện' }}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <!-- Organization Settings Tab -->
+      <div *ngSwitchCase="'settings'" class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <h5 class="mb-0">Cài đặt tổ chức</h5>
+          <button class="btn btn-outline-secondary btn-sm" (click)="selectedTab = 'events'">
+            <i class="bi bi-arrow-left"></i> Quay lại
+          </button>
+        </div>
+        <div class="card-body">
+          <form (ngSubmit)="saveOrganizationSettings()" *ngIf="organization">
+            <div class="mb-3">
+              <label for="orgName" class="form-label">Tên tổ chức</label>
+              <input type="text" class="form-control" id="orgName" [(ngModel)]="organization.tenToChuc" name="tenToChuc" required>
+            </div>
+            
+            <div class="mb-3">
+              <label for="orgEmail" class="form-label">Email</label>
+              <input type="email" class="form-control" id="orgEmail" [(ngModel)]="organization.email" name="email" required>
+            </div>
+            
+            <div class="mb-3">
+              <label for="orgPhone" class="form-label">Số điện thoại</label>
+              <input type="tel" class="form-control" id="orgPhone" [(ngModel)]="organization.soDienThoai" name="soDienThoai">
+            </div>
+            
+            <div class="mb-3">
+              <label for="orgAddress" class="form-label">Địa chỉ</label>
+              <input type="text" class="form-control" id="orgAddress" [(ngModel)]="organization.diaChi" name="diaChi">
+            </div>
+            
+            <div class="mb-3">
+              <label for="orgDescription" class="form-label">Giới thiệu về tổ chức</label>
+              <textarea class="form-control" id="orgDescription" rows="4" [(ngModel)]="organization.gioiThieu" name="gioiThieu"></textarea>
+            </div>
+            
+            <div class="mb-3">
+              <label class="form-label">Ảnh đại diện tổ chức</label>
+              <input type="file" class="form-control" accept="image/*" (change)="onOrgImageSelected($event)">
+              <div *ngIf="orgPreviewUrl" class="mt-2">
+                <img [src]="orgPreviewUrl" alt="Preview" style="max-height: 200px; max-width: 100%;" class="img-thumbnail">
+              </div>
+              <div *ngIf="!orgPreviewUrl && organization.anhDaiDien" class="mt-2">
+                <img [src]="'http://localhost:5000' + organization.anhDaiDien" 
+                     alt="Organization Logo" 
+                     style="max-height: 200px; max-width: 100%;" 
+                     class="img-thumbnail"
+                     onerror="this.src='/assets/org-default.jpg'">
+              </div>
+            </div>
+            
+            <div class="d-flex justify-content-end gap-2">
+              <button type="button" class="btn btn-outline-secondary" (click)="selectedTab = 'events'">Hủy</button>
+              <button type="submit" class="btn btn-primary">
+                Lưu thông tin
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>

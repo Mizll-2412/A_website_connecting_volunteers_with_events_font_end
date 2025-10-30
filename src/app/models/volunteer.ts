@@ -21,12 +21,25 @@ export interface TinhNguyenVienResponeDTos {
   gioiTinh?: string;
   email: string;
   cccd?: string;
+  soDienThoai?: string;
   diaChi?: string;
   gioiThieu?: string;
   anhDaiDien?: string;
   diemTrungBinh?: number;
   linhVucIds?: number[];
   kyNangIds?: number[];
+  kyNangs?: KyNang[];
+  linhVucs?: LinhVuc[];
   suKienDaThamGia?: number;
+}
+
+export interface KyNang {
+  maKyNang: number;
+  tenKyNang?: string;
+}
+
+export interface LinhVuc {
+  maLinhVuc: number;
+  tenLinhVuc?: string;
 }
 

@@ -1,0 +1,20 @@
+.organization-verification {
+  margin-bottom: 20px;
+}
+
+.table th, .table td {
+  vertical-align: middle;
+}
+
+.badge {
+  padding: 6px 10px;
+  font-size: 12px;
+}
+
+.btn-group .btn {
+  margin-right: 5px;
+}
+
+.btn-group .btn:last-child {
+  margin-right: 0;
+}

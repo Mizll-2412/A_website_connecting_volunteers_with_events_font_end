@@ -1,62 +1,56 @@
 import { Injectable } from '@angular/core';
-import { HttpClient, HttpHeaders } from '@angular/common/http';
-import { Observable, BehaviorSubject, tap } from 'rxjs';
-import { ToChuc, ToChucResponseDto, DuyetToChucRequest, TrangThaiXacMinh } from '../models/organiztion';
+import { HttpClient } from '@angular/common/http';
+import { Observable } from 'rxjs';
+import { environment } from '../../environments/environment';
+
 @Injectable({
   providedIn: 'root'
 })
 export class ToChucService {
-//   private apiUrl = `${environment.apiUrl}/api/organization`;
-  private apiUrl = 'http://localhost:5000/api/organization';
-  private toChucSubject = new BehaviorSubject<ToChuc[]>([]);
-  public toChuc$ = this.toChucSubject.asObservable();
+  private apiUrl = `${environment.apiUrl}/organization`;
 
-  constructor(private http: HttpClient) {}
+  constructor(private http: HttpClient) { }
 
-  // Lấy tất cả tổ chức
-  layTatCaToChuc(): Observable<ToChucResponseDto[]> {
-    return this.http.get<ToChucResponseDto[]>(this.apiUrl).pipe(
-      tap(data => this.toChucSubject.next(data as any))
-    );
+  // Phương thức cũ đã được sử dụng trong component events.ts
+  layTatCaToChuc(): Observable<any> {
+    return this.getAllOrganizations();
   }
 
-  // Lấy tổ chức theo ID
-  layToChucTheoId(maToChuc: number): Observable<ToChucResponseDto> {
-    return this.http.get<ToChucResponseDto>(`${this.apiUrl}/${maToChuc}`);
+  getAllOrganizations(): Observable<any> {
+    return this.http.get<any>(this.apiUrl);
   }
 
-  // Duyệt tổ chức
-  duyetToChuc(maToChuc: number): Observable<any> {
-    const request: DuyetToChucRequest = {
-      trangThaiXacMinh: TrangThaiXacMinh.DaDuyet
-    };
-    return this.http.put(`${this.apiUrl}/${maToChuc}/duyet`, request);
+  getOrganizationById(id: number): Observable<any> {
+    return this.http.get(`${this.apiUrl}/${id}`);
+  }
+  
+  // Thêm phương thức lấy tổ chức theo mã tài khoản
+  getOrganizationByAccountId(accountId: number): Observable<any> {
+    return this.http.get<any>(`${this.apiUrl}/by-account/${accountId}`);
   }
 
-  // Từ chối tổ chức
-  tuChoiToChuc(maToChuc: number, lyDo: string): Observable<any> {
-    const request: DuyetToChucRequest = {
-      trangThaiXacMinh: TrangThaiXacMinh.TuChoi,
-      lyDoTuChoi: lyDo
-    };
-    return this.http.put(`${this.apiUrl}/${maToChuc}/tu-choi`, request);
+  createOrganization(orgData: any): Observable<any> {
+    return this.http.post(this.apiUrl, orgData);
   }
 
-  // Xóa tổ chức
-  xoaToChuc(maToChuc: number): Observable<boolean> {
-    return this.http.delete<boolean>(`${this.apiUrl}/${maToChuc}`);
+  updateOrganization(id: number, orgData: any): Observable<any> {
+    return this.http.put(`${this.apiUrl}/${id}`, orgData);
+  }
+  
+  // Phương thức cập nhật tổ chức sử dụng FormData để hỗ trợ upload file
+  updateToChuc(id: number, formData: FormData): Observable<any> {
+    return this.http.put(`${this.apiUrl}/${id}`, formData);
+  }
+  
+  // Phương thức xác minh tổ chức
+  verifyOrganization(id: number, daXacMinh: boolean, lyDoTuChoi?: string): Observable<any> {
+    return this.http.put(`${this.apiUrl}/${id}/verify`, { 
+      daXacMinh,
+      lyDoTuChoi: lyDoTuChoi || ''
+    });
   }
 
-  // Upload ảnh đại diện
-  uploadAnhDaiDien(maToChuc: number, file: File): Observable<string> {
-    const formData = new FormData();
-    formData.append('anhFile', file);
-    return this.http.post<string>(`${this.apiUrl}/${maToChuc}/upload-avatar`, formData);
-  }
-
-  demToChucTheoTrangThai(trangThai: TrangThaiXacMinh): number {
-    const currentData = this.toChucSubject.value;
-    return currentData.filter(tc => tc.trangThaiXacMinh === trangThai).length;
+  deleteOrganization(id: number): Observable<any> {
+    return this.http.delete(`${this.apiUrl}/${id}`);
   }
 }
-;

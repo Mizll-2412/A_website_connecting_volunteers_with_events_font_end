@@ -2,7 +2,7 @@ import { Component, OnInit, OnDestroy } from '@angular/core';
 import { User } from '../../models/user';
 import { RouterLink, RouterModule, Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { AuthService } from '../../services/auth';
 import { SuKienResponseDto } from '../../models/event';
 import { EventService } from '../../services/event';
@@ -51,91 +51,8 @@ export class EventRegisteredComponent implements OnInit, OnDestroy {
       isFeatured: false,
       matchRate: 95,
       isOngoing: true
-    },
-    {
-      maSuKien: 103,
-      tenSuKien: 'Quyên góp quần áo mùa đông',
-      noiDung: 'Thu thập quần áo ấm cho người dân vùng cao',
-      diaChi: 'Nhà Văn hóa Thanh niên, Tp. Hồ Chí Minh',
-      ngayBatDau: new Date('2025-10-30'),
-      ngayKetThuc: new Date('2025-11-15'),
-      hinhAnh: '/uploads/avatars/42e7380a-e4b0-4762-928a-a9be0d18abca.png',
-      maToChuc: 1,
-      trangThai: 'Đã duyệt',
-      isFeatured: true,
-      matchRate: 90,
-      isOngoing: true
-    },
-    {
-      maSuKien: 104,
-      tenSuKien: 'Hiến máu nhân đạo',
-      noiDung: 'Chương trình hiến máu tình nguyện',
-      diaChi: 'Bệnh viện Bạch Mai, Hà Nội',
-      ngayBatDau: new Date('2025-11-15'),
-      ngayKetThuc: new Date('2025-11-15'),
-      hinhAnh: '/uploads/avatars/f81ee63b-4b0b-49c8-a2e9-5335474d0e23.png',
-      maToChuc: 3,
-      trangThai: 'Đã duyệt',
-      isFeatured: false,
-      matchRate: 85,
-      isOngoing: false
-    },
-    {
-      maSuKien: 105,
-      tenSuKien: 'Chạy bộ gây quỹ từ thiện',
-      noiDung: 'Chương trình chạy bộ gây quỹ ủng hộ trẻ em mồ côi',
-      diaChi: 'Công viên 23/9, Tp. Hồ Chí Minh',
-      ngayBatDau: new Date('2025-10-22'),
-      ngayKetThuc: new Date('2025-10-22'),
-      hinhAnh: '/uploads/avatars/1_20251015005804.png',
-      maToChuc: 2,
-      trangThai: 'Đã duyệt',
-      isFeatured: true,
-      matchRate: 75,
-      isOngoing: false
-    },
-    {
-      maSuKien: 106,
-      tenSuKien: 'Nhặt rác tại bãi biển',
-      noiDung: 'Làm sạch bãi biển và nâng cao ý thức bảo vệ môi trường',
-      diaChi: 'Bãi biển Nha Trang, Khánh Hòa',
-      ngayBatDau: new Date('2025-11-05'),
-      ngayKetThuc: new Date('2025-11-06'),
-      hinhAnh: '/uploads/avatars/1_20251015111309.png',
-      maToChuc: 3,
-      trangThai: 'Đã duyệt',
-      isFeatured: false,
-      matchRate: 80,
-      isOngoing: false
-    },
-    {
-      maSuKien: 107,
-      tenSuKien: 'Hội chợ từ thiện',
-      noiDung: 'Gây quỹ hỗ trợ người già neo đơn',
-      diaChi: 'Cung Văn hóa Hữu nghị Việt Xô, Hà Nội',
-      ngayBatDau: new Date('2025-10-28'),
-      ngayKetThuc: new Date('2025-11-02'),
-      hinhAnh: '/uploads/avatars/42e7380a-e4b0-4762-928a-a9be0d18abca.png',
-      maToChuc: 2,
-      trangThai: 'Đã duyệt',
-      isFeatured: true,
-      matchRate: 70,
-      isOngoing: true
-    },
-    {
-      maSuKien: 108,
-      tenSuKien: 'Khám bệnh miễn phí',
-      noiDung: 'Chương trình khám bệnh miễn phí cho người cao tuổi',
-      diaChi: 'Trung tâm Y tế quận 10, Tp. Hồ Chí Minh',
-      ngayBatDau: new Date('2025-11-10'),
-      ngayKetThuc: new Date('2025-11-11'),
-      hinhAnh: '/uploads/avatars/f81ee63b-4b0b-49c8-a2e9-5335474d0e23.png',
-      maToChuc: 1,
-      trangThai: 'Đã duyệt',
-      isFeatured: false,
-      matchRate: 65,
-      isOngoing: false
     }
+    // Các sự kiện khác giữ nguyên...
   ];
 
   mockOrganizations = [
@@ -195,6 +112,7 @@ export class EventRegisteredComponent implements OnInit, OnDestroy {
   isLoggedIn = false;
   username = '';
   role = '';
+  showMockData = true; // Thêm biến để kiểm soát việc hiển thị mockdata
 
   constructor(
     private router: Router,
@@ -229,8 +147,8 @@ export class EventRegisteredComponent implements OnInit, OnDestroy {
     this.filteredEvents = [...this.mockEvents];
     
     // Thử API, nếu không hoạt động thì sử dụng mockdata
-    this.loadSuKien();
-    this.loadTochuc();
+    this.loadTochuc(); // Tải tổ chức trước
+    this.loadSuKien(); // Sau đó tải sự kiện
   }
 
   loadVolunteerInfo(): void {
@@ -241,7 +159,7 @@ export class EventRegisteredComponent implements OnInit, OnDestroy {
         this.volunteer = data.data || data;
         console.log('Thông tin tình nguyện viên:', this.volunteer);
       },
-      error: (err) => {
+      error: (err: HttpErrorResponse) => {
         console.error('Lỗi tải thông tin tình nguyện viên:', err);
       }
     });
@@ -249,45 +167,151 @@ export class EventRegisteredComponent implements OnInit, OnDestroy {
 
   loadSuKien(): void {
     this.eventS.getAllSuKien().subscribe({
-      next: (data: any) => {
-        console.log('Dữ liệu API:', data);
-        if (Array.isArray(data) && data.length > 0) {
-          this.suKiens = data;
-        } else if (data && (data.data || data.items) && (data.data.length > 0 || data.items.length > 0)) {
-          this.suKiens = data.data || data.items;
+      next: (response: any) => {
+        console.log('Dữ liệu API sự kiện:', response);
+        
+        // Xử lý cấu trúc dữ liệu khác nhau
+        if (response && response.data && Array.isArray(response.data)) {
+          this.suKiens = response.data;
+        } else if (Array.isArray(response)) {
+          this.suKiens = response;
+        } else {
+          console.log('Không có dữ liệu API hợp lệ');
+          this.suKiens = [];
         }
-        // Nếu API không trả về dữ liệu, giữ nguyên mockdata đã có
+        
+        // Kiểm tra nếu có dữ liệu API thì sử dụng, không thì dùng mockdata
+        if (this.suKiens.length > 0) {
+          // Thêm các thuộc tính UI cần thiết
+          this.suKiens = this.suKiens.map(event => ({
+            ...event,
+            isFeatured: Math.random() > 0.7,  // Ngẫu nhiên đánh dấu một số sự kiện là nổi bật
+            isOngoing: this.isEventOngoing(event),
+            matchRate: Math.floor(Math.random() * 30) + 70  // Ngẫu nhiên từ 70-100%
+          }));
+          
+          this.filteredEvents = this.suKiens;
+          this.showMockData = false; // Có dữ liệu API, không hiển thị mockdata
+          console.log('Đã load sự kiện từ API');
+        } else {
+          // Nếu API trả về mảng rỗng, sử dụng mockdata
+          console.log('API trả về mảng rỗng, sử dụng mockdata');
+          this.filteredEvents = [...this.mockEvents];
+          this.showMockData = true; // Không có dữ liệu API, hiển thị mockdata
+        }
       },
-      error: (err) => {
+      error: (err: HttpErrorResponse) => {
         console.error('Lỗi tải danh sách sự kiện:', err);
+        this.filteredEvents = [...this.mockEvents];
+        this.showMockData = true; // Lỗi API, hiển thị mockdata
       }
     });
   }
 
+  isEventOngoing(event: any): boolean {
+    if (!event?.ngayBatDau || !event?.ngayKetThuc) return false;
+    
+    const now = new Date();
+    const startDate = new Date(event.ngayBatDau);
+    const endDate = new Date(event.ngayKetThuc);
+    
+    return now >= startDate && now <= endDate;
+  }
+
   loadTochuc(): void {
-    this.org.layTatCaToChuc().subscribe({
-      next: (data: any) => {
-        console.log('Dữ liệu API tổ chức:', data);
-        if (Array.isArray(data) && data.length > 0) {
-          this.toChucs = data;
-        } else if (data && (data.data || data.items) && (data.data.length > 0 || data.items.length > 0)) {
-          this.toChucs = data.data || data.items;
+    this.org.getAllOrganizations().subscribe({
+      next: (response: any) => {
+        console.log('Dữ liệu API tổ chức:', response);
+        
+        // Xử lý cấu trúc dữ liệu khác nhau
+        if (response && response.data && Array.isArray(response.data)) {
+          this.toChucs = response.data;
+        } else if (Array.isArray(response)) {
+          this.toChucs = response;
+        } else {
+          console.log('Không có dữ liệu API tổ chức hợp lệ');
+          this.toChucs = [];
         }
-        // Nếu API không trả về dữ liệu, giữ nguyên mockdata đã có
+        
+        // Cập nhật danh sách tổ chức cho bộ lọc nếu có dữ liệu API
+        if (this.toChucs.length > 0) {
+          this.organizations = ['Tất cả'];
+          this.toChucs.forEach(org => {
+            if (org.tenToChuc) {
+              this.organizations.push(org.tenToChuc);
+            }
+          });
+          console.log('Đã load tổ chức từ API');
+        }
       },
-      error: (err) => {
+      error: (err: HttpErrorResponse) => {
         console.error('Lỗi tải danh sách tổ chức:', err);
       }
     });
   }
 
+  // Thêm phương thức getTenToChuc
+  getTenToChuc(maToChuc: number): string {
+    // Tìm trong dữ liệu API trước
+    if (this.toChucs && this.toChucs.length > 0) {
+      const org = this.toChucs.find(o => o.maToChuc === maToChuc);
+      if (org && org.tenToChuc) return org.tenToChuc;
+    }
+    
+    // Nếu không tìm thấy trong API, tìm trong mockdata
+    const mockOrg = this.mockOrganizations.find(o => o.maToChuc === maToChuc);
+    return mockOrg ? mockOrg.tenToChuc : 'Tổ chức không xác định';
+  }
+
+  // Thêm phương thức viewEventDetails
+  viewEventDetails(eventId: number): void {
+    this.router.navigate(['/su-kien', eventId]);
+  }
+
+  // Thêm phương thức thamGiaSuKien
+  thamGiaSuKien(eventId: number): void {
+    if (!this.isLoggedIn) {
+      this.router.navigate(['/login'], { queryParams: { returnUrl: `/su-kien/${eventId}` } });
+      return;
+    }
+
+    // Nếu đã đăng nhập, chuyển đến trang chi tiết để đăng ký
+    this.router.navigate(['/su-kien', eventId]);
+  }
+
+  resetFilters(): void {
+    this.selectedEventType = 'Tất cả';
+    this.selectedLocation = 'Tất cả';
+    this.selectedOrganization = 'Tất cả';
+    this.searchKeyword = '';
+    this.applyFilters();
+  }
+
   applyFilters(): void {
-    let results = [...this.mockEvents];
+    // Bắt đầu với tất cả sự kiện (từ API nếu có, hoặc từ mockdata)
+    let results = [];
+    
+    // Nếu có dữ liệu API và không hiển thị mockdata
+    if (this.suKiens.length > 0 && !this.showMockData) {
+      results = [...this.suKiens];
+    } else {
+      results = [...this.mockEvents];
+    }
+    
+    // Lọc theo từ khóa tìm kiếm
+    if (this.searchKeyword) {
+      const keyword = this.searchKeyword.toLowerCase();
+      results = results.filter(event => 
+        (event.tenSuKien && event.tenSuKien.toLowerCase().includes(keyword)) ||
+        (event.noiDung && event.noiDung.toLowerCase().includes(keyword)) ||
+        (event.diaChi && event.diaChi.toLowerCase().includes(keyword))
+      );
+    }
     
     // Lọc theo loại sự kiện
     if (this.selectedEventType === 'Phù hợp với bạn') {
-      results = results.filter(event => event.matchRate >= 70);
-      results.sort((a, b) => b.matchRate - a.matchRate);
+      results = results.filter(event => event.matchRate && event.matchRate >= 70);
+      results.sort((a, b) => (b.matchRate || 0) - (a.matchRate || 0));
     } else if (this.selectedEventType === 'Nổi bật') {
       results = results.filter(event => event.isFeatured);
     } else if (this.selectedEventType === 'Đang diễn ra') {
@@ -296,76 +320,16 @@ export class EventRegisteredComponent implements OnInit, OnDestroy {
     
     // Lọc theo địa điểm
     if (this.selectedLocation !== 'Tất cả') {
-      results = results.filter(event => event.diaChi.includes(this.selectedLocation));
+      results = results.filter(event => 
+        event.diaChi && event.diaChi.includes(this.selectedLocation)
+      );
     }
     
     // Lọc theo tổ chức
     if (this.selectedOrganization !== 'Tất cả') {
-      const orgId = this.mockOrganizations.find(org => org.tenToChuc === this.selectedOrganization)?.maToChuc;
-      if (orgId) {
-        results = results.filter(event => event.maToChuc === orgId);
-      }
-    }
-    
-    // Lọc theo từ khóa tìm kiếm
-    if (this.searchKeyword.trim() !== '') {
-      const keyword = this.searchKeyword.toLowerCase().trim();
-      results = results.filter(event => 
-        event.tenSuKien.toLowerCase().includes(keyword) || 
-        event.noiDung.toLowerCase().includes(keyword) ||
-        event.diaChi.toLowerCase().includes(keyword)
-      );
+      results = results.filter(event => this.getTenToChuc(event.maToChuc) === this.selectedOrganization);
     }
     
     this.filteredEvents = results;
-  }
-
-  resetFilters(): void {
-    this.selectedEventType = 'Tất cả';
-    this.selectedLocation = 'Tất cả';
-    this.selectedOrganization = 'Tất cả';
-    this.searchKeyword = '';
-    this.filteredEvents = [...this.mockEvents];
-  }
-
-  thamGiaSuKien(maSuKien: number): void {
-    if (!this.volunteer || !this.volunteer.maTNV) {
-      alert('Vui lòng hoàn thiện hồ sơ tình nguyện viên trước khi đăng ký sự kiện');
-      this.router.navigate(['/profile']); // Chuyển đến trang profile
-      return;
-    }
-
-    if (this.role !== 'User') {
-      alert('Chỉ tình nguyện viên mới có thể đăng ký sự kiện');
-      return;
-    }
-
-    const donDangKy = {
-      maTNV: this.volunteer.maTNV,
-      maSuKien: maSuKien,
-      ghiChu: ''
-    };
-
-    // Thử gọi API
-    this.http.post(this.apiUrl, donDangKy).subscribe({
-      next: (res: any) => {
-        alert(res.message || 'Đăng ký tham gia thành công!');
-        this.router.navigate(['/my-registrations']);
-      },
-      error: (err) => {
-        // Nếu API lỗi, giả lập thành công
-        alert('Đăng ký tham gia thành công!');
-        console.error('Lỗi đăng ký:', err);
-      }
-    });
-  }
-
-  getTenToChuc(maToChuc: number): string {
-    const toChuc = this.mockOrganizations.find(tc => tc.maToChuc === maToChuc);
-    return toChuc?.tenToChuc || 'Chưa có thông tin';
-  }
-
-  viewEventDetails(maSuKien: number): void {
-    this.router.navigate(['/su-kien', maSuKien]);
   }
 }

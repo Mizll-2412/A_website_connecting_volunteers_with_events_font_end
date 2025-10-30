@@ -13,8 +13,9 @@
 
     <!-- Desktop Navigation - Link -->
     <nav class="nav-links desktop-nav">
-      <a routerLink="/home" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">Trang chủ</a>
-      <a routerLink="/su-kien" routerLinkActive="active">Sự kiện</a>
+      <a *ngIf="role !== 'Admin'" routerLink="/home" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">Trang chủ</a>
+      <a *ngIf="role !== 'Admin'" routerLink="/su-kien" routerLinkActive="active">Sự kiện</a>
+      <a *ngIf="role === 'User'" routerLink="/dang-ky" routerLinkActive="active">Đăng ký của tôi</a>
       <a *ngIf="role === 'User'" routerLink="/organization" routerLinkActive="active">Tổ chức</a>
       <a *ngIf="role === 'Organization'" routerLink="/manage-org" routerLinkActive="active">Quản lý tổ chức</a>
       <a *ngIf="role === 'Organization'" routerLink="/list-user" routerLinkActive="active">Hồ sơ nổi bật</a>
@@ -79,11 +80,14 @@
 <!-- Mobile Navigation -->
 <div class="mobile-nav" [class.open]="isMobileMenuOpen">
   <nav class="nav-links">
-    <a routerLink="/home" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }" (click)="closeMobileMenu()">
+    <a *ngIf="role !== 'Admin'" routerLink="/home" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }" (click)="closeMobileMenu()">
       <i class="fas fa-home mr-2"></i> Trang chủ
     </a>
-    <a routerLink="/su-kien" routerLinkActive="active" (click)="closeMobileMenu()">
+    <a *ngIf="role !== 'Admin'" routerLink="/su-kien" routerLinkActive="active" (click)="closeMobileMenu()">
       <i class="fas fa-calendar-alt mr-2"></i> Sự kiện
+    </a>
+    <a *ngIf="role === 'User'" routerLink="/dang-ky" routerLinkActive="active" (click)="closeMobileMenu()">
+      <i class="fas fa-clipboard-list mr-2"></i> Đăng ký của tôi
     </a>
     <a *ngIf="role === 'User'" routerLink="/organization" routerLinkActive="active" (click)="closeMobileMenu()">
       <i class="fas fa-building mr-2"></i> Tổ chức
