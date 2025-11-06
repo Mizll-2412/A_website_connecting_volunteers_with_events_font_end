@@ -1,0 +1,105 @@
+<div class="container my-4">
+  <div class="row">
+    <div class="col-12">
+      <div class="card border-0 shadow-sm">
+        <div class="card-header bg-white py-3">
+          <h4 class="mb-0">Gợi ý sự kiện phù hợp với bạn</h4>
+        </div>
+        
+        <div class="card-body">
+          <!-- Giải thích về hệ thống gợi ý -->
+          <div class="recommendation-info mb-4">
+            <div class="alert alert-info">
+              <div class="d-flex">
+                <div class="alert-icon me-3">
+                  <i class="bi bi-lightbulb"></i>
+                </div>
+                <div>
+                  <h5 class="mb-1">Hệ thống gợi ý thông minh</h5>
+                  <p class="mb-0">Dựa trên lĩnh vực quan tâm, kỹ năng và lịch sử tham gia của bạn, chúng tôi gợi ý những sự kiện phù hợp nhất.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Loading state -->
+          <div *ngIf="isLoading" class="text-center py-4">
+            <div class="spinner-border text-primary" role="status">
+              <span class="visually-hidden">Đang tải...</span>
+            </div>
+            <p class="mt-2">Đang tìm kiếm sự kiện phù hợp với bạn...</p>
+          </div>
+          
+          <!-- Empty state -->
+          <div *ngIf="!isLoading && (!recommendations || recommendations.length === 0)" class="text-center py-4">
+            <div class="empty-state">
+              <i class="bi bi-calendar-x display-1 text-muted"></i>
+              <p class="mt-3">Hiện tại chưa có sự kiện phù hợp với bạn</p>
+              <p class="text-muted">Hãy cập nhật thêm thông tin về lĩnh vực quan tâm và kỹ năng trong hồ sơ của bạn</p>
+              <a routerLink="/profile" class="btn btn-primary mt-2">Cập nhật hồ sơ</a>
+            </div>
+          </div>
+          
+          <!-- Recommendations -->
+          <div *ngIf="!isLoading && recommendations && recommendations.length > 0">
+            <div class="row g-4">
+              <!-- Recommended events -->
+              <div *ngFor="let event of recommendations" class="col-md-6 col-lg-4">
+                <div class="card h-100 event-card">
+                  <div class="recommendation-score" [style.background-color]="getScoreColor(event.diemPhuHop)">
+                    {{ (event.diemPhuHop * 100) | number:'1.0-0' }}% phù hợp
+                  </div>
+                  
+                  <img [src]="event.hinhAnh ? 'http://localhost:5000' + event.hinhAnh : 'assets/event-default.jpg'" 
+                       class="card-img-top" alt="Event Image" style="height: 160px; object-fit: cover;">
+                  
+                  <div class="card-body">
+                    <h5 class="card-title">{{ event.tenSuKien }}</h5>
+                    <p class="card-text text-muted mb-1">
+                      <i class="bi bi-geo-alt me-1"></i> {{ event.diaChi }}
+                    </p>
+                    
+                    <!-- Matching factors -->
+                    <div class="matching-factors mt-3">
+                      <h6 class="small text-muted mb-2">Yếu tố phù hợp:</h6>
+                      <div class="d-flex flex-wrap gap-2">
+                        <span *ngFor="let factor of getMatchingFactors(event)" class="badge"
+                              [ngClass]="factor.type === 'field' ? 'bg-info' : 'bg-success'">
+                          <i class="bi" [ngClass]="factor.type === 'field' ? 'bi-bookmark' : 'bi-tools'"></i>
+                          {{ factor.name }}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div class="card-footer bg-white">
+                    <button class="btn btn-primary w-100" (click)="viewEventDetails(event.maSuKien)">
+                      Xem chi tiết
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Recommendation explanation -->
+            <div class="recommendation-explanation mt-5">
+              <h5 class="mb-3">Cách chúng tôi gợi ý sự kiện</h5>
+              <div class="card">
+                <div class="card-body">
+                  <p>Hệ thống gợi ý sự kiện sử dụng thuật toán AI để phân tích:</p>
+                  <ul>
+                    <li><strong>Lĩnh vực quan tâm</strong> - So sánh lĩnh vực bạn quan tâm với lĩnh vực của sự kiện</li>
+                    <li><strong>Kỹ năng</strong> - Đối chiếu kỹ năng của bạn với yêu cầu của sự kiện</li>
+                    <li><strong>Lịch sử tham gia</strong> - Phân tích các sự kiện bạn đã tham gia trước đây</li>
+                    <li><strong>Đánh giá</strong> - Xem xét đánh giá của bạn về các sự kiện tương tự</li>
+                  </ul>
+                  <p class="mb-0">Thuật toán sẽ tính toán điểm phù hợp dựa trên các yếu tố trên và hiển thị những sự kiện có điểm số cao nhất.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

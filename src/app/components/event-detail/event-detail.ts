@@ -35,6 +35,10 @@ export class EventDetailComponent implements OnInit {
   role = '';
   volunteer: any = null;
   user: any = null;
+  
+  // Skills and Fields
+  allSkills: any[] = [];
+  allFields: any[] = [];
 
   // Mock data
   mockEvent = {
@@ -79,6 +83,7 @@ export class EventDetailComponent implements OnInit {
   ) { }
 
   ngOnInit() {
+    this.loadMasterData(); // Load skills and fields first
     this.isLoggedIn = this.auth.isAuthenticated();
     if (this.isLoggedIn) {
       this.username = this.auth.getUsername();
@@ -96,6 +101,76 @@ export class EventDetailComponent implements OnInit {
         this.loadEventDetails(this.eventId);
       }
     });
+  }
+  
+  loadMasterData(): void {
+    // Load all skills
+    this.http.get<any>('http://localhost:5000/api/kynang').subscribe({
+      next: (response) => {
+        this.allSkills = response.data || response || [];
+      },
+      error: (error) => {
+        console.error('Lỗi khi tải kỹ năng:', error);
+        this.allSkills = [];
+      }
+    });
+    
+    // Load all fields
+    this.http.get<any>('http://localhost:5000/api/linhvuc').subscribe({
+      next: (response) => {
+        this.allFields = response.data || response || [];
+      },
+      error: (error) => {
+        console.error('Lỗi khi tải lĩnh vực:', error);
+        this.allFields = [];
+      }
+    });
+  }
+  
+  getEventSkills(): any[] {
+    if (!this.event?.kyNangIds || this.event.kyNangIds.length === 0) {
+      return [];
+    }
+    return this.event.kyNangIds
+      .map((id: number) => this.allSkills.find(s => s.maKyNang === id))
+      .filter((skill: any) => skill != null);
+  }
+  
+  getEventFields(): any[] {
+    if (!this.event?.linhVucIds || this.event.linhVucIds.length === 0) {
+      return [];
+    }
+    return this.event.linhVucIds
+      .map((id: number) => this.allFields.find(f => f.maLinhVuc === id))
+      .filter((field: any) => field != null);
+  }
+  
+  isRecruitingOpen(): boolean {
+    if (!this.event?.tuyenBatDau || !this.event?.tuyenKetThuc) {
+      return false;
+    }
+    const now = new Date();
+    const startDate = new Date(this.event.tuyenBatDau);
+    const endDate = new Date(this.event.tuyenKetThuc);
+    return now >= startDate && now <= endDate;
+  }
+
+  hasRecruitment(): boolean {
+    return !!(this.event?.tuyenBatDau && this.event?.tuyenKetThuc);
+  }
+
+  isRecruitingNotStarted(): boolean {
+    if (!this.hasRecruitment()) return false;
+    const now = new Date();
+    const startDate = new Date(this.event.tuyenBatDau);
+    return now < startDate;
+  }
+
+  isRecruitingEnded(): boolean {
+    if (!this.hasRecruitment()) return false;
+    const now = new Date();
+    const endDate = new Date(this.event.tuyenKetThuc);
+    return now > endDate;
   }
 
   loadEventDetails(id: number) {
@@ -202,7 +277,20 @@ export class EventDetailComponent implements OnInit {
   }
 
   registerForEvent() {
+    // Kiểm tra nếu là tổ chức thì không cho đăng ký
+    if (this.role === 'Organization') {
+      alert('Tổ chức không thể đăng ký tham gia sự kiện');
+      return;
+    }
+    
     if (!this.volunteer?.maTNV || !this.eventId) {
+      // Kiểm tra nếu đã đăng nhập nhưng chưa có hồ sơ tình nguyện viên
+      if (this.isLoggedIn && this.role === 'User' && this.user?.maTaiKhoan && !this.volunteer) {
+        alert('Bạn cần hoàn thiện hồ sơ tình nguyện viên trước khi đăng ký sự kiện');
+        this.router.navigate(['/profile']);
+        return;
+      }
+      
       alert('Bạn cần đăng nhập và hoàn thiện hồ sơ tình nguyện viên trước khi đăng ký');
       return;
     }
@@ -215,6 +303,8 @@ export class EventDetailComponent implements OnInit {
       ghiChu: this.registrationNote || 'Đăng ký tham gia'
     };
 
+    console.log('Đang gửi dữ liệu đăng ký:', registerData);
+
     this.registrationService.register(registerData).subscribe({
       next: (response: any) => {
         console.log('Đăng ký thành công:', response);
@@ -225,8 +315,16 @@ export class EventDetailComponent implements OnInit {
       error: (err: HttpErrorResponse) => {
         console.error('Lỗi khi đăng ký sự kiện:', err);
         this.isRegistering = false;
-        this.registrationError = 'Không thể đăng ký tham gia. Vui lòng thử lại sau.';
-        alert('Không thể đăng ký tham gia. Vui lòng thử lại sau.');
+        
+        let errorMessage = 'Không thể đăng ký tham gia. Vui lòng thử lại sau.';
+        
+        // Cố gắng lấy thông báo lỗi cụ thể từ API nếu có
+        if (err.error && err.error.message) {
+          errorMessage = err.error.message;
+        }
+        
+        this.registrationError = errorMessage;
+        alert(errorMessage);
       }
     });
   }

@@ -3,7 +3,9 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { SuKien, TrangThaiSuKien } from '../../../models/event';
 import { EventService } from '../../../services/event';
-import { HttpErrorResponse } from '@angular/common/http';
+import { SkillService } from '../../../services/skill';
+import { FieldService } from '../../../services/field';
+import { HttpErrorResponse, HttpClient } from '@angular/common/http';
 
 @Component({
   selector: 'app-su-kien',
@@ -22,17 +24,137 @@ export class SuKienComponent implements OnInit {
   danhSachSuKien: SuKien[] = [];
   danhSachHienThi: SuKien[] = [];
   suKienMoi: SuKien = this.khoiTaoSuKienRong();
+  
+  // Statistics
+  tongSoSuKien: number = 0;
+  suKienDangDienRa: number = 0;
+  suKienSapDienRa: number = 0;
+  
+  // File upload
+  selectedFile: File | null = null;
+  previewUrl: string | null = null;
+  
+  // Skills and Fields
+  linhVucs: any[] = [];
+  kyNangs: any[] = [];
+  selectedLinhVucs: number[] = [];
+  selectedKyNangs: number[] = [];
+  
+  // Organizations
+  organizations: any[] = [];
 
-  constructor(private eventService: EventService) {}
+  constructor(
+    private eventService: EventService,
+    private skillService: SkillService,
+    private fieldService: FieldService,
+    private http: HttpClient
+  ) {}
 
   ngOnInit() {
     this.taiLaiDuLieu();
+    this.loadSkills();
+    this.loadFields();
+    this.loadOrganizations();
+  }
+  
+  loadSkills(): void {
+    this.skillService.getAllSkills().subscribe({
+      next: (response: any) => {
+        this.kyNangs = response.data || response || [];
+      },
+      error: (err: HttpErrorResponse) => {
+        console.error('Lỗi khi tải kỹ năng:', err);
+        this.kyNangs = [];
+      }
+    });
+  }
+
+  loadFields(): void {
+    this.fieldService.getAllFields().subscribe({
+      next: (response: any) => {
+        this.linhVucs = response.data || response || [];
+      },
+      error: (err: HttpErrorResponse) => {
+        console.error('Lỗi khi tải lĩnh vực:', err);
+        this.linhVucs = [];
+      }
+    });
+  }
+  
+  isLinhVucSelected(maLinhVuc: number): boolean {
+    return this.selectedLinhVucs.includes(maLinhVuc);
+  }
+  
+  toggleLinhVuc(maLinhVuc: number): void {
+    const index = this.selectedLinhVucs.indexOf(maLinhVuc);
+    if (index > -1) {
+      this.selectedLinhVucs.splice(index, 1);
+    } else {
+      this.selectedLinhVucs.push(maLinhVuc);
+    }
+  }
+  
+  isKyNangSelected(maKyNang: number): boolean {
+    return this.selectedKyNangs.includes(maKyNang);
+  }
+  
+  toggleKyNang(maKyNang: number): void {
+    const index = this.selectedKyNangs.indexOf(maKyNang);
+    if (index > -1) {
+      this.selectedKyNangs.splice(index, 1);
+    } else {
+      this.selectedKyNangs.push(maKyNang);
+    }
+  }
+  
+  loadOrganizations(): void {
+    this.http.get<any>('http://localhost:5000/api/organization').subscribe({
+      next: (response) => {
+        this.organizations = response.data || response || [];
+      },
+      error: (error) => {
+        console.error('Lỗi khi tải danh sách tổ chức:', error);
+        this.organizations = [];
+      }
+    });
+  }
+  
+  onFileSelected(event: any): void {
+    const file = event.target.files[0];
+    if (file) {
+      this.selectedFile = file;
+      const reader = new FileReader();
+      reader.onload = (e: any) => {
+        this.previewUrl = e.target.result;
+      };
+      reader.readAsDataURL(file);
+    }
+  }
+  
+  calculateStatistics(): void {
+    this.tongSoSuKien = this.danhSachSuKien.length;
+    const now = new Date();
+    this.suKienDangDienRa = this.danhSachSuKien.filter(sk => {
+      const start = sk.ngayBatDau ? new Date(sk.ngayBatDau) : null;
+      const end = sk.ngayKetThuc ? new Date(sk.ngayKetThuc) : null;
+      return start && end && start <= now && now <= end && sk.trangThai !== 'Hủy bỏ';
+    }).length;
+    this.suKienSapDienRa = this.danhSachSuKien.filter(sk => {
+      const start = sk.ngayBatDau ? new Date(sk.ngayBatDau) : null;
+      return start && start > now && sk.trangThai !== 'Hủy bỏ';
+    }).length;
+  }
+  
+  xemChiTiet(suKien: SuKien): void {
+    // Navigate to event detail page or show modal
+    console.log('Xem chi tiết sự kiện:', suKien);
+    // You can implement a detail modal or navigation here
   }
 
   private khoiTaoSuKienRong(): SuKien {
     return {
       maSuKien: 0,
-      maToChuc: 0,
+      maToChuc: -1,  // Default to Admin (System Admin)
       tenSuKien: '',
       noiDung: '',
       trangThai: TrangThaiSuKien.DangTuyen
@@ -73,6 +195,7 @@ export class SuKienComponent implements OnInit {
         }
         
         this.danhSachHienThi = [...this.danhSachSuKien];
+        this.calculateStatistics();
         this.isLoading = false;
       },
       error: (error: HttpErrorResponse) => {
@@ -81,6 +204,7 @@ export class SuKienComponent implements OnInit {
         // Sử dụng dữ liệu mẫu
         this.danhSachSuKien = this.getMockData();
         this.danhSachHienThi = [...this.danhSachSuKien];
+        this.calculateStatistics();
         this.isLoading = false;
       }
     });
@@ -90,6 +214,10 @@ export class SuKienComponent implements OnInit {
     this.suKienMoi = this.khoiTaoSuKienRong();
     this.dangThemMoi = true;
     this.suKienDangChinhSua = null;
+    this.selectedFile = null;
+    this.previewUrl = null;
+    this.selectedLinhVucs = [];
+    this.selectedKyNangs = [];
   }
 
   luuSuKien() {
@@ -98,45 +226,45 @@ export class SuKienComponent implements OnInit {
       return;
     }
 
+    // Prepare event data with skills and fields
+    const eventData: any = {
+      ...this.suKienMoi,
+      linhVucIds: this.selectedLinhVucs,
+      kyNangIds: this.selectedKyNangs,
+      soLuong: this.suKienMoi.soLuong
+    };
+
+    // Use EventService which handles FormData internally
     if (this.suKienMoi.maSuKien === 0) {
       // Thêm mới sự kiện
-      this.eventService.createSuKien(this.suKienMoi).subscribe({
+      this.eventService.createSuKien(eventData, this.selectedFile || undefined).subscribe({
         next: (response) => {
           console.log('Thêm sự kiện thành công:', response);
-          // Tải lại dữ liệu
           this.taiLaiDuLieu();
           this.dangThemMoi = false;
+          this.selectedFile = null;
+          this.previewUrl = null;
+          this.selectedLinhVucs = [];
+          this.selectedKyNangs = [];
         },
         error: (error: HttpErrorResponse) => {
           console.error('Lỗi khi thêm sự kiện:', error);
           alert('Không thể thêm sự kiện. Vui lòng thử lại sau.');
-          
-          // Fallback: Thêm vào mảng local
-          this.suKienMoi.maSuKien = Math.max(...this.danhSachSuKien.map(s => s.maSuKien || 0), 0) + 1;
-          this.suKienMoi.ngayTao = new Date();
-          this.danhSachSuKien.push({ ...this.suKienMoi });
-          this.danhSachHienThi = [...this.danhSachSuKien];
-          this.dangThemMoi = false;
         }
       });
     } else {
       // Cập nhật sự kiện
-      this.eventService.updateSuKien(this.suKienMoi.maSuKien, this.suKienMoi).subscribe({
+      this.eventService.updateSuKien(this.suKienMoi.maSuKien, eventData, this.selectedFile || undefined).subscribe({
         next: (response) => {
           console.log('Cập nhật sự kiện thành công:', response);
-          // Tải lại dữ liệu
           this.taiLaiDuLieu();
           this.dangThemMoi = false;
+          this.selectedFile = null;
+          this.previewUrl = null;
         },
         error: (error: HttpErrorResponse) => {
           console.error('Lỗi khi cập nhật sự kiện:', error);
           alert('Không thể cập nhật sự kiện. Vui lòng thử lại sau.');
-          
-          // Fallback: Cập nhật trong mảng local
-          const index = this.danhSachSuKien.findIndex(s => s.maSuKien === this.suKienMoi.maSuKien);
-          if (index !== -1) this.danhSachSuKien[index] = { ...this.suKienMoi };
-          this.danhSachHienThi = [...this.danhSachSuKien];
-          this.dangThemMoi = false;
         }
       });
     }
@@ -146,6 +274,21 @@ export class SuKienComponent implements OnInit {
     this.suKienMoi = { ...suKien };
     this.dangThemMoi = true;
     this.suKienDangChinhSua = suKien;
+    this.selectedFile = null;
+    this.previewUrl = null;
+    
+    // Load selected skills and fields for this event
+    // Note: You may need to fetch these from the API if they're not in the event object
+    if (suKien.linhVucIds) {
+      this.selectedLinhVucs = [...suKien.linhVucIds];
+    } else {
+      this.selectedLinhVucs = [];
+    }
+    if (suKien.kyNangIds) {
+      this.selectedKyNangs = [...suKien.kyNangIds];
+    } else {
+      this.selectedKyNangs = [];
+    }
   }
 
   xoaSuKien(suKien: SuKien) {
@@ -171,6 +314,11 @@ export class SuKienComponent implements OnInit {
   huyBo() {
     this.dangThemMoi = false;
     this.suKienMoi = this.khoiTaoSuKienRong();
+    this.suKienDangChinhSua = null;
+    this.selectedFile = null;
+    this.previewUrl = null;
+    this.selectedLinhVucs = [];
+    this.selectedKyNangs = [];
   }
 
   layUrlAnhSuKien(anh?: string): string {

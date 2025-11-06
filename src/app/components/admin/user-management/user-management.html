@@ -24,6 +24,7 @@
           <thead>
             <tr>
               <th>ID</th>
+              <th>Avatar</th>
               <th>Họ tên</th>
               <th>Email</th>
               <th>Vai trò</th>
@@ -35,7 +36,13 @@
           <tbody>
             <tr *ngFor="let user of filteredUsers">
               <td>{{user.maTaiKhoan}}</td>
-              <td>{{user.hoTen || 'Chưa cập nhật'}}</td>
+              <td>
+                <img [src]="getUserAvatar(user)" 
+                     alt="Avatar" 
+                     class="avatar-sm rounded-circle"
+                     onerror="this.src='assets/default-avatar.png'">
+              </td>
+              <td>{{getUserName(user)}}</td>
               <td>{{user.email}}</td>
               <td>
                 <span class="badge rounded-pill" [ngClass]="{
@@ -53,21 +60,23 @@
               <td>{{user.ngayTao | date:'dd/MM/yyyy HH:mm'}}</td>
               <td>
                 <div class="btn-group" role="group">
+                  <button class="btn btn-sm btn-outline-info" (click)="viewUserDetail(user)" title="Xem chi tiết">
+                    <i class="bi bi-eye"></i>
+                  </button>
                   <button class="btn btn-sm btn-outline-primary" (click)="openRoleModal(user)">
-                    <i class="bi bi-person-gear"></i> Vai trò
+                    <i class="bi bi-person-gear"></i>
                   </button>
                   <button class="btn btn-sm" [ngClass]="{'btn-outline-danger': user.trangThai, 'btn-outline-success': !user.trangThai}" (click)="toggleUserStatus(user)">
                     <i class="bi" [ngClass]="{'bi-lock-fill': user.trangThai, 'bi-unlock-fill': !user.trangThai}"></i>
-                    {{user.trangThai ? 'Khóa' : 'Mở khóa'}}
                   </button>
-                  <button class="btn btn-sm btn-outline-danger" (click)="confirmDeleteUser(user)">
-                    <i class="bi bi-trash"></i> Xóa
+                  <button class="btn btn-sm btn-outline-danger" (click)="confirmDeleteUser(user)" title="Xóa">
+                    <i class="bi bi-trash"></i>
                   </button>
                 </div>
               </td>
             </tr>
             <tr *ngIf="filteredUsers.length === 0">
-              <td colspan="7" class="text-center">Không có dữ liệu</td>
+              <td colspan="8" class="text-center">Không có dữ liệu</td>
             </tr>
           </tbody>
         </table>
@@ -123,6 +132,172 @@
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
         <button type="button" class="btn btn-danger" (click)="deleteUser()">Xóa</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Chi tiết người dùng -->
+<div class="modal fade" id="userDetailModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-xl modal-dialog-scrollable">
+    <div class="modal-content" *ngIf="selectedUserDetail">
+      <div class="modal-header">
+        <h5 class="modal-title">
+          <i class="bi bi-person-circle me-2"></i>
+          Chi tiết người dùng: {{selectedUserDetail.hoTen || selectedUserDetail.email}}
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        
+        <!-- Thông tin cơ bản -->
+        <div class="card mb-3">
+          <div class="card-header bg-primary text-white">
+            <h6 class="mb-0"><i class="bi bi-info-circle me-2"></i>Thông tin tài khoản</h6>
+          </div>
+          <div class="card-body">
+            <div class="row">
+              <div class="col-md-6">
+                <p><strong>Mã tài khoản:</strong> {{selectedUserDetail.maTaiKhoan}}</p>
+                <p><strong>Email:</strong> {{selectedUserDetail.email}}</p>
+                <p><strong>Họ tên:</strong> {{selectedUserDetail.hoTen || 'Chưa cập nhật'}}</p>
+              </div>
+              <div class="col-md-6">
+                <p><strong>Vai trò:</strong> 
+                  <span class="badge" [ngClass]="{
+                    'bg-primary': selectedUserDetail.vaiTro === 'Admin',
+                    'bg-success': selectedUserDetail.vaiTro === 'User',
+                    'bg-info': selectedUserDetail.vaiTro === 'Organization'
+                  }">{{selectedUserDetail.vaiTro}}</span>
+                </p>
+                <p><strong>Trạng thái:</strong> 
+                  <span class="badge" [ngClass]="{
+                    'bg-success': selectedUserDetail.trangThai,
+                    'bg-danger': !selectedUserDetail.trangThai
+                  }">{{selectedUserDetail.trangThai ? 'Hoạt động' : 'Đã khóa'}}</span>
+                </p>
+                <p><strong>Ngày tạo:</strong> {{selectedUserDetail.ngayTao | date:'dd/MM/yyyy HH:mm'}}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Chi tiết TNV -->
+        <div *ngIf="volunteerDetail" class="card mb-3">
+          <div class="card-header bg-success text-white">
+            <h6 class="mb-0"><i class="bi bi-person-badge me-2"></i>Thông tin tình nguyện viên</h6>
+          </div>
+          <div class="card-body">
+            <div class="row">
+              <div class="col-md-3 text-center mb-3">
+                <img [src]="volunteerDetail.anhDaiDien ? 'http://localhost:5000' + volunteerDetail.anhDaiDien : 'assets/images/avatar-placeholder.png'" 
+                     class="img-fluid rounded-circle" 
+                     alt="Avatar"
+                     style="max-width: 150px; max-height: 150px;"
+                     onerror="this.src='assets/images/avatar-placeholder.png'">
+              </div>
+              <div class="col-md-9">
+                <div class="row">
+                  <div class="col-md-6">
+                    <p><strong>Số điện thoại:</strong> {{volunteerDetail.soDienThoai || 'Chưa cập nhật'}}</p>
+                    <p><strong>Ngày sinh:</strong> {{volunteerDetail.ngaySinh | date:'dd/MM/yyyy'}}</p>
+                    <p><strong>Giới tính:</strong> {{volunteerDetail.gioiTinh || 'Chưa cập nhật'}}</p>
+                  </div>
+                  <div class="col-md-6">
+                    <p><strong>Địa chỉ:</strong> {{volunteerDetail.diaChi || 'Chưa cập nhật'}}</p>
+                    <p><strong>Điểm uy tín:</strong> 
+                      <span class="badge bg-warning text-dark">{{volunteerDetail.diemUyTin || 0}} điểm</span>
+                    </p>
+                    <p><strong>Cấp bậc:</strong> 
+                      <span class="badge bg-info">{{volunteerDetail.capBac?.tenCapBac || 'Chưa có'}}</span>
+                    </p>
+                  </div>
+                </div>
+                
+                <div class="mt-3" *ngIf="volunteerDetail.moTaBanThan">
+                  <strong>Mô tả bản thân:</strong>
+                  <p class="text-muted">{{volunteerDetail.moTaBanThan}}</p>
+                </div>
+                
+                <div class="mt-3" *ngIf="volunteerDetail.kyNangs && volunteerDetail.kyNangs.length > 0">
+                  <strong>Kỹ năng:</strong>
+                  <div class="d-flex flex-wrap gap-2 mt-2">
+                    <span *ngFor="let skill of volunteerDetail.kyNangs" class="badge bg-secondary">
+                      {{skill.tenKyNang || skill}}
+                    </span>
+                  </div>
+                </div>
+                
+                <div class="mt-3" *ngIf="volunteerDetail.linhVucs && volunteerDetail.linhVucs.length > 0">
+                  <strong>Lĩnh vực quan tâm:</strong>
+                  <div class="d-flex flex-wrap gap-2 mt-2">
+                    <span *ngFor="let field of volunteerDetail.linhVucs" class="badge bg-primary">
+                      {{field.tenLinhVuc || field}}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Chi tiết Tổ chức -->
+        <div *ngIf="organizationDetail" class="card mb-3">
+          <div class="card-header bg-info text-white">
+            <h6 class="mb-0"><i class="bi bi-building me-2"></i>Thông tin tổ chức</h6>
+          </div>
+          <div class="card-body">
+            <div class="row">
+              <div class="col-md-3 text-center mb-3">
+                <img [src]="organizationDetail.anhDaiDien ? 'http://localhost:5000' + organizationDetail.anhDaiDien : 'assets/images/organization-placeholder.png'" 
+                     class="img-fluid rounded" 
+                     alt="Logo tổ chức"
+                     style="max-width: 150px;"
+                     onerror="this.src='assets/images/organization-placeholder.png'">
+              </div>
+              <div class="col-md-9">
+                <div class="row">
+                  <div class="col-md-6">
+                    <p><strong>Tên tổ chức:</strong> {{organizationDetail.tenToChuc || 'Chưa cập nhật'}}</p>
+                    <p><strong>Số điện thoại:</strong> {{getOrganizationPhone(organizationDetail)}}</p>
+                  </div>
+                  <div class="col-md-6">
+                    <p><strong>Địa chỉ:</strong> {{organizationDetail.diaChi || 'Chưa cập nhật'}}</p>
+                    <p><strong>Trạng thái xác minh:</strong>
+                      <span class="badge" [ngClass]="{
+                        'bg-warning': organizationDetail.trangThaiXacMinh === 0,
+                        'bg-success': organizationDetail.trangThaiXacMinh === 1,
+                        'bg-danger': organizationDetail.trangThaiXacMinh === 2
+                      }">
+                        {{organizationDetail.trangThaiXacMinh === 0 ? 'Chờ xác minh' : (organizationDetail.trangThaiXacMinh === 1 ? 'Đã xác minh' : 'Bị từ chối')}}
+                      </span>
+                    </p>
+                  </div>
+                </div>
+                
+                <div class="mt-3" *ngIf="organizationDetail.gioiThieu">
+                  <strong>Giới thiệu:</strong>
+                  <p class="text-muted">{{organizationDetail.gioiThieu}}</p>
+                </div>
+                
+                <div class="mt-3" *ngIf="organizationDetail.giayToPhapLys && organizationDetail.giayToPhapLys.length > 0">
+                  <strong>Giấy tờ pháp lý:</strong> {{organizationDetail.giayToPhapLys.length}} tài liệu
+                </div>
+                
+                <div class="mt-3" *ngIf="organizationDetail.suKiens && organizationDetail.suKiens.length > 0">
+                  <strong>Số sự kiện đã tổ chức:</strong> {{organizationDetail.suKiens.length}} sự kiện
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+        <button type="button" class="btn btn-warning" (click)="openResetPasswordModal(selectedUserDetail)">
+          <i class="bi bi-key"></i> Đặt lại mật khẩu
+        </button>
       </div>
     </div>
   </div>

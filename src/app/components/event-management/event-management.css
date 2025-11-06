@@ -261,6 +261,14 @@ nav a.active {
   display: inline-block;
 }
 
+/* Fix badge color contrast */
+.badge.bg-warning {
+  background-color: #ff9800 !important;
+  color: #000 !important;
+  font-weight: 600;
+  border: 1px solid #e68900;
+}
+
 .btn-accept,
 .btn-reject {
   border: none;

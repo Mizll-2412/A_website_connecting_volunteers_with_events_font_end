@@ -26,6 +26,8 @@ export interface TinhNguyenVienResponeDTos {
   gioiThieu?: string;
   anhDaiDien?: string;
   diemTrungBinh?: number;
+  capBac?: string;
+  tongSuKienThamGia?: number;
   linhVucIds?: number[];
   kyNangIds?: number[];
   kyNangs?: KyNang[];

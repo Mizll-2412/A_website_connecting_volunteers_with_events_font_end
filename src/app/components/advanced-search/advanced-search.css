@@ -1,0 +1,160 @@
+.card-header {
+  background-color: var(--primary);
+  color: white;
+  padding: 1.25rem;
+  border-bottom: none;
+}
+
+.card-header h4 {
+  font-weight: 600;
+}
+
+.advanced-filters {
+  padding: 15px;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  margin-bottom: 20px;
+}
+
+.advanced-filters-content {
+  padding-top: 15px;
+  border-top: 1px solid #dee2e6;
+  margin-top: 15px;
+}
+
+.form-label {
+  font-weight: 500;
+  color: #495057;
+}
+
+.search-results h5 {
+  font-weight: 600;
+  color: #343a40;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #dee2e6;
+}
+
+/* Card styles for events */
+.event-card {
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.event-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+}
+
+.event-card .card-img-top {
+  height: 180px;
+  object-fit: cover;
+}
+
+.event-card .card-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.event-info {
+  display: flex;
+  align-items: center;
+  margin-bottom: 8px;
+  font-size: 0.9rem;
+  color: #6c757d;
+}
+
+.event-info i {
+  margin-right: 8px;
+  color: var(--primary);
+}
+
+/* Card styles for organizations */
+.org-card {
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.org-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+}
+
+.org-card .org-img {
+  height: 150px;
+  object-fit: cover;
+}
+
+.org-info {
+  display: flex;
+  align-items: center;
+  margin-bottom: 8px;
+  font-size: 0.9rem;
+  color: #6c757d;
+}
+
+.org-info i {
+  margin-right: 8px;
+  color: var(--primary);
+}
+
+/* Card styles for volunteers */
+.volunteer-card {
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.volunteer-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+}
+
+.volunteer-card .volunteer-img {
+  height: 200px;
+  object-fit: cover;
+}
+
+.volunteer-info {
+  display: flex;
+  align-items: center;
+  margin-bottom: 8px;
+  font-size: 0.9rem;
+  color: #6c757d;
+}
+
+.volunteer-info i {
+  margin-right: 8px;
+  color: var(--primary);
+}
+
+/* No results styling */
+.no-results {
+  padding: 40px 0;
+}
+
+.no-results i {
+  color: #dee2e6;
+}
+
+/* Badge styling */
+.badge {
+  font-weight: normal;
+  padding: 5px 10px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 767.98px) {
+  .advanced-filters {
+    padding: 10px;
+  }
+  
+  .form-check-inline {
+    margin-bottom: 10px;
+  }
+}

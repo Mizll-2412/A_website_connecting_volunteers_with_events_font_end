@@ -1,4 +1,4 @@
-import { Component, OnDestroy, OnInit } from '@angular/core';
+import { Component, OnDestroy, OnInit, ViewChild } from '@angular/core';
 import { User } from '../../models/user';
 import { RouterLink, RouterModule, Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
@@ -9,7 +9,11 @@ import { ToChucService } from '../../services/organization';
 import { RegistrationService } from '../../services/registration';
 import { SkillService } from '../../services/skill';
 import { FieldService } from '../../services/field';
-import { HttpErrorResponse } from '@angular/common/http';
+import { TinhNguyenVienService } from '../../services/volunteer';
+import { EvaluationService, CreateEvaluationDto } from '../../services/evaluation.service';
+import { CertificateService, IssueCertificateDto } from '../../services/certificate.service';
+import { HttpErrorResponse, HttpClient } from '@angular/common/http';
+import { VolunteerProfileViewerComponent } from '../volunteer-profile-viewer/volunteer-profile-viewer';
 
 interface Volunteer {
   maTNV: number;
@@ -59,7 +63,7 @@ interface EventData {
 @Component({
   selector: 'app-event-management',
   standalone: true,
-  imports: [CommonModule, RouterModule, FormsModule],
+  imports: [CommonModule, RouterModule, FormsModule, VolunteerProfileViewerComponent],
   templateUrl: './event-management.html',
   styleUrls: ['./event-management.css']
 })
@@ -92,17 +96,42 @@ export class EventManagementComponent implements OnInit {
   orgPreviewUrl: string | null = null;
   isSavingOrg = false;
   
+  // Cho phần giấy tờ pháp lý
+  selectedLegalDocs: File[] = [];
+  legalDocDescription: string = '';
+  legalDocs: { maGiayTo: number; tenGiayTo?: string; file?: string; moTa?: string; ngayTao?: string }[] = [];
+  
   // Danh sách lĩnh vực và kỹ năng
   linhVucs: any[] = [];
   kyNangs: any[] = [];
   
-  // Các lĩnh vực và kỹ năng đã chọn
-  selectedLinhVucs: number[] = [];
-  selectedKyNangs: number[] = [];
+  // Các lĩnh vực và kỹ năng đã chọn (sử dụng pattern dropdown với nút +)
+  selectedLinhVucs: (number | null)[] = [null]; // Mặc định 1 dropdown
+  selectedKyNangs: (number | null)[] = [null]; // Mặc định 1 dropdown
   
   // Danh sách tình nguyện viên đăng ký cho sự kiện đã chọn
   eventVolunteers: Volunteer[] = [];
   isLoadingVolunteers = false;
+  // Chứng nhận
+  certificateTemplates: any[] = [];
+  selectedCertificateTemplate: number | null = null;
+  // Đánh giá TNV
+  evalScore: number = 5;
+  evalComment: string = '';
+  evaluatingVolunteer: Volunteer | null = null;
+  evaluatedVolunteerIds: Set<number> = new Set<number>();
+  evalSubmitting: boolean = false;
+  
+  // Kết thúc sự kiện & Cấp chứng nhận
+  isCompletingEvent: boolean = false;
+  certificateSamples: any[] = [];
+  selectedCertificateSample: number | null = null;
+  selectedVolunteersForCert: Set<number> = new Set();
+  issuedCertificates: Set<number> = new Set();
+  isIssuingCertificates: boolean = false;
+  confirmComplete: boolean = false;
+
+  @ViewChild(VolunteerProfileViewerComponent) volunteerProfileViewer?: VolunteerProfileViewerComponent;
 
   constructor(
     private router: Router, 
@@ -111,7 +140,11 @@ export class EventManagementComponent implements OnInit {
     private toChucService: ToChucService,
     private registrationService: RegistrationService,
     private skillService: SkillService,
-    private fieldService: FieldService
+    private fieldService: FieldService,
+    private volunteerService: TinhNguyenVienService,
+    private evaluationService: EvaluationService,
+    private certificateService: CertificateService,
+    private http: HttpClient
   ) { }
 
   ngOnInit(): void {
@@ -202,6 +235,7 @@ export class EventManagementComponent implements OnInit {
         // Sau khi có thông tin tổ chức, load sự kiện của tổ chức đó
         if (this.organization?.maToChuc) {
           this.loadOrganizationEvents();
+          this.loadOrganizationLegalDocs();
         } else {
           // Nếu không có thông tin tổ chức, sử dụng dữ liệu mẫu
           console.log('Không tìm thấy thông tin tổ chức, sử dụng dữ liệu mẫu');
@@ -244,6 +278,20 @@ export class EventManagementComponent implements OnInit {
     });
   }
 
+  // Tải danh sách giấy tờ pháp lý của tổ chức
+  loadOrganizationLegalDocs(): void {
+    if (!this.organization?.maToChuc) return;
+    this.http.get<any>(`http://localhost:5000/api/GiayToPhapLy/tochuc/${this.organization.maToChuc}`).subscribe({
+      next: (res) => {
+        this.legalDocs = res?.data || res || [];
+      },
+      error: (err) => {
+        console.error('Lỗi tải giấy tờ pháp lý:', err);
+        this.legalDocs = [];
+      }
+    });
+  }
+
   loadOrganizationEvents() {
     if (!this.organization?.maToChuc) return;
     
@@ -279,16 +327,58 @@ export class EventManagementComponent implements OnInit {
       next: (response: any) => {
         console.log('Tình nguyện viên đăng ký:', response);
         
+        let volunteers: Volunteer[] = [];
         if (response && response.data && Array.isArray(response.data)) {
-          this.eventVolunteers = response.data;
+          volunteers = response.data;
         } else if (Array.isArray(response)) {
-          this.eventVolunteers = response;
+          volunteers = response;
         } else {
           console.log('Không có tình nguyện viên đăng ký, sử dụng dữ liệu mẫu');
           this.eventVolunteers = this.getMockVolunteers();
+          this.isLoadingVolunteers = false;
+          return;
         }
         
-        this.isLoadingVolunteers = false;
+        // Kiểm tra và load thông tin chi tiết nếu thiếu hoTen hoặc email
+        const volunteersToLoad = volunteers.filter(v => !v.hoTen || !v.email);
+        
+        if (volunteersToLoad.length > 0) {
+          // Load thông tin chi tiết cho các TNV thiếu thông tin
+          let loadedCount = 0;
+          volunteersToLoad.forEach((volunteer, index) => {
+            this.volunteerService.getVolunteerById(volunteer.maTNV).subscribe({
+              next: (detailResponse: any) => {
+                const detail = detailResponse.data || detailResponse;
+                // Cập nhật thông tin vào volunteer
+                const volIndex = volunteers.findIndex(v => v.maTNV === volunteer.maTNV);
+                if (volIndex !== -1) {
+                  volunteers[volIndex].hoTen = detail.hoTen || volunteers[volIndex].hoTen;
+                  volunteers[volIndex].email = detail.email || volunteers[volIndex].email;
+                  volunteers[volIndex].soDienThoai = detail.soDienThoai || volunteers[volIndex].soDienThoai;
+                  volunteers[volIndex].anhDaiDien = detail.anhDaiDien || volunteers[volIndex].anhDaiDien;
+                }
+                
+                loadedCount++;
+                if (loadedCount === volunteersToLoad.length) {
+                  this.eventVolunteers = volunteers;
+                  this.isLoadingVolunteers = false;
+                }
+              },
+              error: (err) => {
+                console.error(`Lỗi khi tải thông tin TNV ${volunteer.maTNV}:`, err);
+                loadedCount++;
+                if (loadedCount === volunteersToLoad.length) {
+                  this.eventVolunteers = volunteers;
+                  this.isLoadingVolunteers = false;
+                }
+              }
+            });
+          });
+        } else {
+          // Tất cả đã có đầy đủ thông tin
+          this.eventVolunteers = volunteers;
+          this.isLoadingVolunteers = false;
+        }
       },
       error: (err: HttpErrorResponse) => {
         console.error('Lỗi khi tải danh sách tình nguyện viên:', err);
@@ -302,6 +392,8 @@ export class EventManagementComponent implements OnInit {
     this.selectedEvent = event;
     this.selectedTab = 'event-detail';
     this.loadEventVolunteers(event.maSuKien);
+    this.loadCertificateTemplates(event.maSuKien);
+    this.evaluatedVolunteerIds.clear();
   }
 
   createEvent() {
@@ -323,9 +415,94 @@ export class EventManagementComponent implements OnInit {
     this.selectedTab = 'create-event';
     this.selectedFile = null;
     this.previewUrl = null;
-    this.selectedLinhVucs = [];
-    this.selectedKyNangs = [];
+    this.selectedLinhVucs = [null]; // Reset về 1 dropdown
+    this.selectedKyNangs = [null]; // Reset về 1 dropdown
   }
+
+  // Kết thúc sự kiện
+  finishSelectedEvent() {
+    if (!this.selectedEvent) return;
+    if (!confirm('Kết thúc sự kiện này?')) return;
+    this.http.post(`http://localhost:5000/api/sukien/${this.selectedEvent.maSuKien}/finish`, {}, {
+      headers: { 'Authorization': `Bearer ${localStorage.getItem('token') || ''}` }
+    }).subscribe({
+      next: () => {
+        alert('Đã kết thúc sự kiện');
+        if (this.selectedEvent) this.selectedEvent.trangThai = 'Đã kết thúc';
+        // Reload lại danh sách sự kiện để cập nhật trạng thái
+        this.loadOrganizationEvents();
+      },
+      error: (err) => {
+        console.error('Lỗi kết thúc sự kiện:', err);
+        alert(err?.error?.message || 'Không thể kết thúc sự kiện');
+      }
+    });
+  }
+
+  openEvaluateVolunteer(volunteer: Volunteer): void {
+    this.evaluatingVolunteer = volunteer;
+    this.evalScore = 5;
+    this.evalComment = '';
+    const modalEl = document.getElementById('evaluateVolunteerModal');
+    if ((window as any).bootstrap && modalEl) {
+      const modal = new (window as any).bootstrap.Modal(modalEl);
+      modal.show();
+    }
+  }
+
+  submitEvaluateVolunteer(): void {
+    if (!this.evaluatingVolunteer || !this.selectedEvent) return;
+    if (this.evaluatedVolunteerIds.has(this.evaluatingVolunteer.maTNV)) { return; }
+    if (this.evalSubmitting) { return; }
+    this.evalSubmitting = true;
+    const maSuKien = this.selectedEvent.maSuKien;
+    // Cần MaTaiKhoan của TNV để đánh giá: gọi API lấy TNV
+    this.http.get<any>(`http://localhost:5000/api/tinhnguyenvien/${this.evaluatingVolunteer.maTNV}`).subscribe({
+      next: (res) => {
+        const tnv = res?.data || res;
+        const maNguoiDuocDanhGia = tnv?.maTaiKhoan;
+        if (!maNguoiDuocDanhGia) { alert('Không xác định được tài khoản của TNV.'); return; }
+        const payload = {
+          maNguoiDuocDanhGia,
+          maSuKien,
+          diemSo: this.evalScore,
+          noiDung: this.evalComment
+        };
+        this.http.post<any>('http://localhost:5000/api/danhgia', payload, {
+          headers: { 'Authorization': `Bearer ${localStorage.getItem('token') || ''}`, 'Content-Type': 'application/json' }
+        }).subscribe({
+          next: (r) => {
+            alert(r?.message || 'Đánh giá thành công');
+            const modalEl = document.getElementById('evaluateVolunteerModal');
+            if ((window as any).bootstrap && modalEl) {
+              const modal = (window as any).bootstrap.Modal.getInstance(modalEl);
+              if (modal) modal.hide();
+            }
+            // Đánh dấu đã đánh giá để ẩn nút
+            this.evaluatedVolunteerIds.add(this.evaluatingVolunteer!.maTNV);
+            this.evalSubmitting = false;
+          },
+          error: (err) => {
+            console.error('Lỗi đánh giá TNV:', err);
+            alert(err?.error?.message || 'Không thể gửi đánh giá');
+            this.evalSubmitting = false;
+          }
+        });
+      },
+      error: () => alert('Không tải được thông tin TNV')
+    });
+  }
+
+  // Tải mẫu chứng nhận theo sự kiện
+  loadCertificateTemplates(maSuKien: number): void {
+    this.http.get<any>(`http://localhost:5000/api/certificate/samples/events/${maSuKien}`, {
+      headers: { 'Authorization': `Bearer ${localStorage.getItem('token') || ''}` }
+    }).subscribe({
+      next: (res) => { this.certificateTemplates = res?.data || []; },
+      error: () => { this.certificateTemplates = []; }
+    });
+  }
+
   
   onFileSelected(event: Event): void {
     const input = event.target as HTMLInputElement;
@@ -341,30 +518,72 @@ export class EventManagementComponent implements OnInit {
     }
   }
   
-  toggleLinhVuc(id: number): void {
-    const index = this.selectedLinhVucs.indexOf(id);
-    if (index !== -1) {
-      this.selectedLinhVucs.splice(index, 1); // Bỏ chọn
+  // Methods cho lĩnh vực (dropdown pattern)
+  getAvailableLinhVucs(currentIndex: number): any[] {
+    const selectedIds = this.selectedLinhVucs
+      .filter((id, idx) => id !== null && idx !== currentIndex);
+    return this.linhVucs.filter(lv => !selectedIds.includes(lv.maLinhVuc));
+  }
+
+  onLinhVucChange(index: number, event: Event): void {
+    const selectElement = event.target as HTMLSelectElement;
+    const value = selectElement.value;
+    // Kiểm tra giá trị hợp lệ trước khi convert
+    if (value && value !== '' && value !== 'null' && !isNaN(Number(value))) {
+      this.selectedLinhVucs[index] = Number(value);
     } else {
-      this.selectedLinhVucs.push(id); // Chọn
+      this.selectedLinhVucs[index] = null;
     }
   }
-  
-  toggleKyNang(id: number): void {
-    const index = this.selectedKyNangs.indexOf(id);
-    if (index !== -1) {
-      this.selectedKyNangs.splice(index, 1); // Bỏ chọn
-    } else {
-      this.selectedKyNangs.push(id); // Chọn
+
+  addLinhVuc(): void {
+    if (this.selectedLinhVucs.length >= 10) {
+      alert('Bạn chỉ có thể thêm tối đa 10 lĩnh vực');
+      return;
+    }
+    this.selectedLinhVucs.push(null);
+  }
+
+  removeLinhVuc(idx: number): void {
+    this.selectedLinhVucs.splice(idx, 1);
+    // Đảm bảo luôn có ít nhất 1 dropdown
+    if (this.selectedLinhVucs.length === 0) {
+      this.selectedLinhVucs.push(null);
     }
   }
-  
-  isLinhVucSelected(id: number): boolean {
-    return this.selectedLinhVucs.includes(id);
+
+  // Methods cho kỹ năng (dropdown pattern)
+  getAvailableKyNangs(currentIndex: number): any[] {
+    const selectedIds = this.selectedKyNangs
+      .filter((id, idx) => id !== null && idx !== currentIndex);
+    return this.kyNangs.filter(kn => !selectedIds.includes(kn.maKyNang));
   }
-  
-  isKyNangSelected(id: number): boolean {
-    return this.selectedKyNangs.includes(id);
+
+  onKyNangChange(index: number, event: Event): void {
+    const selectElement = event.target as HTMLSelectElement;
+    const value = selectElement.value;
+    // Kiểm tra giá trị hợp lệ trước khi convert
+    if (value && value !== '' && value !== 'null' && !isNaN(Number(value))) {
+      this.selectedKyNangs[index] = Number(value);
+    } else {
+      this.selectedKyNangs[index] = null;
+    }
+  }
+
+  addKyNang(): void {
+    if (this.selectedKyNangs.length >= 10) {
+      alert('Bạn chỉ có thể thêm tối đa 10 kỹ năng');
+      return;
+    }
+    this.selectedKyNangs.push(null);
+  }
+
+  removeKyNang(idx: number): void {
+    this.selectedKyNangs.splice(idx, 1);
+    // Đảm bảo luôn có ít nhất 1 dropdown
+    if (this.selectedKyNangs.length === 0) {
+      this.selectedKyNangs.push(null);
+    }
   }
 
   editEvent(event: EventData) {
@@ -374,9 +593,13 @@ export class EventManagementComponent implements OnInit {
     this.selectedFile = null;
     this.previewUrl = event.hinhAnh ? 'http://localhost:5000' + event.hinhAnh : null;
     
-    // Khởi tạo danh sách lĩnh vực và kỹ năng đã chọn
-    this.selectedLinhVucs = event.linhVucIds || [];
-    this.selectedKyNangs = event.kyNangIds || [];
+    // Khởi tạo danh sách lĩnh vực và kỹ năng đã chọn (convert từ number[] sang (number | null)[])
+    this.selectedLinhVucs = event.linhVucIds && event.linhVucIds.length > 0 
+      ? [...event.linhVucIds] 
+      : [null];
+    this.selectedKyNangs = event.kyNangIds && event.kyNangIds.length > 0 
+      ? [...event.kyNangIds] 
+      : [null];
   }
 
   cancelEdit() {
@@ -387,9 +610,15 @@ export class EventManagementComponent implements OnInit {
   }
 
   saveEvent() {
-    // Thêm lĩnh vực và kỹ năng vào dữ liệu
-    this.newEvent.linhVucIds = this.selectedLinhVucs.length > 0 ? this.selectedLinhVucs : undefined;
-    this.newEvent.kyNangIds = this.selectedKyNangs.length > 0 ? this.selectedKyNangs : undefined;
+    // Thêm lĩnh vực và kỹ năng vào dữ liệu (filter null, undefined, và NaN values)
+    const linhVucIds = this.selectedLinhVucs
+      .filter(id => id !== null && id !== undefined && !isNaN(Number(id)))
+      .map(id => Number(id)) as number[];
+    const kyNangIds = this.selectedKyNangs
+      .filter(id => id !== null && id !== undefined && !isNaN(Number(id)))
+      .map(id => Number(id)) as number[];
+    this.newEvent.linhVucIds = linhVucIds.length > 0 ? linhVucIds : undefined;
+    this.newEvent.kyNangIds = kyNangIds.length > 0 ? kyNangIds : undefined;
     
     if (this.isEditingEvent) {
       // Cập nhật sự kiện
@@ -462,16 +691,86 @@ export class EventManagementComponent implements OnInit {
   
   // Phương thức điều hướng đến trang cài đặt tổ chức
   navigateToOrgSettings() {
-    if (this.organization?.maToChuc) {
-      // Chuyển đến tab settings trong cùng component
-      this.selectedTab = 'settings';
-      // Nếu có ảnh đại diện, hiển thị preview
-      if (this.organization.anhDaiDien) {
-        this.orgPreviewUrl = 'http://localhost:5000' + this.organization.anhDaiDien;
-      }
-    } else {
-      alert('Không tìm thấy thông tin tổ chức!');
+    // Navigate to organization profile page instead of settings tab
+    this.router.navigate(['/org-profile']);
+  }
+  
+  // Xử lý khi chọn giấy tờ pháp lý
+  onLegalDocSelected(event: Event) {
+    const input = event.target as HTMLInputElement;
+    if (input.files && input.files.length > 0) {
+      this.selectedLegalDocs = Array.from(input.files);
+      console.log('Đã chọn', this.selectedLegalDocs.length, 'giấy tờ pháp lý');
     }
+  }
+  
+  // Format kích thước file để hiển thị
+  formatFileSize(bytes: number): string {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  }
+  
+  // Tải lên giấy tờ pháp lý
+  uploadLegalDocuments() {
+    if (!this.organization?.maToChuc || this.selectedLegalDocs.length === 0) {
+      alert('Vui lòng chọn ít nhất một tệp để tải lên');
+      return;
+    }
+    
+    const formData = new FormData();
+    formData.append('maToChuc', this.organization.maToChuc.toString());
+    formData.append('tenGiayTo', 'Giấy tờ pháp lý tổ chức');
+    
+    if (this.legalDocDescription) {
+      formData.append('moTa', this.legalDocDescription);
+    }
+    
+    // Thêm nhiều file vào formData
+    this.selectedLegalDocs.forEach(file => {
+      formData.append('files', file);
+    });
+    
+    // Gọi API để tải lên giấy tờ
+    this.isLoading = true;
+    
+    // Giả định có một phương thức uploadLegalDocuments trong service
+    // Nếu không có, cần thêm vào ToChucService
+    this.http.post('http://localhost:5000/api/GiayToPhapLy/upload', formData).subscribe({
+      next: (response: any) => {
+        console.log('Tải lên giấy tờ thành công:', response);
+        this.isLoading = false;
+        this.selectedLegalDocs = [];
+        this.legalDocDescription = '';
+        alert('Tải lên giấy tờ pháp lý thành công!');
+        
+        // Cập nhật lại thông tin tổ chức để lấy trạng thái xác minh mới
+        this.loadOrganizationInfo();
+        this.loadOrganizationLegalDocs();
+      },
+      error: (err: any) => {
+        console.error('Lỗi khi tải lên giấy tờ:', err);
+        this.isLoading = false;
+        alert(err.error?.message || 'Không thể tải lên giấy tờ. Vui lòng thử lại sau.');
+      }
+    });
+  }
+
+  // Xóa một giấy tờ pháp lý
+  deleteLegalDocument(maGiayTo: number): void {
+    if (!confirm('Bạn có chắc muốn xóa giấy tờ này?')) return;
+    this.http.delete<any>(`http://localhost:5000/api/GiayToPhapLy/${maGiayTo}`).subscribe({
+      next: () => {
+        this.legalDocs = this.legalDocs.filter(d => d.maGiayTo !== maGiayTo);
+        alert('Đã xóa giấy tờ thành công');
+      },
+      error: (err) => {
+        console.error('Lỗi xóa giấy tờ:', err);
+        alert(err?.error?.message || 'Không thể xóa giấy tờ.');
+      }
+    });
   }
   
   // Xử lý khi chọn ảnh đại diện cho tổ chức
@@ -535,9 +834,6 @@ export class EventManagementComponent implements OnInit {
         // Hiển thị thông báo thành công
         alert('Cập nhật thông tin tổ chức thành công!');
         
-        // Quay lại tab events
-        this.selectedTab = 'events';
-        
         // Reset file đã chọn
         this.orgSelectedFile = null;
       },
@@ -563,6 +859,9 @@ export class EventManagementComponent implements OnInit {
       ghiChu: 'Đã duyệt bởi BTC'
     };
     
+    // Lưu trạng thái cũ để cập nhật số lượng
+    const oldStatus = volunteer.trangThai;
+    
     this.registrationService.updateRegistrationStatus(volunteer.maTNV, this.selectedEvent.maSuKien, data).subscribe({
       next: (response) => {
         console.log('Duyệt TNV thành công:', response);
@@ -571,6 +870,12 @@ export class EventManagementComponent implements OnInit {
         if (index !== -1) {
           this.eventVolunteers[index].trangThai = 1;
         }
+        
+        // Cập nhật số lượng TNV đã duyệt: chỉ tăng nếu trước đó chưa được duyệt (0 hoặc 2)
+        if (oldStatus !== 1 && this.selectedEvent) {
+          this.selectedEvent.soLuongDaDangKy = (this.selectedEvent.soLuongDaDangKy || 0) + 1;
+        }
+        
         alert('Đã duyệt tình nguyện viên thành công!');
       },
       error: (err: HttpErrorResponse) => {
@@ -594,6 +899,9 @@ export class EventManagementComponent implements OnInit {
       ghiChu: 'Đã từ chối bởi BTC'
     };
     
+    // Lưu trạng thái cũ để cập nhật số lượng
+    const oldStatus = volunteer.trangThai;
+    
     this.registrationService.updateRegistrationStatus(volunteer.maTNV, this.selectedEvent.maSuKien, data).subscribe({
       next: (response) => {
         console.log('Từ chối TNV thành công:', response);
@@ -602,6 +910,12 @@ export class EventManagementComponent implements OnInit {
         if (index !== -1) {
           this.eventVolunteers[index].trangThai = 2;
         }
+        
+        // Cập nhật số lượng TNV đã duyệt: chỉ giảm nếu trước đó đã được duyệt (1)
+        if (oldStatus === 1 && this.selectedEvent && this.selectedEvent.soLuongDaDangKy) {
+          this.selectedEvent.soLuongDaDangKy = Math.max(0, this.selectedEvent.soLuongDaDangKy - 1);
+        }
+        
         alert('Đã từ chối tình nguyện viên!');
       },
       error: (err: HttpErrorResponse) => {
@@ -620,6 +934,12 @@ export class EventManagementComponent implements OnInit {
   backToEvents() {
     this.selectedEvent = undefined;
     this.selectedTab = 'events';
+  }
+
+  viewVolunteerProfile(volunteer: Volunteer): void {
+    if (this.volunteerProfileViewer) {
+      this.volunteerProfileViewer.open(volunteer.maTNV, volunteer);
+    }
   }
 
   selectTab(tab: string) {
@@ -672,6 +992,211 @@ export class EventManagementComponent implements OnInit {
       linhVucIds: [],
       kyNangIds: []
     };
+  }
+
+  // Kết thúc sự kiện
+  openCompleteEventModal(event: EventData): void {
+    this.selectedEvent = event;
+    this.loadEventVolunteers(event.maSuKien);
+    this.loadCertificateSamples();
+    
+    const modalEl = document.getElementById('completeEventModal');
+    if (modalEl && (window as any).bootstrap) {
+      const modal = new (window as any).bootstrap.Modal(modalEl);
+      modal.show();
+    }
+  }
+
+  loadCertificateSamples(): void {
+    this.certificateService.getCertificateSamples().subscribe({
+      next: (response) => {
+        this.certificateSamples = response.data || response || [];
+        // Chọn mẫu mặc định nếu có
+        const defaultSample = this.certificateSamples.find(s => s.isDefault);
+        if (defaultSample) {
+          this.selectedCertificateSample = defaultSample.maMau;
+        } else if (this.certificateSamples.length > 0) {
+          this.selectedCertificateSample = this.certificateSamples[0].maMau;
+        }
+      },
+      error: (err) => {
+        console.error('Lỗi tải mẫu chứng nhận:', err);
+      }
+    });
+  }
+
+  canCompleteEvent(event: EventData): boolean {
+    if (!event.ngayKetThuc) return false;
+    const endDate = new Date(event.ngayKetThuc);
+    return endDate < new Date();
+  }
+
+  getApprovedVolunteersCount(): number {
+    return this.eventVolunteers.filter(v => v.trangThai === 1).length;
+  }
+
+  completeEvent(): void {
+    if (!this.selectedEvent) return;
+    
+    this.isCompletingEvent = true;
+    
+    // Đánh dấu sự kiện hoàn thành (cập nhật trạng thái)
+    this.http.post(`http://localhost:5000/api/sukien/${this.selectedEvent.maSuKien}/finish`, {}).subscribe({
+      next: () => {
+        alert('Sự kiện đã được đánh dấu hoàn thành!');
+        this.isCompletingEvent = false;
+        
+        // Cập nhật trạng thái local
+        if (this.selectedEvent) {
+          this.selectedEvent.trangThai = 'Đã kết thúc';
+        }
+        
+        // Reload lại danh sách sự kiện để cập nhật trạng thái
+        this.loadOrganizationEvents();
+        
+        // Đóng modal complete và mở modal cấp chứng nhận
+        const completeModalEl = document.getElementById('completeEventModal');
+        if (completeModalEl && (window as any).bootstrap) {
+          const modal = (window as any).bootstrap.Modal.getInstance(completeModalEl);
+          if (modal) modal.hide();
+        }
+        
+        // Mở modal cấp chứng nhận
+        this.openIssueCertificatesModal();
+      },
+      error: (err) => {
+        console.error('Lỗi kết thúc sự kiện:', err);
+        this.isCompletingEvent = false;
+        alert(err.normalizedMessage || 'Không thể kết thúc sự kiện');
+      }
+    });
+  }
+
+  // Cấp chứng nhận
+  openIssueCertificatesModal(): void {
+    // Tự động chọn tất cả TNV đã được duyệt
+    this.selectedVolunteersForCert.clear();
+    this.eventVolunteers.forEach(v => {
+      if (v.trangThai === 1) {
+        this.selectedVolunteersForCert.add(v.maTNV);
+      }
+    });
+    
+    const modalEl = document.getElementById('issueCertificatesModal');
+    if (modalEl && (window as any).bootstrap) {
+      const modal = new (window as any).bootstrap.Modal(modalEl);
+      modal.show();
+    }
+  }
+
+  toggleVolunteerSelection(volunteerId: number): void {
+    if (this.selectedVolunteersForCert.has(volunteerId)) {
+      this.selectedVolunteersForCert.delete(volunteerId);
+    } else {
+      this.selectedVolunteersForCert.add(volunteerId);
+    }
+  }
+
+  selectAllVolunteers(): void {
+    this.eventVolunteers.forEach(v => {
+      if (v.trangThai === 1) {
+        this.selectedVolunteersForCert.add(v.maTNV);
+      }
+    });
+  }
+
+  deselectAllVolunteers(): void {
+    this.selectedVolunteersForCert.clear();
+  }
+
+  issueCertificatesBulk(): void {
+    if (!this.selectedEvent || !this.selectedCertificateSample) {
+      alert('Vui lòng chọn mẫu chứng nhận');
+      return;
+    }
+
+    if (this.selectedVolunteersForCert.size === 0) {
+      alert('Vui lòng chọn ít nhất một tình nguyện viên');
+      return;
+    }
+
+    if (!confirm(`Xác nhận cấp chứng nhận cho ${this.selectedVolunteersForCert.size} tình nguyện viên?`)) {
+      return;
+    }
+
+    this.isIssuingCertificates = true;
+
+    // Sử dụng API bulk nếu cấp cho tất cả TNV đã duyệt
+    const approvedCount = this.eventVolunteers.filter(v => v.trangThai === 1).length;
+    
+    if (this.selectedVolunteersForCert.size === approvedCount) {
+      // Cấp hàng loạt
+      this.certificateService.issueCertificatesBulk(
+        this.selectedEvent.maSuKien,
+        this.selectedCertificateSample
+      ).subscribe({
+        next: (response) => {
+          alert(`Đã cấp thành công ${response.data?.length || 0} chứng nhận!`);
+          this.isIssuingCertificates = false;
+          
+          // Đóng modal
+          const modalEl = document.getElementById('issueCertificatesModal');
+          if (modalEl && (window as any).bootstrap) {
+            const modal = (window as any).bootstrap.Modal.getInstance(modalEl);
+            if (modal) modal.hide();
+          }
+          
+          // Reload danh sách
+          this.loadOrganizationEvents();
+        },
+        error: (err) => {
+          console.error('Lỗi cấp chứng nhận:', err);
+          this.isIssuingCertificates = false;
+          alert(err.normalizedMessage || 'Không thể cấp chứng nhận');
+        }
+      });
+    } else {
+      // Cấp từng cá nhân
+      let successCount = 0;
+      let errorCount = 0;
+      const total = this.selectedVolunteersForCert.size;
+      
+      this.selectedVolunteersForCert.forEach(maTNV => {
+        const certData: IssueCertificateDto = {
+          maTNV: maTNV,
+          maSuKien: this.selectedEvent!.maSuKien,
+          maMau: this.selectedCertificateSample!
+        };
+        
+        this.certificateService.issueCertificate(certData).subscribe({
+          next: () => {
+            successCount++;
+            this.issuedCertificates.add(maTNV);
+            
+            if (successCount + errorCount === total) {
+              this.isIssuingCertificates = false;
+              alert(`Đã cấp thành công ${successCount}/${total} chứng nhận!`);
+              
+              // Đóng modal
+              const modalEl = document.getElementById('issueCertificatesModal');
+              if (modalEl && (window as any).bootstrap) {
+                const modal = (window as any).bootstrap.Modal.getInstance(modalEl);
+                if (modal) modal.hide();
+              }
+            }
+          },
+          error: (err) => {
+            errorCount++;
+            console.error(`Lỗi cấp chứng nhận cho TNV ${maTNV}:`, err);
+            
+            if (successCount + errorCount === total) {
+              this.isIssuingCertificates = false;
+              alert(`Đã cấp thành công ${successCount}/${total} chứng nhận!`);
+            }
+          }
+        });
+      });
+    }
   }
 
   getMockEvents(): EventData[] {

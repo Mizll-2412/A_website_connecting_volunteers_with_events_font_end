@@ -1,14 +1,16 @@
-import { Component, OnInit, HostListener } from '@angular/core';
+import { Component, OnInit, OnDestroy, HostListener } from '@angular/core';
 import { Router, RouterModule } from '@angular/router';
 import { CommonModule } from '@angular/common';
+import { HttpClient } from '@angular/common/http';
 import { AuthService } from '../../services/auth';
-
-interface Notification {
-  id: number;
-  content: string;
-  time: string;
-  read: boolean;
-}
+import { NotificationService } from '../../services/notification.service';
+import { Notification } from '../../models/notification';
+import { ToChucService } from '../../services/organization';
+import { TinhNguyenVienService } from '../../services/volunteer';
+import { Subscription } from 'rxjs';
+import { formatDistanceToNow } from 'date-fns';
+import { vi } from 'date-fns/locale';
+import { environment } from '../../../environments/environment';
 
 @Component({
   selector: 'app-header',
@@ -17,11 +19,12 @@ interface Notification {
   templateUrl: './header.html',
   styleUrl: './header.css'
 })
-export class Header implements OnInit {
+export class Header implements OnInit, OnDestroy {
   isLoggedIn = false;
   username = '';
   role = '';
   userAvatar: string | null = null;
+  verificationStatus: number | null = null; // 0: pending, 1: verified, 2: rejected, null: not set
   isUserMenuOpen = false;
   isMobileMenuOpen = false;
   isScrolled = false;
@@ -32,8 +35,17 @@ export class Header implements OnInit {
   showNotifications = false;
   notificationCount = 0;
   notifications: Notification[] = [];
+  private notificationsSubscription: Subscription | undefined;
+  private unreadCountSubscription: Subscription | undefined;
 
-  constructor(private router: Router, private auth: AuthService) { }
+  constructor(
+    private router: Router, 
+    private auth: AuthService,
+    private notificationService: NotificationService,
+    private toChucService: ToChucService,
+    private volunteerService: TinhNguyenVienService,
+    private http: HttpClient
+  ) { }
 
   @HostListener('window:scroll', [])
   onWindowScroll(): void {
@@ -81,7 +93,37 @@ export class Header implements OnInit {
   ngOnInit(): void {
     this.checkAuthStatus();
     this.checkAuthStatusPeriodically();
-    this.loadDummyNotifications();
+    
+    // Subscribe để lắng nghe thay đổi thông tin user
+    this.auth.userInfo$.subscribe(user => {
+      if (user) {
+        this.userAvatar = user.profileImage || user.anhDaiDien || null;
+        this.username = user.hoTen || this.username;
+      }
+    });
+    
+    this.loadNotifications();
+    
+    // Đăng ký theo dõi thông báo
+    this.notificationsSubscription = this.notificationService.notifications$.subscribe(notifications => {
+      this.notifications = notifications.slice(0, 5); // Chỉ hiển thị 5 thông báo mới nhất
+    });
+    
+    // Đăng ký theo dõi số lượng thông báo chưa đọc
+    this.unreadCountSubscription = this.notificationService.unreadCount$.subscribe(count => {
+      this.notificationCount = count;
+    });
+  }
+  
+  ngOnDestroy(): void {
+    // Hủy đăng ký để tránh memory leak
+    if (this.notificationsSubscription) {
+      this.notificationsSubscription.unsubscribe();
+    }
+    
+    if (this.unreadCountSubscription) {
+      this.unreadCountSubscription.unsubscribe();
+    }
   }
 
   toggleMobileMenu(): void {
@@ -123,12 +165,73 @@ export class Header implements OnInit {
       const userInfo = localStorage.getItem('user');
       if (userInfo) {
         const user = JSON.parse(userInfo);
-        this.userAvatar = user.profileImage || null;
+        this.userAvatar = user.profileImage || user.anhDaiDien || null;
+        
+        // Ensure username is displayed correctly
+        if (user.hoTen && !this.username) {
+          this.username = user.hoTen;
+        }
+        
+        // Load avatar from API based on role
+        if (user.maTaiKhoan) {
+          if (this.role === 'Organization') {
+            this.loadOrganizationAvatar(user.maTaiKhoan);
+          } else if (this.role === 'User') {
+            this.loadVolunteerAvatar(user.maTaiKhoan);
+          }
+        }
       }
     }
   }
+  
+  private loadOrganizationAvatar(accountId: number): void {
+    this.toChucService.getOrganizationByAccountId(accountId).subscribe({
+      next: (response: any) => {
+        const org = response.data || response;
+        if (org?.anhDaiDien) {
+          this.userAvatar = `http://localhost:5000${org.anhDaiDien}`;
+          // Update localStorage
+          const userInfo = localStorage.getItem('user');
+          if (userInfo) {
+            const user = JSON.parse(userInfo);
+            user.anhDaiDien = org.anhDaiDien;
+            localStorage.setItem('user', JSON.stringify(user));
+          }
+        }
+        // Load verification status
+        if (org?.trangThaiXacMinh !== undefined) {
+          this.verificationStatus = org.trangThaiXacMinh;
+        }
+      },
+      error: (err) => {
+        console.error('Lỗi tải avatar tổ chức:', err);
+      }
+    });
+  }
+  
+  private loadVolunteerAvatar(accountId: number): void {
+    this.volunteerService.getVolunteerByAccountId(accountId).subscribe({
+      next: (response: any) => {
+        const volunteer = response.data || response;
+        if (volunteer?.anhDaiDien) {
+          this.userAvatar = `http://localhost:5000${volunteer.anhDaiDien}`;
+          // Update localStorage
+          const userInfo = localStorage.getItem('user');
+          if (userInfo) {
+            const user = JSON.parse(userInfo);
+            user.anhDaiDien = volunteer.anhDaiDien;
+            localStorage.setItem('user', JSON.stringify(user));
+          }
+        }
+      },
+      error: (err) => {
+        console.error('Lỗi tải avatar tình nguyện viên:', err);
+      }
+    });
+  }
 
   logout(): void {
+    // Hiển thị loading hoặc thông báo nếu cần
     this.auth.logout();
     this.router.navigate(['/login']);
     this.isUserMenuOpen = false;
@@ -140,7 +243,7 @@ export class Header implements OnInit {
     
     // Chuyển hướng dựa trên vai trò
     if (this.role === 'Organization') {
-      this.router.navigate(['/manage-org']);
+      this.router.navigate(['/org-profile']);
     } else if (this.role === 'Admin') {
       this.router.navigate(['/admin']);
     } else {
@@ -158,39 +261,42 @@ export class Header implements OnInit {
   }
 
   markAllAsRead(): void {
-    this.notifications = this.notifications.map(notification => ({
-      ...notification,
-      read: true
-    }));
-    this.notificationCount = 0;
+    this.notificationService.markAllAsRead();
   }
   
-  // Tạo dữ liệu thông báo mẫu
-  loadDummyNotifications(): void {
+  loadNotifications(): void {
     if (this.isLoggedIn) {
-      this.notifications = [
-        {
-          id: 1,
-          content: 'Bạn vừa được phê duyệt tham gia sự kiện "Hỗ trợ trẻ em vùng cao 2025"',
-          time: '1 giờ trước',
-          read: false
-        },
-        {
-          id: 2,
-          content: 'Sự kiện "Hiến máu tình nguyện" sẽ diễn ra vào ngày mai',
-          time: '3 giờ trước',
-          read: false
-        },
-        {
-          id: 3,
-          content: 'Bạn nhận được chứng nhận từ sự kiện "Dọn dẹp bãi biển"',
-          time: '1 ngày trước',
-          read: true
-        }
-      ];
-      
-      // Đếm số thông báo chưa đọc
-      this.notificationCount = this.notifications.filter(n => !n.read).length;
+      this.notificationService.loadNotifications();
     }
+  }
+  
+  formatTime(date: Date | string): string {
+    if (!date) return '';
+    
+    const dateObj = typeof date === 'string' ? new Date(date) : date;
+    return formatDistanceToNow(dateObj, { addSuffix: true, locale: vi });
+  }
+  
+  markAsRead(notification: Notification): void {
+    if (notification.daDoc) return;
+    
+    this.notificationService.markAsRead(notification.maThongBao).subscribe({
+      next: () => {
+        // Cập nhật trạng thái trong danh sách cục bộ
+        notification.daDoc = true;
+        
+        // Cập nhật số lượng chưa đọc
+        const newUnreadCount = this.notifications.filter(n => !n.daDoc).length;
+        this.notificationService.updateUnreadCount(newUnreadCount);
+      },
+      error: (err) => {
+        console.error('Lỗi đánh dấu đã đọc:', err);
+      }
+    });
+  }
+  
+  viewAllNotifications(): void {
+    this.showNotifications = false;
+    this.router.navigate(['/notifications']);
   }
 }

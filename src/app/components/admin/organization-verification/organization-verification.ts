@@ -120,8 +120,72 @@ export class OrganizationVerification implements OnInit {
   }
 
   viewOrganizationDetails(org: any): void {
-    this.selectedOrganization = org;
-    this.orgDetailsModal.show();
+    // Load chi tiết đầy đủ từ API
+    this.adminService.getOrganizationDetails(org.maToChuc).subscribe({
+      next: (response) => {
+        this.selectedOrganization = response.data || response;
+        
+        // Load legal documents
+        this.adminService.getLegalDocuments(org.maToChuc).subscribe({
+          next: (docsResponse: any) => {
+            this.selectedOrganization.giayToPhapLys = docsResponse.data || docsResponse || [];
+            this.orgDetailsModal.show();
+          },
+          error: (error: any) => {
+            console.error('Lỗi khi tải giấy tờ pháp lý:', error);
+            this.selectedOrganization.giayToPhapLys = [];
+        this.orgDetailsModal.show();
+          }
+        });
+      },
+      error: (error) => {
+        console.error('Lỗi khi tải chi tiết tổ chức:', error);
+        // Fallback: dùng dữ liệu hiện có
+        this.selectedOrganization = org;
+        this.selectedOrganization.giayToPhapLys = [];
+        this.orgDetailsModal.show();
+      }
+    });
+  }
+
+  // Preview giấy tờ pháp lý
+  previewDocument(doc: any): void {
+    if (doc.duongDan || doc.file) {
+      const filePath = doc.duongDan || doc.file;
+      const fileUrl = `http://localhost:5000${filePath}`;
+      
+      // Kiểm tra loại file
+      const extension = filePath.split('.').pop()?.toLowerCase();
+      if (extension === 'pdf') {
+        // Mở PDF trong tab mới
+        window.open(fileUrl, '_blank');
+      } else if (['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(extension || '')) {
+        // Hiển thị ảnh trong modal
+        const modalEl = document.getElementById('documentPreviewModal');
+        if (modalEl) {
+          const imgEl = modalEl.querySelector('#previewImage') as HTMLImageElement;
+          if (imgEl) {
+            imgEl.src = fileUrl;
+          }
+          const modal = new bootstrap.Modal(modalEl);
+          modal.show();
+        }
+      } else {
+        // Tải file về
+        window.open(fileUrl, '_blank');
+      }
+    }
+  }
+
+  // Tải về giấy tờ
+  downloadDocument(doc: any): void {
+    if (doc.duongDan || doc.file) {
+      const filePath = doc.duongDan || doc.file;
+      const link = document.createElement('a');
+      link.href = `http://localhost:5000${filePath}`;
+      link.download = doc.tenGiayTo || 'giay-to-phap-ly';
+      link.click();
+    }
   }
 
   verifyOrganization(org: any, isVerified: boolean): void {

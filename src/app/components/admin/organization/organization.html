@@ -166,6 +166,35 @@
           </table>
         </div>
       </div>
+
+      <div class="mt-4">
+        <h5>Giấy tờ pháp lý</h5>
+        <div class="table-responsive">
+          <table class="table table-sm table-hover">
+            <thead>
+              <tr>
+                <th>Tên giấy tờ</th>
+                <th>Mô tả</th>
+                <th>File</th>
+                <th>Ngày tải</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngIf="!hoSoDangXem.giayTos || hoSoDangXem.giayTos.length === 0">
+                <td colspan="4" class="text-center">Chưa có giấy tờ</td>
+              </tr>
+              <tr *ngFor="let d of hoSoDangXem.giayTos">
+                <td>{{ d.tenGiayTo || 'Giấy tờ' }}</td>
+                <td class="text-truncate" style="max-width:260px">{{ d.moTa }}</td>
+                <td>
+                  <a *ngIf="d.file" [href]="'http://localhost:5000' + d.file" target="_blank" class="btn btn-sm btn-outline-secondary">Xem/Tải</a>
+                </td>
+                <td>{{ d.ngayTao | date:'dd/MM/yyyy HH:mm' }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
     <div class="modal-footer">
       <button class="btn-modal btn-edit" (click)="suaToChuc(hoSoDangXem)">Chỉnh sửa</button>

@@ -84,14 +84,15 @@ body {
   color: var(--white);
 }
 
-/* Carousel Styles */
-.carousel-container {
+/* Banner Styles */
+.banner-container {
   position: relative;
-  height: 500px;
+  height: 450px;
   overflow: hidden;
+  background-color: #f5f5f5;
 }
 
-.carousel-slide {
+.banner-slide {
   position: absolute;
   top: 0;
   left: 0;
@@ -106,39 +107,69 @@ body {
   justify-content: center;
 }
 
-.carousel-slide.active {
+.banner-slide.active {
   opacity: 1;
+  z-index: 1;
 }
 
-.carousel-content {
-  background-color: rgba(0, 0, 0, 0.6);
-  color: var(--white);
-  padding: 2rem;
-  border-radius: 8px;
-  max-width: 600px;
-  text-align: center;
-}
-
-.carousel-indicators {
+.banner-overlay {
   position: absolute;
-  bottom: 20px;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.3));
+  z-index: 1;
+}
+
+.banner-content {
+  position: relative;
+  text-align: center;
+  color: white;
+  z-index: 2;
+  padding: 2rem;
+  max-width: 800px;
+}
+
+.banner-content h1 {
+  text-shadow: 2px 2px 8px rgba(0, 0, 0, 0.5);
+  margin-bottom: 1.5rem;
+}
+
+.banner-content p {
+  font-size: 1.25rem;
+  text-shadow: 1px 1px 4px rgba(0, 0, 0, 0.5);
+}
+
+.banner-indicators {
+  position: absolute;
+  bottom: 30px;
   left: 50%;
   transform: translateX(-50%);
   display: flex;
-  gap: 10px;
+  gap: 12px;
+  z-index: 3;
 }
 
-.carousel-indicator {
+.banner-indicator {
   width: 12px;
   height: 12px;
-  background-color: rgba(255, 255, 255, 0.5);
   border-radius: 50%;
+  background-color: rgba(255, 255, 255, 0.5);
   cursor: pointer;
-  transition: background-color 0.3s;
+  transition: all 0.3s ease;
+  border: 2px solid transparent;
 }
 
-.carousel-indicator.active {
-  background-color: var(--white);
+.banner-indicator:hover {
+  background-color: rgba(255, 255, 255, 0.7);
+}
+
+.banner-indicator.active {
+  background-color: white;
+  width: 32px;
+  border-radius: 6px;
+  border-color: rgba(255, 255, 255, 0.8);
 }
 
 /* Card Styles */

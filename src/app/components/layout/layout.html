@@ -1,13 +1,15 @@
-<div class="main-layout">
+<div class="layout">
   <app-header></app-header>
-  
   <main class="main-content">
     <router-outlet></router-outlet>
   </main>
-  
   <app-footer></app-footer>
-  
-  <button *ngIf="!isAtTop" class="back-to-top" (click)="scrollToTop()" nz-button nzType="primary" nzShape="circle">
-    <i class="fas fa-arrow-up"></i>
-  </button>
 </div>
+
+<!-- Back to top button -->
+<button 
+  class="back-to-top"
+  [ngClass]="{'show': showBackToTop}"
+  (click)="scrollToTop()">
+  <i class="fas fa-arrow-up"></i>
+</button>

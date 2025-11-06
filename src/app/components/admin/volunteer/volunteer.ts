@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { TinhNguyenVien } from '../../../models/volunteer';
 import { TinhNguyenVienService } from '../../../services/volunteer';
 import { HttpErrorResponse } from '@angular/common/http';
+import { HttpClient } from '@angular/common/http';
 
 @Component({
   selector: 'app-tinh-nguyen-vien',
@@ -19,13 +20,58 @@ export class TinhNguyenVienComponent implements OnInit {
   danhSachHienThi: TinhNguyenVien[] = [];
   tnvmoi: TinhNguyenVien = this.khoiTaoTNV();
   dangSua: boolean = false;
+  dangThem: boolean = false;
   isLoading: boolean = false;
   errorMessage: string = '';
+  
+  // Statistics
+  tongSoTNV: number = 0;
+  tnvHoatDong: number = 0;
+  diemTrungBinh: string = '0.0';
+  // Chi tiết TNV
+  tnvdangxem: any = null;
+  tnvdangxemSkills: any[] = [];
+  tnvdangxemFields: any[] = [];
+  tnvdangxemHistory: any[] = [];
+  tnvdangxemLatestReview: any = null;
+  
+  // Cache for skills and fields
+  volunteerSkillsCache: Map<number, any[]> = new Map();
+  volunteerFieldsCache: Map<number, any[]> = new Map();
+  
+  // Master data for skills and fields
+  allSkills: any[] = [];
+  allFields: any[] = [];
 
-  constructor(private tnvService: TinhNguyenVienService) {}
+  constructor(private tnvService: TinhNguyenVienService, private http: HttpClient) {}
 
   ngOnInit() {
+    this.loadMasterData();
     this.taiLaiDuLieu();
+  }
+  
+  loadMasterData(): void {
+    // Load all skills
+    this.http.get<any>('http://localhost:5000/api/kynang').subscribe({
+      next: (response) => {
+        this.allSkills = response.data || response || [];
+      },
+      error: (error) => {
+        console.error('Lỗi khi tải kỹ năng:', error);
+        this.allSkills = [];
+      }
+    });
+    
+    // Load all fields
+    this.http.get<any>('http://localhost:5000/api/linhvuc').subscribe({
+      next: (response) => {
+        this.allFields = response.data || response || [];
+      },
+      error: (error) => {
+        console.error('Lỗi khi tải lĩnh vực:', error);
+        this.allFields = [];
+      }
+    });
   }
 
   khoiTaoTNV(): TinhNguyenVien {
@@ -88,8 +134,10 @@ export class TinhNguyenVienComponent implements OnInit {
             this.danhSachTNV[index] = { ...this.tnvmoi };
           }
           this.dangSua = false;
+          this.dangThem = false;
           this.tnvmoi = this.khoiTaoTNV();
           this.timKiem();
+          this.calculateStatistics();
         },
         error: (error: HttpErrorResponse) => {
           console.error('Lỗi khi cập nhật TNV:', error);
@@ -100,12 +148,21 @@ export class TinhNguyenVienComponent implements OnInit {
       // Thêm mới TNV (không có trong requirement, giữ nguyên xử lý local)
       this.tnvmoi.maTNV = this.danhSachTNV.length + 1;
       this.danhSachTNV.push({ ...this.tnvmoi });
+      this.dangThem = false;
       this.tnvmoi = this.khoiTaoTNV();
       this.timKiem();
+      this.calculateStatistics();
     }
   }
 
   huyChinhSua() {
+    this.dangSua = false;
+    this.dangThem = false;
+    this.tnvmoi = this.khoiTaoTNV();
+  }
+  
+  batDauThemMoi() {
+    this.dangThem = true;
     this.dangSua = false;
     this.tnvmoi = this.khoiTaoTNV();
   }
@@ -131,6 +188,7 @@ export class TinhNguyenVienComponent implements OnInit {
         
         this.danhSachHienThi = [...this.danhSachTNV];
         this.tuKhoaTimKiem = '';
+        this.calculateStatistics();
         this.isLoading = false;
       },
       error: (error: HttpErrorResponse) => {
@@ -139,11 +197,114 @@ export class TinhNguyenVienComponent implements OnInit {
         // Sử dụng dữ liệu mẫu
         this.danhSachTNV = this.getMockData();
         this.danhSachHienThi = [...this.danhSachTNV];
+        this.calculateStatistics();
         this.isLoading = false;
       }
     });
   }
+
+  xemChiTietTNV(tnv: TinhNguyenVien): void {
+    // Lấy chi tiết cơ bản
+    this.tnvService.getVolunteerById(tnv.maTNV).subscribe({
+      next: (res: any) => {
+        this.tnvdangxem = res?.data || res;
+        this.taiSkillsFields(tnv.maTNV);
+        this.taiLichSuSuKien(tnv.maTNV);
+        // Lấy đánh giá gần nhất theo MaTaiKhoan (nếu có)
+        const maUser = this.tnvdangxem?.maTaiKhoan || tnv.maTaiKhoan;
+        if (maUser) {
+          this.taiDanhGiaGanNhat(maUser as number);
+        } else {
+          this.tnvdangxemLatestReview = null;
+        }
+      },
+      error: () => {
+        this.tnvdangxem = tnv;
+        this.taiSkillsFields(tnv.maTNV);
+        this.taiLichSuSuKien(tnv.maTNV);
+        const maUser = tnv.maTaiKhoan;
+        if (maUser) this.taiDanhGiaGanNhat(maUser);
+      }
+    });
+  }
+
+  dongChiTietTNV(): void {
+    this.tnvdangxem = null;
+    this.tnvdangxemSkills = [];
+    this.tnvdangxemFields = [];
+    this.tnvdangxemHistory = [];
+  }
+
+  private taiSkillsFields(maTNV: number): void {
+    this.http.get<any>(`http://localhost:5000/api/tinhnguyenvien/skills/${maTNV}`).subscribe({
+      next: (res) => { this.tnvdangxemSkills = res?.data || res || []; },
+      error: () => { this.tnvdangxemSkills = []; }
+    });
+    this.http.get<any>(`http://localhost:5000/api/tinhnguyenvien/fields/${maTNV}`).subscribe({
+      next: (res) => { this.tnvdangxemFields = res?.data || res || []; },
+      error: () => { this.tnvdangxemFields = []; }
+    });
+  }
+
+  private taiLichSuSuKien(maTNV: number): void {
+    this.http.get<any>(`http://localhost:5000/api/dondangky/history/${maTNV}`).subscribe({
+      next: (res) => { this.tnvdangxemHistory = res?.data || res || []; },
+      error: () => { this.tnvdangxemHistory = []; }
+    });
+  }
+
+  private taiDanhGiaGanNhat(maUser: number): void {
+    this.http.get<any>(`http://localhost:5000/api/danhgia/user/${maUser}`, {
+      headers: { 'Authorization': `Bearer ${localStorage.getItem('token') || ''}` }
+    }).subscribe({
+      next: (res) => {
+        const list = res?.data || res || [];
+        this.tnvdangxemLatestReview = list && list.length ? list[0] : null;
+      },
+      error: () => { this.tnvdangxemLatestReview = null; }
+    });
+  }
   
+  getVolunteerSkills(maTNV: number): any[] {
+    // Find volunteer by ID
+    const volunteer = this.danhSachTNV.find(v => v.maTNV === maTNV);
+    if (!volunteer || !volunteer.kyNangIds || volunteer.kyNangIds.length === 0) {
+      return [];
+    }
+    
+    // Map skill IDs to skill names
+    return volunteer.kyNangIds
+      .map((id: number) => this.allSkills.find(s => s.maKyNang === id))
+      .filter((skill: any) => skill != null);
+  }
+
+  getVolunteerFields(maTNV: number): any[] {
+    // Find volunteer by ID
+    const volunteer = this.danhSachTNV.find(v => v.maTNV === maTNV);
+    if (!volunteer || !volunteer.linhVucIds || volunteer.linhVucIds.length === 0) {
+      return [];
+    }
+    
+    // Map field IDs to field names
+    return volunteer.linhVucIds
+      .map((id: number) => this.allFields.find(f => f.maLinhVuc === id))
+      .filter((field: any) => field != null);
+  }
+  
+  calculateStatistics(): void {
+    this.tongSoTNV = this.danhSachTNV.length;
+    // Tính số TNV đang hoạt động (có điểm đánh giá > 0 hoặc đã tham gia sự kiện)
+    this.tnvHoatDong = this.danhSachTNV.filter(tnv => 
+      (tnv.diemTrungBinh && tnv.diemTrungBinh > 0) || tnv.anhDaiDien
+    ).length;
+    // Tính điểm trung bình
+    const totalRating = this.danhSachTNV
+      .filter(tnv => tnv.diemTrungBinh && tnv.diemTrungBinh > 0)
+      .reduce((sum, tnv) => sum + (tnv.diemTrungBinh || 0), 0);
+    const countWithRating = this.danhSachTNV.filter(tnv => tnv.diemTrungBinh && tnv.diemTrungBinh > 0).length;
+    this.diemTrungBinh = countWithRating > 0 ? (totalRating / countWithRating).toFixed(1) : '0.0';
+  }
+
   getMockData(): TinhNguyenVien[] {
     return [
       {

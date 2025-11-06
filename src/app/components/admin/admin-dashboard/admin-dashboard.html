@@ -2,6 +2,9 @@
   <div class="header">
     <h1>Bảng điều khiển</h1>
     <div class="header-actions">
+      <a routerLink="/statistics" class="btn btn-primary me-2">
+        <i class="fas fa-chart-line"></i> Xem thống kê chi tiết
+      </a>
       <button class="btn-refresh" (click)="refreshStats()">
         <i class="fas fa-sync-alt"></i> Làm mới
       </button>
@@ -14,8 +17,20 @@
       <div class="stat-label">Tài khoản</div>
     </div>
     <div class="stat-card">
-      <div class="stat-value">{{stats.organizations || 0}}</div>
-      <div class="stat-label">Tổ chức</div>
+      <div class="stat-value">{{organizationStats.total || 0}}</div>
+      <div class="stat-label">Tổng tổ chức</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value">{{organizationStats.verified || 0}}</div>
+      <div class="stat-label">Đã xác minh</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value">{{organizationStats.pending || 0}}</div>
+      <div class="stat-label">Đang chờ</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value">{{organizationStats.unverified || 0}}</div>
+      <div class="stat-label">Chưa xác minh</div>
     </div>
     <div class="stat-card">
       <div class="stat-value">{{stats.events || 0}}</div>

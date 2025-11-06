@@ -2,6 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ToChucService } from '../../../services/organization';
+import { HttpErrorResponse } from '@angular/common/http';
 
 enum TrangThaiXacMinh {
   ChoDuyet = 0,
@@ -181,6 +182,18 @@ export class ToChucComponent implements OnInit {
         if (!this.hoSoDangXem.suKiens) {
           this.hoSoDangXem.suKiens = [];
         }
+
+        // Tải giấy tờ pháp lý
+        this.toChucService.getLegalDocuments(toChuc.maToChuc).subscribe({
+          next: (res: any) => {
+            const docs = res?.data || res || [];
+            this.hoSoDangXem.giayTos = docs;
+          },
+          error: (err: HttpErrorResponse) => {
+            console.error('Lỗi tải giấy tờ pháp lý:', err);
+            this.hoSoDangXem.giayTos = [];
+          }
+        });
       },
       error: (error) => {
         console.error('Lỗi khi lấy chi tiết tổ chức:', error);

@@ -1,0 +1,175 @@
+<div class="container py-4">
+  <div class="row">
+    <div class="col-lg-8 mx-auto">
+      
+      <!-- Alert Messages -->
+      <div *ngIf="successMessage" class="alert alert-success alert-dismissible fade show" role="alert">
+        <i class="bi bi-check-circle-fill me-2"></i>{{ successMessage }}
+        <button type="button" class="btn-close" (click)="successMessage = ''" aria-label="Close"></button>
+      </div>
+      
+      <div *ngIf="errorMessage" class="alert alert-danger alert-dismissible fade show" role="alert">
+        <i class="bi bi-exclamation-triangle-fill me-2"></i>{{ errorMessage }}
+        <button type="button" class="btn-close" (click)="errorMessage = ''" aria-label="Close"></button>
+      </div>
+      
+      <!-- Loading State -->
+      <div *ngIf="isLoading" class="text-center py-5">
+        <div class="spinner-border text-primary" role="status">
+          <span class="visually-hidden">Đang xử lý...</span>
+        </div>
+      </div>
+      
+      <!-- Profile Section -->
+      <div *ngIf="!isLoading" class="card mb-4 shadow-sm">
+        <div class="card-header bg-white py-3">
+          <h4 class="mb-0"><i class="bi bi-person-circle me-2"></i>Thông tin cá nhân</h4>
+        </div>
+        <div class="card-body">
+          
+          <!-- Avatar Section -->
+          <div class="text-center mb-4">
+            <div class="avatar-container mb-3">
+              <img [src]="previewUrl || currentAvatar || 'assets/default-avatar.png'" 
+                   alt="Avatar" 
+                   class="avatar-preview"
+                   onerror="this.src='assets/default-avatar.png'">
+            </div>
+            
+            <div class="mb-2">
+              <label for="avatarUpload" class="btn btn-outline-primary btn-sm">
+                <i class="bi bi-camera me-1"></i>Chọn ảnh mới
+              </label>
+              <input type="file" 
+                     id="avatarUpload" 
+                     class="d-none" 
+                     accept="image/*" 
+                     (change)="onFileSelected($event)">
+              
+              <button *ngIf="previewUrl" 
+                      class="btn btn-outline-secondary btn-sm ms-2" 
+                      (click)="cancelAvatarUpload()">
+                <i class="bi bi-x-lg"></i> Hủy
+              </button>
+            </div>
+            
+            <small class="text-muted">Định dạng: JPG, PNG. Kích thước tối đa: 5MB</small>
+          </div>
+          
+          <!-- Profile Form -->
+          <form (ngSubmit)="updateProfile()">
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label for="hoTen" class="form-label">Họ và tên <span class="text-danger">*</span></label>
+                <input type="text" 
+                       class="form-control" 
+                       id="hoTen" 
+                       [(ngModel)]="profileData.hoTen" 
+                       name="hoTen" 
+                       required>
+              </div>
+              
+              <div class="col-md-6 mb-3">
+                <label for="email" class="form-label">Email</label>
+                <input type="email" 
+                       class="form-control" 
+                       id="email" 
+                       [(ngModel)]="profileData.email" 
+                       name="email" 
+                       disabled
+                       readonly>
+                <small class="text-muted">Email không thể thay đổi</small>
+              </div>
+            </div>
+            
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label for="soDienThoai" class="form-label">Số điện thoại</label>
+                <input type="tel" 
+                       class="form-control" 
+                       id="soDienThoai" 
+                       [(ngModel)]="profileData.soDienThoai" 
+                       name="soDienThoai">
+              </div>
+              
+              <div class="col-md-6 mb-3">
+                <label for="diaChi" class="form-label">Địa chỉ</label>
+                <input type="text" 
+                       class="form-control" 
+                       id="diaChi" 
+                       [(ngModel)]="profileData.diaChi" 
+                       name="diaChi">
+              </div>
+            </div>
+            
+            <div class="mb-3">
+              <label for="gioiThieu" class="form-label">Giới thiệu</label>
+              <textarea class="form-control" 
+                        id="gioiThieu" 
+                        rows="4" 
+                        [(ngModel)]="profileData.gioiThieu" 
+                        name="gioiThieu"
+                        placeholder="Giới thiệu về bản thân..."></textarea>
+            </div>
+            
+            <div class="text-end">
+              <button type="submit" class="btn btn-primary" [disabled]="isLoading">
+                <i class="bi bi-save me-1"></i>Lưu thay đổi
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+      
+      <!-- Password Change Section -->
+      <div *ngIf="!isLoading" class="card shadow-sm">
+        <div class="card-header bg-white py-3">
+          <h4 class="mb-0"><i class="bi bi-lock me-2"></i>Đổi mật khẩu</h4>
+        </div>
+        <div class="card-body">
+          <form (ngSubmit)="changePassword()">
+            <div class="mb-3">
+              <label for="oldPassword" class="form-label">Mật khẩu hiện tại <span class="text-danger">*</span></label>
+              <input type="password" 
+                     class="form-control" 
+                     id="oldPassword" 
+                     [(ngModel)]="passwordData.oldPassword" 
+                     name="oldPassword" 
+                     required>
+            </div>
+            
+            <div class="mb-3">
+              <label for="newPassword" class="form-label">Mật khẩu mới <span class="text-danger">*</span></label>
+              <input type="password" 
+                     class="form-control" 
+                     id="newPassword" 
+                     [(ngModel)]="passwordData.newPassword" 
+                     name="newPassword" 
+                     required
+                     minlength="6">
+              <small class="text-muted">Mật khẩu phải có ít nhất 6 ký tự</small>
+            </div>
+            
+            <div class="mb-3">
+              <label for="confirmPassword" class="form-label">Xác nhận mật khẩu mới <span class="text-danger">*</span></label>
+              <input type="password" 
+                     class="form-control" 
+                     id="confirmPassword" 
+                     [(ngModel)]="passwordData.confirmPassword" 
+                     name="confirmPassword" 
+                     required>
+            </div>
+            
+            <div class="text-end">
+              <button type="submit" class="btn btn-warning" [disabled]="isLoading">
+                <i class="bi bi-key me-1"></i>Đổi mật khẩu
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+      
+    </div>
+  </div>
+</div>
+

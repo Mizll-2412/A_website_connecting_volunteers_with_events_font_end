@@ -15,8 +15,8 @@ export class TinhNguyenVienService {
     return this.http.get<any>(this.apiUrl);
   }
   
-  getFeaturedVolunteers(): Observable<any> {
-    return this.http.get<any>(`${this.apiUrl}/featured`);
+  getFeaturedVolunteers(params?: any): Observable<any> {
+    return this.http.get<any>(`${this.apiUrl}/featured`, { params });
   }
 
   getVolunteerById(id: number): Observable<any> {

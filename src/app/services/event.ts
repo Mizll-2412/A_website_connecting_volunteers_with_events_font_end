@@ -15,6 +15,10 @@ export class EventService {
   getAllSuKien(): Observable<SuKienResponseDto[]> {
     return this.http.get<SuKienResponseDto[]>(`${this.apiUrl}`);
   }
+
+  getAllEvents(): Observable<SuKienResponseDto[]> {
+    return this.getAllSuKien();
+  }
   
   getSuKienById(id: number): Observable<SuKienResponseDto> {
     return this.http.get<SuKienResponseDto>(`${this.apiUrl}/${id}`);

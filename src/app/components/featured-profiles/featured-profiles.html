@@ -132,19 +132,19 @@
                 <div class="tags-section">
                   <span class="tags-title">Kỹ năng:</span>
                   <div class="tags-list">
-                    <span *ngFor="let skill of volunteer.kyNangs" class="tag skill-tag">
+                    <span *ngFor="let skill of getVolunteerSkills(volunteer)" class="tag skill-tag">
                       {{ skill.tenKyNang }}
                     </span>
-                    <span *ngIf="!volunteer.kyNangs || volunteer.kyNangs.length === 0" class="text-muted">Chưa cập nhật</span>
+                    <span *ngIf="getVolunteerSkills(volunteer).length === 0" class="text-muted">Chưa cập nhật</span>
                   </div>
                 </div>
                 <div class="tags-section">
                   <span class="tags-title">Lĩnh vực:</span>
                   <div class="tags-list">
-                    <span *ngFor="let field of volunteer.linhVucs" class="tag field-tag">
+                    <span *ngFor="let field of getVolunteerFields(volunteer)" class="tag field-tag">
                       {{ field.tenLinhVuc }}
                     </span>
-                    <span *ngIf="!volunteer.linhVucs || volunteer.linhVucs.length === 0" class="text-muted">Chưa cập nhật</span>
+                    <span *ngIf="getVolunteerFields(volunteer).length === 0" class="text-muted">Chưa cập nhật</span>
                   </div>
                 </div>
               </div>
@@ -165,10 +165,15 @@
                 </div>
               </div>
 
-              <!-- Nút xem chi tiết -->
-              <button class="btn btn-primary w-100 mt-3" (click)="viewVolunteerProfile(volunteer.maTNV)">
-                Xem chi tiết
-              </button>
+              <!-- Hành động -->
+              <div class="d-flex gap-2 mt-3">
+                <button class="btn btn-outline-primary flex-grow-1" (click)="viewVolunteerProfile(volunteer)">
+                  <i class="bi bi-eye me-1"></i>Xem chi tiết
+                </button>
+                <button class="btn btn-success flex-grow-1" (click)="openInviteModal(volunteer)">
+                  <i class="bi bi-envelope-plus me-1"></i>Mời tham gia
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -199,3 +204,141 @@
     </div>
   </div>
 </div>
+
+<!-- Modal Chi tiết TNV -->
+<div class="modal fade" id="volunteerDetailModal" tabindex="-1" aria-labelledby="volunteerDetailModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="volunteerDetailModalLabel">
+          <i class="bi bi-person-circle me-2"></i>Chi tiết Tình nguyện viên
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body" *ngIf="volunteerDetail">
+        <div class="row">
+          <!-- Cột trái: Avatar và thông tin cơ bản -->
+          <div class="col-md-4 text-center mb-3">
+            <img [src]="volunteerDetail.anhDaiDien ? 'http://localhost:5000' + volunteerDetail.anhDaiDien : 'user.png'" 
+                 alt="Avatar" 
+                 class="img-fluid rounded-circle mb-3" 
+                 style="max-width: 150px; max-height: 150px; object-fit: cover;">
+            <h5 class="fw-bold">{{ volunteerDetail.hoTen }}</h5>
+            <div class="mb-2" *ngIf="volunteerDetail.danhGiaTrungBinh">
+              <span *ngFor="let type of getStarRating(volunteerDetail.danhGiaTrungBinh)" class="star">
+                <i class="fas" [ngClass]="{
+                  'fa-star text-warning': type === 'full',
+                  'fa-star-half-alt text-warning': type === 'half',
+                  'fa-star text-muted': type === 'empty'
+                }"></i>
+              </span>
+              <span class="ms-2">{{ volunteerDetail.danhGiaTrungBinh | number:'1.1-1' }}</span>
+            </div>
+          </div>
+
+          <!-- Cột phải: Thông tin chi tiết -->
+          <div class="col-md-8">
+            <h6 class="fw-semibold border-bottom pb-2 mb-3">Thông tin liên hệ</h6>
+            <div class="mb-2">
+              <i class="bi bi-envelope me-2 text-primary"></i>
+              <strong>Email:</strong> {{ volunteerDetail.email }}
+            </div>
+            <div class="mb-2" *ngIf="volunteerDetail.soDienThoai">
+              <i class="bi bi-phone me-2 text-primary"></i>
+              <strong>Số điện thoại:</strong> {{ volunteerDetail.soDienThoai }}
+            </div>
+            <div class="mb-3" *ngIf="volunteerDetail.diaChi">
+              <i class="bi bi-geo-alt me-2 text-primary"></i>
+              <strong>Địa chỉ:</strong> {{ volunteerDetail.diaChi }}
+            </div>
+
+            <h6 class="fw-semibold border-bottom pb-2 mb-3">Thông tin cá nhân</h6>
+            <div class="mb-2" *ngIf="volunteerDetail.ngaySinh">
+              <i class="bi bi-calendar-event me-2 text-primary"></i>
+              <strong>Ngày sinh:</strong> {{ volunteerDetail.ngaySinh | date:'dd/MM/yyyy' }}
+            </div>
+            <div class="mb-3" *ngIf="volunteerDetail.gioiThieu">
+              <i class="bi bi-chat-left-text me-2 text-primary"></i>
+              <strong>Giới thiệu:</strong>
+              <p class="mt-1 text-muted">{{ volunteerDetail.gioiThieu }}</p>
+            </div>
+
+            <h6 class="fw-semibold border-bottom pb-2 mb-3">Kỹ năng & Lĩnh vực</h6>
+            <div class="mb-2">
+              <strong>Kỹ năng:</strong>
+              <div class="mt-1">
+                <span *ngFor="let skill of getDetailSkills(volunteerDetail)" class="badge bg-primary me-1 mb-1">
+                  {{ skill.tenKyNang }}
+                </span>
+                <span *ngIf="getDetailSkills(volunteerDetail).length === 0" class="text-muted">Chưa cập nhật</span>
+              </div>
+            </div>
+            <div class="mb-2">
+              <strong>Lĩnh vực:</strong>
+              <div class="mt-1">
+                <span *ngFor="let field of getDetailFields(volunteerDetail)" class="badge bg-info me-1 mb-1">
+                  {{ field.tenLinhVuc }}
+                </span>
+                <span *ngIf="getDetailFields(volunteerDetail).length === 0" class="text-muted">Chưa cập nhật</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+        <button type="button" class="btn btn-success" (click)="openInviteModal(selectedVolunteer!)" data-bs-dismiss="modal">
+          <i class="bi bi-envelope-plus me-1"></i>Mời tham gia sự kiện
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Mời tham gia sự kiện -->
+<div class="modal fade" id="inviteModal" tabindex="-1" aria-labelledby="inviteModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="inviteModalLabel">
+          <i class="bi bi-envelope-plus me-2"></i>Mời tham gia sự kiện
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-3" *ngIf="selectedVolunteer">
+          <label class="form-label fw-semibold">Tình nguyện viên:</label>
+          <div class="p-2 bg-light rounded">
+            <i class="bi bi-person-circle me-2"></i>{{ selectedVolunteer.hoTen }}
+          </div>
+        </div>
+        
+        <div class="mb-3">
+          <label class="form-label fw-semibold">Chọn sự kiện: <span class="text-danger">*</span></label>
+          <select class="form-select" [(ngModel)]="selectedEventId">
+            <option [ngValue]="null">-- Chọn sự kiện --</option>
+            <option *ngFor="let event of orgEvents" [ngValue]="event.maSuKien">
+              {{ event.tenSuKien }}
+            </option>
+          </select>
+        </div>
+
+        <div class="alert alert-info" *ngIf="orgEvents.length === 0">
+          <i class="bi bi-info-circle me-2"></i>Bạn chưa có sự kiện nào để mời tình nguyện viên.
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+        <button type="button" 
+                class="btn btn-success" 
+                [disabled]="!selectedEventId || !selectedVolunteer"
+                (click)="inviteToEvent(selectedVolunteer?.maTaiKhoan || 0)">
+          <i class="bi bi-send me-1"></i>Gửi lời mời
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Volunteer Profile Viewer Component -->
+<app-volunteer-profile-viewer></app-volunteer-profile-viewer>

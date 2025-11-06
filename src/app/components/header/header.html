@@ -14,10 +14,9 @@
     <!-- Desktop Navigation - Link -->
     <nav class="nav-links desktop-nav">
       <a *ngIf="role !== 'Admin'" routerLink="/home" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">Trang chủ</a>
-      <a *ngIf="role !== 'Admin'" routerLink="/su-kien" routerLinkActive="active">Sự kiện</a>
+      <a *ngIf="role !== 'Admin'" routerLink="/explore" routerLinkActive="active">Sự kiện & Tổ chức</a>
       <a *ngIf="role === 'User'" routerLink="/dang-ky" routerLinkActive="active">Đăng ký của tôi</a>
-      <a *ngIf="role === 'User'" routerLink="/organization" routerLinkActive="active">Tổ chức</a>
-      <a *ngIf="role === 'Organization'" routerLink="/manage-org" routerLinkActive="active">Quản lý tổ chức</a>
+      <a *ngIf="role === 'Organization'" routerLink="/manage-org" routerLinkActive="active">Quản lý sự kiện</a>
       <a *ngIf="role === 'Organization'" routerLink="/list-user" routerLinkActive="active">Hồ sơ nổi bật</a>
       <a *ngIf="role === 'Admin'" routerLink="/admin" routerLinkActive="active">Quản trị</a>
     </nav>
@@ -31,21 +30,33 @@
         <div *ngIf="showNotifications" class="notification-dropdown">
           <div class="notification-header">
             <h4>Thông báo</h4>
-            <a href="javascript:void(0)" (click)="markAllAsRead()">Đánh dấu đã đọc</a>
+            <a href="javascript:void(0)" (click)="markAllAsRead()" [class.disabled]="notificationCount === 0">Đánh dấu đã đọc</a>
           </div>
           <div class="notification-list">
             <div *ngIf="notifications.length === 0" class="empty-notification">
               Không có thông báo mới
             </div>
-            <div *ngFor="let notification of notifications" class="notification-item" [class.unread]="!notification.read">
+            <div *ngFor="let notification of notifications" class="notification-item" [class.unread]="!notification.daDoc">
               <div class="notification-content">
-                <p>{{ notification.content }}</p>
-                <span class="notification-time">{{ notification.time }}</span>
+                <div class="notification-type" [ngClass]="{
+                  'type-system': notification.phanLoai === 0,
+                  'type-event': notification.phanLoai === 1,
+                  'type-personal': notification.phanLoai === 2
+                }">
+                  {{ notification.phanLoai === 0 ? 'Hệ thống' : notification.phanLoai === 1 ? 'Sự kiện' : 'Cá nhân' }}
+                </div>
+                <p>{{ notification.noiDung }}</p>
+                <div class="notification-footer">
+                  <span class="notification-time">{{ formatTime(notification.ngayGui) }}</span>
+                  <button *ngIf="!notification.daDoc" class="btn btn-sm btn-link p-0" (click)="markAsRead(notification)">
+                    <i class="bi bi-check-circle"></i> Đánh dấu đã đọc
+                  </button>
+                </div>
               </div>
             </div>
           </div>
           <div class="notification-footer">
-            <a routerLink="/notifications">Xem tất cả</a>
+            <a href="javascript:void(0)" (click)="viewAllNotifications()">Xem tất cả</a>
           </div>
         </div>
       </div>
@@ -57,14 +68,23 @@
 
       <!-- Avatar và menu dropdown -->
       <div *ngIf="isLoggedIn" class="user-menu" (click)="toggleUserMenu($event)" [class.active]="isUserMenuOpen">
-        <img [src]="userAvatar || 'user.png'" alt="Avatar" class="avatar">
+        <div class="avatar-wrapper">
+          <img [src]="userAvatar || 'user.png'" alt="Avatar" class="avatar">
+          <i *ngIf="role === 'Organization' && verificationStatus === 1" class="bi bi-check-circle-fill verification-icon verified"></i>
+          <i *ngIf="role === 'Organization' && verificationStatus === 0" class="bi bi-clock-history verification-icon pending"></i>
+          <i *ngIf="role === 'Organization' && (verificationStatus === null || verificationStatus === 2)" class="bi bi-x-circle verification-icon unverified"></i>
+        </div>
         <span class="username">{{ username }}</span>
         <i class="fas fa-chevron-down"></i>
         
         <div *ngIf="isUserMenuOpen" class="dropdown-menu" (click)="$event.stopPropagation()">
-          <a routerLink="/profile" class="dropdown-item" (click)="navigateToProfile()">
+          <a *ngIf="role === 'User'" routerLink="/profile" class="dropdown-item" (click)="navigateToProfile()">
             <i class="fas fa-user"></i>
-            <span>Hồ sơ</span>
+            <span>Hồ sơ cá nhân</span>
+          </a>
+          <a *ngIf="role === 'Organization'" routerLink="/org-profile" class="dropdown-item" (click)="navigateToProfile()">
+            <i class="fas fa-building"></i>
+            <span>Hồ sơ tổ chức</span>
           </a>
           <div class="dropdown-divider"></div>
           <a href="javascript:void(0)" (click)="logout()" class="dropdown-item">
@@ -83,23 +103,26 @@
     <a *ngIf="role !== 'Admin'" routerLink="/home" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }" (click)="closeMobileMenu()">
       <i class="fas fa-home mr-2"></i> Trang chủ
     </a>
-    <a *ngIf="role !== 'Admin'" routerLink="/su-kien" routerLinkActive="active" (click)="closeMobileMenu()">
-      <i class="fas fa-calendar-alt mr-2"></i> Sự kiện
+    <a *ngIf="role !== 'Admin'" routerLink="/explore" routerLinkActive="active" (click)="closeMobileMenu()">
+      <i class="fas fa-search mr-2"></i> Sự kiện & Tổ chức
     </a>
     <a *ngIf="role === 'User'" routerLink="/dang-ky" routerLinkActive="active" (click)="closeMobileMenu()">
       <i class="fas fa-clipboard-list mr-2"></i> Đăng ký của tôi
     </a>
-    <a *ngIf="role === 'User'" routerLink="/organization" routerLinkActive="active" (click)="closeMobileMenu()">
-      <i class="fas fa-building mr-2"></i> Tổ chức
+    <a *ngIf="role === 'Organization'" routerLink="/org-profile" routerLinkActive="active" (click)="closeMobileMenu()">
+      <i class="fas fa-id-card mr-2"></i> Hồ sơ tổ chức
     </a>
     <a *ngIf="role === 'Organization'" routerLink="/manage-org" routerLinkActive="active" (click)="closeMobileMenu()">
-      <i class="fas fa-tasks mr-2"></i> Quản lý tổ chức
+      <i class="fas fa-tasks mr-2"></i> Quản lý sự kiện
     </a>
     <a *ngIf="role === 'Organization'" routerLink="/list-user" routerLinkActive="active" (click)="closeMobileMenu()">
       <i class="fas fa-users mr-2"></i> Hồ sơ nổi bật
     </a>
     <a *ngIf="role === 'Admin'" routerLink="/admin" routerLinkActive="active" (click)="closeMobileMenu()">
       <i class="fas fa-user-shield mr-2"></i> Quản trị
+    </a>
+    <a *ngIf="isLoggedIn" routerLink="/statistics" routerLinkActive="active" (click)="closeMobileMenu()">
+      <i class="fas fa-chart-bar mr-2"></i> Thống kê
     </a>
     <!-- Thêm các mục từ dropdown của avatar vào mobile menu -->
     <a routerLink="/profile" routerLinkActive="active" (click)="closeMobileMenu()">

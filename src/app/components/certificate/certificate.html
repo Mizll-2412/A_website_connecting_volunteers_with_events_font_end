@@ -1,0 +1,126 @@
+<div class="container my-4">
+  <div class="card shadow-sm">
+    <div class="card-header bg-primary text-white">
+      <h4 class="mb-0">Giấy chứng nhận tham gia sự kiện</h4>
+    </div>
+    <div class="card-body">
+      <div *ngIf="isLoading" class="text-center my-3">
+        <div class="spinner-border text-primary" role="status">
+          <span class="visually-hidden">Đang tải...</span>
+        </div>
+        <p class="mt-2">Đang tải danh sách giấy chứng nhận...</p>
+      </div>
+
+      <div *ngIf="errorMessage && !isLoading" class="alert alert-danger">
+        {{ errorMessage }}
+      </div>
+
+      <div *ngIf="!isLoading">
+        <div class="row mb-4">
+          <div class="col-md-6">
+            <div class="input-group">
+              <input type="text" class="form-control" placeholder="Tìm kiếm giấy chứng nhận..." 
+                     [(ngModel)]="searchTerm" (input)="filterCertificates()">
+              <button class="btn btn-outline-secondary" type="button">
+                <i class="bi bi-search"></i>
+              </button>
+            </div>
+          </div>
+          <div class="col-md-6 text-md-end mt-3 mt-md-0">
+            <div class="btn-group">
+              <button class="btn" [class.btn-primary]="activeTab === 'all'" [class.btn-outline-primary]="activeTab !== 'all'" 
+                      (click)="setActiveTab('all')">
+                Tất cả
+              </button>
+              <button class="btn" [class.btn-primary]="activeTab === 'available'" [class.btn-outline-primary]="activeTab !== 'available'" 
+                      (click)="setActiveTab('available')">
+                Có thể tải
+              </button>
+              <button class="btn" [class.btn-primary]="activeTab === 'pending'" [class.btn-outline-primary]="activeTab !== 'pending'" 
+                      (click)="setActiveTab('pending')">
+                Đang chờ
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div *ngIf="filteredCertificates.length === 0" class="alert alert-info text-center">
+          <i class="bi bi-info-circle me-2"></i>
+          {{ activeTab === 'all' ? 'Bạn chưa có giấy chứng nhận nào.' : 
+             activeTab === 'available' ? 'Bạn không có giấy chứng nhận nào có thể tải.' : 
+             'Bạn không có giấy chứng nhận nào đang chờ phê duyệt.' }}
+        </div>
+
+        <div class="row g-4">
+          <div *ngFor="let certificate of filteredCertificates" class="col-md-6 col-lg-4">
+            <div class="certificate-card">
+              <div class="certificate-header" [ngClass]="{
+                'bg-success': certificate.trangThai === 1,
+                'bg-warning': certificate.trangThai === 0,
+                'bg-danger': certificate.trangThai === 2
+              }">
+                <span class="certificate-status">
+                  {{ certificate.trangThai === 1 ? 'Đã phê duyệt' : 
+                     certificate.trangThai === 0 ? 'Đang chờ' : 'Bị từ chối' }}
+                </span>
+              </div>
+              <div class="certificate-body">
+                <h5 class="certificate-title">{{ certificate.tenSuKien }}</h5>
+                <p class="certificate-org">{{ certificate.tenToChuc }}</p>
+                <div class="certificate-info">
+                  <div class="info-item">
+                    <i class="bi bi-calendar-event"></i>
+                    <span>{{ certificate.ngayThamGia | date:'dd/MM/yyyy' }}</span>
+                  </div>
+                  <div class="info-item">
+                    <i class="bi bi-geo-alt"></i>
+                    <span>{{ certificate.diaDiem }}</span>
+                  </div>
+                </div>
+              </div>
+              <div class="certificate-footer">
+                <button *ngIf="certificate.trangThai === 1" class="btn btn-success btn-sm" (click)="downloadCertificate(certificate)">
+                  <i class="bi bi-download me-1"></i> Tải xuống
+                </button>
+                <button *ngIf="certificate.trangThai === 1" class="btn btn-outline-primary btn-sm ms-2" (click)="viewCertificate(certificate)">
+                  <i class="bi bi-eye me-1"></i> Xem
+                </button>
+                <button *ngIf="certificate.trangThai === 0" class="btn btn-outline-secondary btn-sm" disabled>
+                  <i class="bi bi-hourglass-split me-1"></i> Đang chờ phê duyệt
+                </button>
+                <div *ngIf="certificate.trangThai === 2" class="text-danger small">
+                  <i class="bi bi-exclamation-triangle me-1"></i>
+                  {{ certificate.lyDoTuChoi || 'Giấy chứng nhận đã bị từ chối' }}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal xem trước giấy chứng nhận -->
+<div class="modal fade" id="certificateModal" tabindex="-1" aria-labelledby="certificateModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="certificateModalLabel">Xem giấy chứng nhận</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body text-center">
+        <div *ngIf="selectedCertificate" class="certificate-preview">
+          <img [src]="selectedCertificate.previewUrl || 'assets/certificate-placeholder.jpg'" 
+               alt="Certificate Preview" class="img-fluid">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+        <button *ngIf="selectedCertificate" type="button" class="btn btn-primary" (click)="downloadCertificate(selectedCertificate)">
+          <i class="bi bi-download me-1"></i> Tải xuống
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

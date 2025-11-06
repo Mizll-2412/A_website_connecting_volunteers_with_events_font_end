@@ -17,3 +17,55 @@ button.list-group-item.active {
   background-color: var(--success) !important;
   border-color: var(--success) !important;
 }
+
+.volunteer-stats {
+  margin-top: 15px;
+  text-align: left;
+  padding: 10px;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+}
+
+.stat-item {
+  margin-bottom: 8px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.stat-label {
+  font-weight: 500;
+  color: #495057;
+}
+
+.stat-value {
+  font-weight: 600;
+  color: #212529;
+}
+
+/* Badges for different ranks */
+.badge-bronze {
+  background-color: #cd7f32;
+  color: white;
+}
+
+.badge-silver {
+  background-color: #c0c0c0;
+  color: white;
+}
+
+.badge-gold {
+  background-color: #ffd700;
+  color: #212529;
+}
+
+.badge-platinum {
+  background-color: #e5e4e2;
+  color: #212529;
+}
+
+.badge-diamond {
+  background-color: #b9f2ff;
+  color: #212529;
+  background-image: linear-gradient(to right, #b9f2ff, #e3fbff);
+}

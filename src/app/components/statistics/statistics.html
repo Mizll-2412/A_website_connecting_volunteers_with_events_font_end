@@ -1,0 +1,309 @@
+<div class="container-fluid py-4">
+  <div class="row mb-4">
+    <div class="col-12">
+      <h2 class="mb-0">Thống kê hệ thống</h2>
+      <p class="text-muted">Tổng quan về hoạt động của hệ thống</p>
+    </div>
+  </div>
+
+  <!-- Loading state -->
+  <div *ngIf="isLoading" class="text-center py-5">
+    <div class="spinner-border text-primary" role="status">
+      <span class="visually-hidden">Đang tải...</span>
+    </div>
+    <p class="mt-3">Đang tải dữ liệu thống kê...</p>
+  </div>
+
+  <div *ngIf="!isLoading">
+    <!-- Tổng quan -->
+    <div class="row g-4 mb-4">
+      <div class="col-md-3">
+        <div class="stat-card">
+          <div class="stat-icon bg-primary">
+            <i class="bi bi-people-fill"></i>
+          </div>
+          <div class="stat-content">
+            <h3 class="stat-value">{{ overallStats?.totalUsers || 0 }}</h3>
+            <p class="stat-label">Tổng người dùng</p>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="stat-card">
+          <div class="stat-icon bg-success">
+            <i class="bi bi-calendar-event"></i>
+          </div>
+          <div class="stat-content">
+            <h3 class="stat-value">{{ overallStats?.totalEvents || 0 }}</h3>
+            <p class="stat-label">Tổng sự kiện</p>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="stat-card">
+          <div class="stat-icon bg-info">
+            <i class="bi bi-person-badge"></i>
+          </div>
+          <div class="stat-content">
+            <h3 class="stat-value">{{ overallStats?.totalVolunteers || 0 }}</h3>
+            <p class="stat-label">Tình nguyện viên</p>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="stat-card">
+          <div class="stat-icon bg-warning">
+            <i class="bi bi-building"></i>
+          </div>
+          <div class="stat-content">
+            <h3 class="stat-value">{{ overallStats?.totalOrganizations || 0 }}</h3>
+            <p class="stat-label">Tổ chức</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Thống kê sự kiện -->
+    <div class="row g-4 mb-4">
+      <div class="col-md-6">
+        <div class="card">
+          <div class="card-header bg-white">
+            <h5 class="mb-0">Thống kê sự kiện</h5>
+          </div>
+          <div class="card-body">
+            <div class="chart-container">
+              <!-- Biểu đồ thống kê sự kiện theo tháng -->
+              <div class="chart-wrapper" style="height: 300px;">
+                <!-- Placeholder for chart (would use a chart library like Chart.js) -->
+                <div class="chart-bars">
+                  <div *ngFor="let month of getMonthsArray()" class="chart-bar-container">
+                    <div class="chart-bar" [style.height.%]="getEventMonthPercentage(month)"></div>
+                    <div class="chart-label">T{{ month }}</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="row mt-4">
+              <div class="col-6">
+                <div class="d-flex align-items-center mb-2">
+                  <div class="stat-indicator bg-success me-2"></div>
+                  <span>Hoàn thành: {{ eventStats?.completedEvents || 0 }}</span>
+                </div>
+                <div class="d-flex align-items-center mb-2">
+                  <div class="stat-indicator bg-primary me-2"></div>
+                  <span>Đang diễn ra: {{ eventStats?.ongoingEvents || 0 }}</span>
+                </div>
+              </div>
+              <div class="col-6">
+                <div class="d-flex align-items-center mb-2">
+                  <div class="stat-indicator bg-danger me-2"></div>
+                  <span>Đã hủy: {{ eventStats?.cancelledEvents || 0 }}</span>
+                </div>
+                <div class="d-flex align-items-center mb-2">
+                  <div class="stat-indicator bg-secondary me-2"></div>
+                  <span>Tổng: {{ eventStats?.totalEvents || 0 }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-md-6">
+        <div class="card">
+          <div class="card-header bg-white">
+            <h5 class="mb-0">Thống kê tổ chức</h5>
+          </div>
+          <div class="card-body">
+            <div class="row">
+              <div class="col-md-6">
+                <div class="pie-chart-container">
+                  <!-- Placeholder for pie chart -->
+                  <div class="pie-chart">
+                    <div class="pie-segment" [style.--percentage]="getOrganizationVerifiedPercentage()" [style.--color]="'#28a745'"></div>
+                    <div class="pie-segment" [style.--percentage]="getOrganizationPendingPercentage()" [style.--color]="'#ffc107'"></div>
+                    <div class="pie-segment" [style.--percentage]="getOrganizationUnverifiedPercentage()" [style.--color]="'#6c757d'"></div>
+                    <div class="pie-center">{{ organizationStats?.totalOrganizations || 0 }}</div>
+                  </div>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="d-flex align-items-center mb-2">
+                  <div class="stat-indicator bg-success me-2"></div>
+                  <span>Đã xác minh: {{ organizationStats?.verifiedOrganizations || 0 }}</span>
+                </div>
+                <div class="d-flex align-items-center mb-2">
+                  <div class="stat-indicator bg-warning me-2"></div>
+                  <span>Đang chờ: {{ organizationStats?.pendingVerificationOrganizations || 0 }}</span>
+                </div>
+                <div class="d-flex align-items-center mb-2">
+                  <div class="stat-indicator bg-secondary me-2"></div>
+                  <span>Chưa xác minh: {{ getUnverifiedOrganizations() }}</span>
+                </div>
+                <div class="d-flex align-items-center mb-2">
+                  <div class="stat-indicator bg-info me-2"></div>
+                  <span>Tổng: {{ organizationStats?.totalOrganizations || 0 }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Thống kê tình nguyện viên -->
+    <div class="row g-4 mb-4">
+      <div class="col-md-6">
+        <div class="card">
+          <div class="card-header bg-white">
+            <h5 class="mb-0">Thống kê tình nguyện viên</h5>
+          </div>
+          <div class="card-body">
+            <div class="row">
+              <div class="col-md-6">
+                <h6>Theo cấp bậc</h6>
+                <div class="progress-stats">
+                  <div *ngFor="let rank of getVolunteerRanks()" class="progress-item">
+                    <div class="d-flex justify-content-between mb-1">
+                      <span>{{ rank.name }}</span>
+                      <span>{{ rank.count }}</span>
+                    </div>
+                    <div class="progress">
+                      <div class="progress-bar" [style.width.%]="rank.percentage" [style.background-color]="rank.color"></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <h6>Theo giới tính</h6>
+                <div class="pie-chart-container">
+                  <!-- Placeholder for gender pie chart -->
+                  <div class="pie-chart">
+                    <div class="pie-segment" [style.--percentage]="getGenderPercentage('Nam')" [style.--color]="'#0d6efd'"></div>
+                    <div class="pie-segment" [style.--percentage]="getGenderPercentage('Nữ')" [style.--color]="'#d63384'"></div>
+                    <div class="pie-segment" [style.--percentage]="getGenderPercentage('Khác')" [style.--color]="'#6c757d'"></div>
+                    <div class="pie-center">{{ volunteerStats?.totalVolunteers || 0 }}</div>
+                  </div>
+                </div>
+                <div class="mt-3">
+                  <div class="d-flex align-items-center mb-2">
+                    <div class="stat-indicator" style="background-color: #0d6efd;" me-2></div>
+                    <span>Nam: {{ getGenderCount('Nam') }}</span>
+                  </div>
+                  <div class="d-flex align-items-center mb-2">
+                    <div class="stat-indicator" style="background-color: #d63384;" me-2></div>
+                    <span>Nữ: {{ getGenderCount('Nữ') }}</span>
+                  </div>
+                  <div class="d-flex align-items-center mb-2">
+                    <div class="stat-indicator" style="background-color: #6c757d;" me-2></div>
+                    <span>Khác: {{ getGenderCount('Khác') }}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-md-6">
+        <div class="card">
+          <div class="card-header bg-white">
+            <h5 class="mb-0">Thống kê đánh giá</h5>
+          </div>
+          <div class="card-body">
+            <div class="row">
+              <div class="col-md-6">
+                <h6>Đánh giá tình nguyện viên</h6>
+                <div class="rating-stats">
+                  <div *ngFor="let rating of [5,4,3,2,1]" class="rating-item">
+                    <div class="d-flex justify-content-between mb-1">
+                      <div>
+                        <i *ngFor="let i of [1,2,3,4,5]" class="bi" 
+                           [ngClass]="i <= rating ? 'bi-star-fill' : 'bi-star'"
+                           style="color: #ffc107;"></i>
+                      </div>
+                      <span>{{ getVolunteerRatingCount(rating) }}</span>
+                    </div>
+                    <div class="progress">
+                      <div class="progress-bar bg-warning" 
+                           [style.width.%]="getVolunteerRatingPercentage(rating)"></div>
+                    </div>
+                  </div>
+                </div>
+                <div class="text-center mt-3">
+                  <strong>Trung bình: {{ ratingStats?.averageVolunteerRating?.toFixed(1) || 0 }}/5</strong>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <h6>Đánh giá tổ chức</h6>
+                <div class="rating-stats">
+                  <div *ngFor="let rating of [5,4,3,2,1]" class="rating-item">
+                    <div class="d-flex justify-content-between mb-1">
+                      <div>
+                        <i *ngFor="let i of [1,2,3,4,5]" class="bi" 
+                           [ngClass]="i <= rating ? 'bi-star-fill' : 'bi-star'"
+                           style="color: #ffc107;"></i>
+                      </div>
+                      <span>{{ getOrganizationRatingCount(rating) }}</span>
+                    </div>
+                    <div class="progress">
+                      <div class="progress-bar bg-warning" 
+                           [style.width.%]="getOrganizationRatingPercentage(rating)"></div>
+                    </div>
+                  </div>
+                </div>
+                <div class="text-center mt-3">
+                  <strong>Trung bình: {{ ratingStats?.averageOrganizationRating?.toFixed(1) || 0 }}/5</strong>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Thống kê đăng ký -->
+    <div class="row g-4">
+      <div class="col-md-12">
+        <div class="card">
+          <div class="card-header bg-white">
+            <h5 class="mb-0">Thống kê đăng ký sự kiện</h5>
+          </div>
+          <div class="card-body">
+            <div class="row">
+              <div class="col-md-6">
+                <div class="pie-chart-container">
+                  <!-- Placeholder for registration status pie chart -->
+                  <div class="pie-chart">
+                    <div class="pie-segment" [style.--percentage]="getRegistrationStatusPercentage('1')" [style.--color]="'#28a745'"></div>
+                    <div class="pie-segment" [style.--percentage]="getRegistrationStatusPercentage('0')" [style.--color]="'#ffc107'"></div>
+                    <div class="pie-segment" [style.--percentage]="getRegistrationStatusPercentage('2')" [style.--color]="'#dc3545'"></div>
+                    <div class="pie-center">{{ overallStats?.totalRegistrations || 0 }}</div>
+                  </div>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="d-flex align-items-center mb-3">
+                  <div class="stat-indicator bg-success me-2"></div>
+                  <span>Đã duyệt: {{ getRegistrationStatusCount('1') }}</span>
+                </div>
+                <div class="d-flex align-items-center mb-3">
+                  <div class="stat-indicator bg-warning me-2"></div>
+                  <span>Chờ duyệt: {{ getRegistrationStatusCount('0') }}</span>
+                </div>
+                <div class="d-flex align-items-center mb-3">
+                  <div class="stat-indicator bg-danger me-2"></div>
+                  <span>Đã từ chối: {{ getRegistrationStatusCount('2') }}</span>
+                </div>
+                <div class="d-flex align-items-center mb-3">
+                  <div class="stat-indicator bg-info me-2"></div>
+                  <span>Tổng: {{ overallStats?.totalRegistrations || 0 }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
