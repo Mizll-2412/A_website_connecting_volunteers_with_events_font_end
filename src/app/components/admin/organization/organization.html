@@ -86,7 +86,7 @@
     <div class="modal-body">
       <div class="row">
         <div class="col-md-4 text-center mb-3">
-          <img [src]="hoSoDangXem.anhDaiDien ? 'http://localhost:5000' + hoSoDangXem.anhDaiDien : 'assets/images/organization-placeholder.png'" 
+          <img [src]="getImageUrl(hoSoDangXem.anhDaiDien) || 'assets/images/organization-placeholder.png'" 
             class="img-fluid rounded" alt="Logo tổ chức" style="max-height: 200px;"
             onerror="this.src='assets/images/organization-placeholder.png'">
         </div>
@@ -144,23 +144,57 @@
               <tr>
                 <th>Tên sự kiện</th>
                 <th>Ngày bắt đầu</th>
+                <th>Ngày kết thúc</th>
+                <th>Số lượng TNV</th>
                 <th>Trạng thái</th>
               </tr>
             </thead>
             <tbody>
               <tr *ngIf="!hoSoDangXem.suKiens || hoSoDangXem.suKiens?.length === 0">
-                <td colspan="3" class="text-center">Chưa có sự kiện nào</td>
+                <td colspan="5" class="text-center">Chưa có sự kiện nào</td>
               </tr>
               <tr *ngFor="let event of hoSoDangXem.suKiens">
-                <td>{{event.tenSuKien}}</td>
-                <td>{{formatNgayTao(event.ngayBatDau)}}</td>
+                <td>{{event.tenSuKien || 'Chưa có tên'}}</td>
+                <td>{{event.ngayBatDau ? formatNgayTao(event.ngayBatDau) : 'Chưa có'}}</td>
+                <td>{{event.ngayKetThuc ? formatNgayTao(event.ngayKetThuc) : 'Chưa có'}}</td>
+                <td>{{event.soLuong || 0}}</td>
                 <td>
                   <span class="badge" [ngClass]="{
-                    'badge-pending': event.trangThai === 'Đang tuyển',
-                    'badge-approved': event.trangThai === 'Đang diễn ra',
-                    'badge-type': event.trangThai === 'Đã kết thúc'
+                    'badge-pending': event.trangThai === 'Đang tuyển' || event.trangThai === 'Sắp diễn ra',
+                    'badge-approved': event.trangThai === 'Đang diễn ra' || event.trangThai === 'Đã duyệt',
+                    'badge-type': event.trangThai === 'Đã kết thúc' || event.trangThai === 'Kết thúc',
+                    'badge-danger': event.trangThai === 'Hủy bỏ' || event.trangThai === 'Đã hủy'
                   }">{{event.trangThai || 'Đang tuyển'}}</span>
                 </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="mt-4">
+        <h5>Giấy tờ pháp lý</h5>
+        <div class="table-responsive">
+          <table class="table table-sm table-hover">
+            <thead>
+              <tr>
+                <th>Tên giấy tờ</th>
+                <th>Mô tả</th>
+                <th>File</th>
+                <th>Ngày tải</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngIf="!hoSoDangXem.giayTos || hoSoDangXem.giayTos.length === 0">
+                <td colspan="4" class="text-center">Chưa có giấy tờ</td>
+              </tr>
+              <tr *ngFor="let d of hoSoDangXem.giayTos">
+                <td>{{ d.tenGiayTo || 'Giấy tờ' }}</td>
+                <td class="text-truncate" style="max-width:260px">{{ d.moTa }}</td>
+                <td>
+                  <a *ngIf="d.file" [href]="getImageUrl(d.file)" target="_blank" class="btn btn-sm btn-outline-secondary">Xem/Tải</a>
+                </td>
+                <td>{{ d.ngayTao | date:'dd/MM/yyyy HH:mm' }}</td>
               </tr>
             </tbody>
           </table>

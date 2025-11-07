@@ -425,3 +425,18 @@ input[type="text"] {
 .btn-modal.btn-cancel:hover {
   background: #cbd5e0;
 }
+
+/* Ensure Bootstrap Icons are visible */
+.btn-group .btn i,
+.btn-action i {
+  font-size: 1rem;
+  display: inline-block;
+  line-height: 1;
+  font-style: normal;
+  font-weight: normal;
+  font-variant: normal;
+  text-transform: none;
+  speak: none;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}

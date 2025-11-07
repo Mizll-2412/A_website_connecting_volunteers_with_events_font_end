@@ -1,6 +1,20 @@
 <main class="main-container container mt-4">
   <h2 class="mb-4 text-primary">Danh sách Tổ chức</h2>
   
+  <!-- Search bar -->
+  <div class="mb-4">
+    <div class="input-group">
+      <input type="text" 
+             class="form-control" 
+             placeholder="Tìm kiếm tổ chức theo tên, email, địa chỉ..." 
+             [(ngModel)]="searchTerm"
+             (input)="searchOrganization()">
+      <button class="btn btn-primary" type="button" (click)="searchOrganization()">
+        <i class="bi bi-search"></i> Tìm kiếm
+      </button>
+    </div>
+  </div>
+  
   <!-- Loading indicator -->
   <div *ngIf="isLoading" class="text-center my-5">
     <div class="spinner-border text-primary" role="status">
@@ -15,20 +29,23 @@
   </div>
   
   <!-- Empty state -->
-  <div *ngIf="!isLoading && !errorMessage && danhSachToChuc.length === 0" class="text-center my-5">
-    <p>Chưa có tổ chức nào được tạo.</p>
+  <div *ngIf="!isLoading && !errorMessage && filteredToChuc.length === 0" class="text-center my-5">
+    <p>{{ searchTerm ? 'Không tìm thấy tổ chức phù hợp' : 'Chưa có tổ chức nào được tạo.' }}</p>
   </div>
 
   <!-- Organization list -->
-  <div class="organization-list" *ngIf="!isLoading && danhSachToChuc.length > 0">
-    <div class="organization-card" *ngFor="let org of danhSachToChuc">
+  <div class="organization-list" *ngIf="!isLoading && filteredToChuc.length > 0">
+    <div class="organization-card" *ngFor="let org of filteredToChuc">
       <!-- Hiển thị hình ảnh từ API với fallback -->
-      <img [src]="org.anhDaiDien ? 'http://localhost:5000' + org.anhDaiDien : 'https://via.placeholder.com/100'" 
+      <img [src]="getImageUrl(org.anhDaiDien) || 'https://via.placeholder.com/100'" 
            alt="Ảnh đại diện" 
            onerror="this.src='https://via.placeholder.com/100'"/>
       
       <div class="info">
-        <h3>{{ org.tenToChuc }}</h3>
+        <h3>
+          {{ org.tenToChuc }}
+          <i *ngIf="org.trangThaiXacMinh === 1" class="bi bi-check-circle-fill text-primary ms-1" title="Tổ chức đã được xác minh"></i>
+        </h3>
         <p><strong>Email:</strong> {{ org.email }}</p>
         <p *ngIf="org.soDienThoai"><strong>Điện thoại:</strong> {{ org.soDienThoai }}</p>
         <p *ngIf="org.diaChi"><strong>Địa chỉ:</strong> {{ org.diaChi }}</p>
@@ -42,6 +59,10 @@
         <div *ngIf="org.trangThaiXacMinh === 2 && org.lyDoTuChoi" class="reason">
           <strong>Lý do từ chối:</strong> {{ org.lyDoTuChoi }}
         </div>
+        
+        <button class="btn btn-sm btn-primary mt-2" (click)="viewDetails(org)">
+          <i class="bi bi-eye"></i> Xem chi tiết
+        </button>
       </div>
     </div>
   </div>

@@ -33,6 +33,10 @@ export class AdminService {
     return this.http.delete(`${this.apiUrl}/users/${id}`);
   }
 
+  adminResetPassword(id: number, newPassword: string): Observable<any> {
+    return this.http.post(`${this.apiUrl}/users/${id}/reset-password`, { newPassword });
+  }
+
   // API quản lý tổ chức
   getPendingOrganizations(): Observable<any> {
     return this.http.get<any>(`${this.apiUrl}/organizations/pending`);
@@ -44,6 +48,26 @@ export class AdminService {
   
   getOrganizationById(id: number): Observable<any> {
     return this.http.get(`${this.apiUrl}/organizations/${id}`);
+  }
+
+  // Lấy chi tiết đầy đủ tổ chức (bao gồm giấy tờ pháp lý, sự kiện)
+  getOrganizationDetails(id: number): Observable<any> {
+    return this.http.get(`${environment.apiUrl}/organization/${id}`);
+  }
+
+  // Lấy chi tiết đầy đủ TNV (bao gồm kỹ năng, lĩnh vực, sự kiện)
+  getVolunteerDetails(id: number): Observable<any> {
+    return this.http.get(`${environment.apiUrl}/tinhnguyenvien/${id}`);
+  }
+
+  // Lấy giấy tờ pháp lý của tổ chức
+  getLegalDocuments(organizationId: number): Observable<any> {
+    return this.http.get(`${environment.apiUrl}/GiayToPhapLy/tochuc/${organizationId}`);
+  }
+  
+  // Lấy thống kê tổ chức
+  getOrganizationStatistics(): Observable<any> {
+    return this.http.get(`${environment.apiUrl}/statistics/organizations`);
   }
 
   verifyOrganization(id: number, daXacMinh: boolean, lyDoTuChoi?: string): Observable<any> {

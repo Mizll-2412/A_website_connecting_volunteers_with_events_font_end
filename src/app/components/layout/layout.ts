@@ -14,11 +14,15 @@ import { NzButtonModule } from 'ng-zorro-antd/button';
 })
 export class Layout {
   isAtTop = true;
+  showBackToTop = false;
+  
   @HostListener('window:scroll', [])
   onWindowScroll(): void {
     const scrollPosition = window.scrollY || document.documentElement.scrollTop || document.body.scrollTop || 0;
     this.isAtTop = scrollPosition <= 10;
+    this.showBackToTop = scrollPosition > 300;
   }
+  
   scrollToTop(): void {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }

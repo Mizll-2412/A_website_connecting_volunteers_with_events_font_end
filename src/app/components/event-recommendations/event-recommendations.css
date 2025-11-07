@@ -1,0 +1,78 @@
+.card {
+  border-radius: 10px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+}
+
+.recommendation-info {
+  margin-bottom: 30px;
+}
+
+.alert-icon {
+  font-size: 1.5rem;
+  color: #0d6efd;
+}
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 0;
+  color: #6c757d;
+}
+
+.event-card {
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.3s ease;
+  border: none;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.event-card:hover {
+  transform: translateY(-5px);
+}
+
+.recommendation-score {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  padding: 5px 10px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  color: white;
+  z-index: 1;
+}
+
+.matching-factors h6 {
+  font-weight: 600;
+}
+
+.matching-factors .badge {
+  padding: 6px 10px;
+  font-weight: 500;
+  font-size: 0.8rem;
+}
+
+.matching-factors .badge i {
+  margin-right: 3px;
+}
+
+.recommendation-explanation {
+  background-color: #f8f9fa;
+  padding: 20px;
+  border-radius: 8px;
+}
+
+.recommendation-explanation h5 {
+  font-weight: 600;
+}
+
+.recommendation-explanation ul {
+  margin-bottom: 15px;
+}
+
+.recommendation-explanation li {
+  margin-bottom: 5px;
+}

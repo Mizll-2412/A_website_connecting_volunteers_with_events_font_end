@@ -1,21 +1,37 @@
-<!-- Carousel Section -->
-<div class="carousel-container">
-  <div *ngFor="let item of carouselItems; let i = index" 
-       class="carousel-slide" 
-       [ngClass]="{'active': i === activeCarouselIndex}"
-       [ngStyle]="{'background-image': 'url(' + item.imageUrl + ')'}">
-    <div class="carousel-content">
-      <h1 class="display-4 fw-bold mb-3">{{ item.title }}</h1>
-      <p class="lead mb-4">{{ item.description }}</p>
-      <a [routerLink]="['/su-kien']" class="btn btn-blue btn-lg px-4 py-2 me-2">Khám phá các sự kiện</a>
-      <a [routerLink]="['/register']" class="btn btn-outline-light btn-lg px-4 py-2">Đăng ký ngay</a>
-    </div>
+<!-- Banner Section -->
+<div class="banner-container">
+  <div *ngFor="let item of bannerItems; let i = index" 
+       class="banner-slide" 
+       [ngClass]="{'active': i === activeBannerIndex}">
+    <!-- Video background -->
+    <video *ngIf="item.video" 
+           class="banner-video" 
+           [muted]="true" 
+           [loop]="true" 
+           playsinline
+           preload="auto"
+           (loadedmetadata)="onVideoLoaded($event)"
+           (canplay)="onVideoCanPlay($event, i)">
+      <source [src]="'assets/banners/' + item.video" type="video/mp4">
+      <source [src]="'assets/banners/' + item.video" type="video/webm">
+      Your browser does not support the video tag.
+    </video>
+    <!-- Image fallback -->
+    <div *ngIf="!item.video && item.image" 
+         class="banner-image" 
+         [style.background-image]="'url(assets/banners/' + item.image + ')'"></div>
+    <!-- Text overlay đã bị ẩn cho tất cả banner (cả ảnh và video) -->
+    <!-- <div class="banner-overlay"></div> -->
+    <!-- <div class="banner-content">
+      <h1 class="display-3 fw-bold mb-3">{{ item.title }}</h1>
+      <p class="lead mb-0">{{ item.description }}</p>
+    </div> -->
   </div>
-  <div class="carousel-indicators">
-    <div *ngFor="let item of carouselItems; let i = index" 
-         class="carousel-indicator" 
-         [ngClass]="{'active': i === activeCarouselIndex}" 
-         (click)="setCarouselSlide(i)"></div>
+  <div class="banner-indicators">
+    <div *ngFor="let item of bannerItems; let i = index" 
+         class="banner-indicator" 
+         [ngClass]="{'active': i === activeBannerIndex}" 
+         (click)="setBannerSlide(i)"></div>
   </div>
 </div>
 
@@ -30,7 +46,7 @@
         <div class="col-md-6 col-lg-3" *ngFor="let project of suitableProjects">
           <div class="card project-card shadow-sm border-0">
             <div class="match-badge">{{ project.matchRate }}% phù hợp</div>
-            <img [src]="'http://localhost:5000' + project.hinhAnh || 'tinhnguyen.png'" class="card-img-top" alt="{{ project.tenSuKien }}">
+            <img [src]="getImageUrl(project.hinhAnh) || 'tinhnguyen.png'" class="card-img-top" alt="{{ project.tenSuKien }}">
             <div class="card-body">
               <h5 class="card-title">{{ project.tenSuKien }}</h5>
               <p class="card-text small text-muted mb-3">{{ project.noiDung }}</p>
@@ -48,85 +64,89 @@
   </div>
 </section>
 
-<!-- Top Projects Section -->
-<section class="py-5 bg-gray">
+
+<!-- Random Events Section -->
+<section class="watermark-section">
   <div class="section-container">
-    <h2 class="section-title text-blue">Top sự kiện nổi bật hôm nay</h2>
-    <p class="text-muted mb-4">Những sự kiện được quan tâm nhiều nhất</p>
+    <h2 class="section-title text-blue">Sự kiện nổi bật</h2>
+    <p class="text-muted mb-4">Khám phá các sự kiện tình nguyện đang diễn ra</p>
     
-    <div class="row g-4">
-      <div class="col-md-6 col-lg-3" *ngFor="let project of topProjects">
-        <div class="card project-card shadow-sm border-0">
-          <div class="popularity-badge">{{ project.luotXem }} lượt xem</div>
-          <img [src]="'http://localhost:5000' + project.hinhAnh || 'tinhnguyen.png'" class="card-img-top" alt="{{ project.tenSuKien }}">
-          <div class="card-body">
-            <h5 class="card-title">{{ project.tenSuKien }}</h5>
-            <p class="card-text small text-muted mb-3">{{ project.noiDung }}</p>
-            <p class="mb-1 small"><i class="bi bi-geo-alt me-1"></i> {{ project.diaChi }}</p>
-            <p class="small mb-3"><i class="bi bi-calendar-event me-1"></i> {{ project.ngayBatDau | date:'dd/MM/yyyy' }}</p>
-            <div class="d-flex justify-content-between align-items-center">
-              <a [routerLink]="['/su-kien', project.maSuKien]" class="btn btn-sm btn-blue">Chi tiết</a>
-              <button class="btn btn-sm btn-outline-success">Đăng ký</button>
-            </div>
-          </div>
+      <div class="row g-4">
+        <div class="col-md-6 col-lg-4" *ngFor="let event of randomEvents">
+          <app-event-card [event]="event"></app-event-card>
         </div>
+      <div *ngIf="randomEvents.length === 0" class="col-12 text-center py-4">
+        <p class="text-muted">Đang tải sự kiện...</p>
       </div>
     </div>
     
     <div class="text-center mt-4">
-      <a [routerLink]="['/su-kien']" class="btn btn-blue px-4 py-2">Xem tất cả sự kiện</a>
+      <a [routerLink]="['/explore']" [queryParams]="{tab: 'events'}" class="btn btn-blue px-4 py-2">Xem tất cả sự kiện</a>
     </div>
   </div>
 </section>
 
-<!-- Ongoing Events Section -->
-<section class="py-5">
+<!-- Random Organizations Section -->
+<section class="bg-gray watermark-section">
   <div class="section-container">
-    <h2 class="section-title text-blue">Sự kiện đang diễn ra</h2>
-    <p class="text-muted mb-4">Tham gia ngay với vai trò tình nguyện viên</p>
+    <h2 class="section-title text-blue">Tổ chức uy tín</h2>
+    <p class="text-muted mb-4">Kết nối với các tổ chức tình nguyện đáng tin cậy</p>
     
     <div class="row g-4">
-      <div class="col-md-6 col-lg-3" *ngFor="let event of ongoingEvents">
-        <div class="card project-card shadow-sm border-0">
-          <div class="ongoing-badge">Đang diễn ra</div>
-          <img [src]="'http://localhost:5000' + event.hinhAnh || 'tinhnguyen.png'" class="card-img-top" alt="{{ event.tenSuKien }}">
-          <div class="card-body">
-            <h5 class="card-title">{{ event.tenSuKien }}</h5>
-            <p class="card-text small text-muted mb-3">{{ event.noiDung }}</p>
-            <p class="mb-1 small"><i class="bi bi-geo-alt me-1"></i> {{ event.diaChi }}</p>
-            <p class="small mb-3"><i class="bi bi-calendar-event me-1"></i> {{ event.ngayBatDau | date:'dd/MM/yyyy' }} - {{ event.ngayKetThuc | date:'dd/MM/yyyy' }}</p>
-            <div class="d-flex justify-content-between align-items-center">
-              <a [routerLink]="['/su-kien', event.maSuKien]" class="btn btn-sm btn-blue">Chi tiết</a>
-              <button class="btn btn-sm btn-outline-success">Đăng ký</button>
-            </div>
-          </div>
-        </div>
+      <div class="col-md-6 col-lg-4" *ngFor="let org of randomOrganizations">
+        <app-organization-card [organization]="org"></app-organization-card>
+      </div>
+      <div *ngIf="randomOrganizations.length === 0" class="col-12 text-center py-4">
+        <p class="text-muted">Đang tải tổ chức...</p>
       </div>
     </div>
     
     <div class="text-center mt-4">
-      <a [routerLink]="['/su-kien']" class="btn btn-blue px-4 py-2">Xem tất cả sự kiện</a>
+      <a [routerLink]="['/explore']" [queryParams]="{tab: 'organizations'}" class="btn btn-blue px-4 py-2">Xem tất cả tổ chức</a>
     </div>
   </div>
 </section>
 
-<!-- Volunteers Highlight Section -->
-<section class="py-5 bg-gray">
+<!-- Random Volunteers Section -->
+<section class="watermark-section">
   <div class="section-container">
-    <h2 class="section-title centered text-center text-blue">VOAT (Volunteer Of All Time)</h2>
-    <p class="text-muted mb-4 text-center">Những tình nguyện viên xuất sắc</p>
+    <h2 class="section-title text-blue">Tình nguyện viên nổi bật</h2>
+    <p class="text-muted mb-4">Gặp gỡ những tình nguyện viên tích cực trong cộng đồng</p>
     
-    <div class="row g-4 mt-2">
-      <div class="col-6 col-md-3" *ngFor="let tn of tinhNguyenViens">
+    <div class="row g-4">
+      <div class="col-6 col-md-4 col-lg-3" *ngFor="let volunteer of randomVolunteers">
         <div class="card border-0 shadow-sm text-center project-card">
-          <img [src]="'http://localhost:5000' + tn.anhDaiDien || 'user.png'" alt="{{tn.hoTen}}" class="card-img-top" style="height:250px; object-fit:cover;">
+          <img [src]="getImageUrl(volunteer.anhDaiDien) || 'user.png'" 
+               alt="{{ volunteer.hoTen }}" 
+               class="card-img-top" 
+               style="height: 200px; object-fit: cover;">
           <div class="card-body">
-            <h5 class="card-title">{{tn.hoTen || 'Tình nguyện viên'}}</h5>
-              <p class="small text-muted">Đã tham gia {{tn.suKienDaThamGia || 5}} sự kiện</p>
+            <h6 class="card-title">{{ volunteer.hoTen || 'Tình nguyện viên' }}</h6>
+            <p class="small text-muted mb-2" *ngIf="volunteer.diemTrungBinh">
+              <i class="bi bi-star-fill text-warning me-1"></i> {{ volunteer.diemTrungBinh | number:'1.1-1' }}/5
+            </p>
+            <p class="small text-muted mb-1">
+              Đã tham gia {{ volunteer.tongSuKienThamGia || volunteer.suKienDaThamGia || 0 }} sự kiện
+            </p>
+            <p class="small text-info mb-2" *ngIf="volunteer.dangThamGia && volunteer.dangThamGia > 0">
+              <i class="bi bi-clock-history me-1"></i>Đang tham gia {{ volunteer.dangThamGia }} sự kiện
+            </p>
+            <button (click)="viewVolunteerProfile(volunteer)" class="btn btn-sm btn-outline-primary mt-2">Xem hồ sơ</button>
           </div>
         </div>
       </div>
+      <div *ngIf="randomVolunteers.length === 0" class="col-12 text-center py-4">
+        <p class="text-muted">Đang tải tình nguyện viên...</p>
+      </div>
+    </div>
+    
+    <div class="text-center mt-4">
+      <a [routerLink]="['/list-user']" class="btn btn-blue px-4 py-2">Xem tất cả tình nguyện viên</a>
     </div>
   </div>
 </section>
+
+<!-- Volunteer Profile Viewer Component -->
+<app-volunteer-profile-viewer></app-volunteer-profile-viewer>
+
 

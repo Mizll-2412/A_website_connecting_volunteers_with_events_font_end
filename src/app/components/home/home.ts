@@ -1,22 +1,36 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, ViewChild } from '@angular/core';
 import { Router, RouterModule } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { AuthService } from '../../services/auth';
 import { EventService } from '../../services/event';
 import { TinhNguyenVienService } from '../../services/volunteer';
+import { ToChucService } from '../../services/organization';
+import { RegistrationService } from '../../services/registration';
 import { SuKienResponseDto } from '../../models/event';
 import { TinhNguyenVienResponeDTos } from '../../models/volunteer';
+import { EventCardComponent } from '../shared/event-card/event-card';
+import { OrganizationCardComponent } from '../shared/organization-card/organization-card';
+import { VolunteerProfileViewerComponent } from '../volunteer-profile-viewer/volunteer-profile-viewer';
+import { getImageUrl } from '../../utils/image-url.util';
 
 @Component({
   selector: 'app-home',
   standalone: true,
-  imports: [CommonModule, RouterModule],
+  imports: [CommonModule, RouterModule, EventCardComponent, OrganizationCardComponent, VolunteerProfileViewerComponent],
   templateUrl: './home.html',
   styleUrl: './home.css'
 })
 export class Home implements OnInit, OnDestroy {
   suKiens: SuKienResponseDto[] = [];
   tinhNguyenViens: TinhNguyenVienResponeDTos[] = [];
+  
+  // Random items for homepage (5 each)
+  randomEvents: any[] = [];
+  randomOrganizations: any[] = [];
+  randomVolunteers: any[] = [];
+  
+  @ViewChild(VolunteerProfileViewerComponent) volunteerProfileViewer?: VolunteerProfileViewerComponent;
+  
   mockVolunteers = [
     {
       maTNV: 1,
@@ -56,29 +70,45 @@ export class Home implements OnInit, OnDestroy {
   username = '';
   role = '';
   
-  // Mock data cho carousel
-  carouselItems = [
+  // Banner items - có thể sử dụng video hoặc image
+  // 
+  // 📹 CÁCH SỬ DỤNG VIDEO:
+  // 1. Đặt file video vào thư mục: src/assets/banners/
+  // 2. Thay 'banner.mp4' bên dưới bằng tên file video của bạn
+  //    Ví dụ: nếu file của bạn là "my-video.mp4" thì viết: video: 'my-video.mp4'
+  // 
+  // 🖼️ CÁCH SỬ DỤNG ẢNH:
+  // 1. Đặt file ảnh vào thư mục: src/assets/banners/
+  // 2. Thay 'banner1.svg' bằng tên file ảnh của bạn
+  //    Ví dụ: image: 'my-image.jpg'
+  //
+  bannerItems: Array<{
+    id: number;
+    video?: string;
+    image?: string;
+    title: string;
+    description: string;
+  }> = [
     {
       id: 1,
-      imageUrl: 'tinhnguyen.png',
-      title: 'Cùng nhau tạo nên thay đổi',
-      description: 'Tham gia các dự án tình nguyện để tạo nên sự khác biệt'
+      video: 'banner.mp4', 
+      title: 'Cùng nhau tạo nên thay đổi tích cực',
+      description: 'Hãy là một phần của hành trình lan tỏa yêu thương và giá trị nhân văn'
     },
     {
       id: 2,
-      imageUrl: 'tinhnguyen2.jpg',
+      image: 'banner1.png', 
       title: 'Kết nối - Chia sẻ - Hành động',
-      description: 'Tìm kiếm các dự án phù hợp với khả năng của bạn'
+      description: 'Nơi những trái tim nhiệt huyết hội tụ vì một cộng đồng tốt đẹp hơn'
     },
     {
       id: 3,
-      imageUrl: 'corporate.png',
-      title: 'Lan tỏa yêu thương',
-      description: 'Cùng chung tay xây dựng cộng đồng tốt đẹp hơn'
+      image: 'banner2.png',
+      title: 'Lan tỏa tinh thần tình nguyện',
+      description: 'Mỗi hành động nhỏ đều góp phần xây dựng tương lai tươi sáng'
     }
   ];
   
-  // Mock data cho các dự án phù hợp
   suitableProjects = [
     {
       maSuKien: 101,
@@ -118,100 +148,33 @@ export class Home implements OnInit, OnDestroy {
     }
   ];
   
-  // Mock data cho top dự án nổi bật
-  topProjects = [
-    {
-      maSuKien: 201,
-      tenSuKien: 'Chạy bộ gây quỹ từ thiện',
-      noiDung: 'Chương trình chạy bộ gây quỹ ủng hộ trẻ em mồ côi',
-      diaChi: 'Công viên 23/9, Tp. Hồ Chí Minh',
-      ngayBatDau: new Date('2025-10-22'),
-      hinhAnh: '/uploads/avatars/1_20251015005804.png',
-      luotXem: 1250
-    },
-    {
-      maSuKien: 202,
-      tenSuKien: 'Nhặt rác tại bãi biển',
-      noiDung: 'Làm sạch bãi biển và nâng cao ý thức bảo vệ môi trường',
-      diaChi: 'Bãi biển Nha Trang, Khánh Hòa',
-      ngayBatDau: new Date('2025-11-05'),
-      hinhAnh: '/uploads/avatars/1_20251015111309.png',
-      luotXem: 980
-    },
-    {
-      maSuKien: 203,
-      tenSuKien: 'Hội chợ từ thiện',
-      noiDung: 'Gây quỹ hỗ trợ người già neo đơn',
-      diaChi: 'Cung Văn hóa Hữu nghị Việt Xô, Hà Nội',
-      ngayBatDau: new Date('2025-10-28'),
-      hinhAnh: '/uploads/avatars/42e7380a-e4b0-4762-928a-a9be0d18abca.png',
-      luotXem: 820
-    },
-    {
-      maSuKien: 204,
-      tenSuKien: 'Khám bệnh miễn phí',
-      noiDung: 'Chương trình khám bệnh miễn phí cho người cao tuổi',
-      diaChi: 'Trung tâm Y tế quận 10, Tp. Hồ Chí Minh',
-      ngayBatDau: new Date('2025-11-10'),
-      hinhAnh: '/uploads/avatars/f81ee63b-4b0b-49c8-a2e9-5335474d0e23.png',
-      luotXem: 750
-    }
-  ];
-  
-  // Mock data cho sự kiện đang diễn ra
-  ongoingEvents = [
-    {
-      maSuKien: 301,
-      tenSuKien: 'Tình nguyện viên tại bệnh viện',
-      noiDung: 'Hỗ trợ các hoạt động chăm sóc bệnh nhân',
-      diaChi: 'Bệnh viện Nhi Trung ương, Hà Nội',
-      ngayBatDau: new Date('2025-10-15'),
-      ngayKetThuc: new Date('2025-10-25'),
-      hinhAnh: '/uploads/avatars/1_20251015005804.png'
-    },
-    {
-      maSuKien: 302,
-      tenSuKien: 'Dọn dẹp khu phố',
-      noiDung: 'Làm đẹp khu phố và trồng hoa',
-      diaChi: 'Phường Bến Nghé, Quận 1, Tp. Hồ Chí Minh',
-      ngayBatDau: new Date('2025-10-12'),
-      ngayKetThuc: new Date('2025-10-20'),
-      hinhAnh: '/uploads/avatars/1_20251015111309.png'
-    },
-    {
-      maSuKien: 303,
-      tenSuKien: 'Hướng dẫn sử dụng máy tính cho người cao tuổi',
-      noiDung: 'Dạy người cao tuổi cách sử dụng máy tính và internet',
-      diaChi: 'Trung tâm Văn hóa quận Thanh Xuân, Hà Nội',
-      ngayBatDau: new Date('2025-10-10'),
-      ngayKetThuc: new Date('2025-10-24'),
-      hinhAnh: '/uploads/avatars/42e7380a-e4b0-4762-928a-a9be0d18abca.png'
-    },
-    {
-      maSuKien: 304,
-      tenSuKien: 'Phát quà cho người vô gia cư',
-      noiDung: 'Phát thực phẩm và nhu yếu phẩm cho người vô gia cư',
-      diaChi: 'Các khu vực trung tâm Tp. Hồ Chí Minh',
-      ngayBatDau: new Date('2025-10-14'),
-      ngayKetThuc: new Date('2025-10-21'),
-      hinhAnh: '/uploads/avatars/f81ee63b-4b0b-49c8-a2e9-5335474d0e23.png'
-    }
-  ];
 
-  activeCarouselIndex = 0;
-  carouselInterval: any;
+  activeBannerIndex = 0;
+  bannerInterval: any;
 
-  constructor(private router: Router, private auth: AuthService, private eventS: EventService, private Volunteer: TinhNguyenVienService) { }
+  constructor(
+    private router: Router, 
+    private auth: AuthService, 
+    private eventS: EventService, 
+    private Volunteer: TinhNguyenVienService,
+    private toChucService: ToChucService,
+    private registrationService: RegistrationService
+  ) { }
 
   ngOnDestroy(): void {
-    if (this.carouselInterval) {
-      clearInterval(this.carouselInterval);
+    if (this.bannerInterval) {
+      clearInterval(this.bannerInterval);
     }
   }
 
   ngOnInit(): void {
-    // Carousel rotation
-    this.startCarousel();
+    // Banner rotation
+    this.startBanner();
+    
+    // Play video của slide đầu tiên sau khi view render
+    setTimeout(() => {
+      this.playActiveVideo();
+    }, 500);
     
     let lastScroll = 0;
     window.addEventListener('scroll', () => {
@@ -234,27 +197,119 @@ export class Home implements OnInit, OnDestroy {
     const userInfo = localStorage.getItem('user');
     if (userInfo) {
       this.user = JSON.parse(userInfo);
-    } else {
-      this.router.navigate(['/login']);
     }
 
     this.loadSuKien();
     this.loadVolunteer();
+    this.loadRandomData();
   }
   
-  startCarousel(): void {
-    this.carouselInterval = setInterval(() => {
-      this.activeCarouselIndex = (this.activeCarouselIndex + 1) % this.carouselItems.length;
+  // Hàm shuffle array để lấy ngẫu nhiên
+  shuffleArray<T>(array: T[]): T[] {
+    const shuffled = [...array];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+    return shuffled;
+  }
+  
+  // Load random data cho homepage
+  loadRandomData(): void {
+    // Load random events
+    this.eventS.getAllSuKien().subscribe({
+      next: (data: any) => {
+        const events = Array.isArray(data) ? data : (data?.data || data?.items || []);
+        this.randomEvents = this.shuffleArray(events).slice(0, 5);
+      },
+      error: (err) => {
+        console.error('Lỗi tải sự kiện:', err);
+        this.randomEvents = [];
+      }
+    });
+    
+    // Load random organizations
+    this.toChucService.getAllOrganizations().subscribe({
+      next: (data: any) => {
+        const orgs = Array.isArray(data) ? data : (data?.data || data?.items || []);
+        this.randomOrganizations = this.shuffleArray(orgs).slice(0, 5);
+      },
+      error: (err) => {
+        console.error('Lỗi tải tổ chức:', err);
+        this.randomOrganizations = [];
+      }
+    });
+    
+    // Load random volunteers
+    this.Volunteer.getAllVolunteers().subscribe({
+      next: (data: any) => {
+        const volunteers = Array.isArray(data) ? data : (data?.data || data?.items || []);
+        this.randomVolunteers = this.shuffleArray(volunteers).slice(0, 5);
+        
+        // Load số sự kiện đã tham gia cho mỗi volunteer
+        this.randomVolunteers.forEach((volunteer: any) => {
+          if (volunteer.maTNV) {
+            this.loadVolunteerEventCount(volunteer);
+          }
+        });
+      },
+      error: (err) => {
+        console.error('Lỗi tải tình nguyện viên:', err);
+        this.randomVolunteers = [];
+      }
+    });
+  }
+  
+  startBanner(): void {
+    this.bannerInterval = setInterval(() => {
+      this.activeBannerIndex = (this.activeBannerIndex + 1) % this.bannerItems.length;
+      // Play video của slide active
+      this.playActiveVideo();
     }, 5000);
   }
+
+  playActiveVideo(): void {
+    setTimeout(() => {
+      const videos = document.querySelectorAll('.banner-video') as NodeListOf<HTMLVideoElement>;
+      videos.forEach((video, i) => {
+        if (i === this.activeBannerIndex) {
+          video.play().catch(err => console.log('Video play error:', err));
+        } else {
+          video.pause();
+        }
+      });
+    }, 100);
+  }
   
-  setCarouselSlide(index: number): void {
-    this.activeCarouselIndex = index;
+  setBannerSlide(index: number): void {
+    this.activeBannerIndex = index;
+    
+    // Play video của slide active
+    this.playActiveVideo();
     
     // Reset timer
-    if (this.carouselInterval) {
-      clearInterval(this.carouselInterval);
-      this.startCarousel();
+    if (this.bannerInterval) {
+      clearInterval(this.bannerInterval);
+      this.startBanner();
+    }
+  }
+
+  onVideoLoaded(event: Event): void {
+    const video = event.target as HTMLVideoElement;
+    // Đảm bảo video play khi slide active
+    if (video.parentElement?.classList.contains('active')) {
+      video.play().catch(err => console.log('Video play error:', err));
+    }
+  }
+
+  onVideoCanPlay(event: Event, index: number): void {
+    const video = event.target as HTMLVideoElement;
+    // Play video nếu đây là slide đang active
+    if (index === this.activeBannerIndex) {
+      video.play().catch(err => {
+        console.log('Video play error:', err);
+        // Nếu autoplay bị chặn, thử play lại sau khi user tương tác
+      });
     }
   }
   
@@ -293,5 +348,48 @@ export class Home implements OnInit, OnDestroy {
 
   goToProfile(): void {
     this.router.navigate(['/profile']);
+  }
+
+  // Load số sự kiện đã tham gia và đang tham gia
+  loadVolunteerEventCount(volunteer: any): void {
+    if (!volunteer.maTNV) return;
+
+    this.registrationService.getRegistrationsByVolunteer(volunteer.maTNV).subscribe({
+      next: (response: any) => {
+        const registrations = response?.data || response || [];
+        
+        // Đếm số sự kiện đang tham gia (chờ duyệt + đã duyệt nhưng chưa hoàn thành)
+        // Trạng thái: 0 = Chờ duyệt, 1 = Đã duyệt (đang tham gia), 2 = Đã từ chối, 3 = Đã hoàn thành
+        const dangThamGia = registrations.filter((reg: any) => 
+          reg.trangThai === 0 || reg.trangThai === 1
+        ).length;
+        
+        // Tổng số sự kiện đã tham gia (bao gồm cả đã hoàn thành)
+        const tongSuKien = registrations.filter((reg: any) => 
+          reg.trangThai === 0 || reg.trangThai === 1 || reg.trangThai === 3
+        ).length;
+        
+        volunteer.dangThamGia = dangThamGia;
+        volunteer.tongSuKienThamGia = tongSuKien;
+        volunteer.suKienDaThamGia = tongSuKien;
+      },
+      error: (err) => {
+        console.error('Lỗi tải số sự kiện đã tham gia:', err);
+        volunteer.dangThamGia = 0;
+        volunteer.tongSuKienThamGia = 0;
+        volunteer.suKienDaThamGia = 0;
+      }
+    });
+  }
+
+  // Mở modal xem hồ sơ volunteer
+  viewVolunteerProfile(volunteer: any): void {
+    if (this.volunteerProfileViewer && volunteer.maTNV) {
+      this.volunteerProfileViewer.open(volunteer.maTNV, volunteer);
+    }
+  }
+
+  getImageUrl(path: string | null | undefined): string {
+    return getImageUrl(path);
   }
 }

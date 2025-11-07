@@ -62,7 +62,8 @@ export class RegisterComponent {
         this.isLoading = false;
       },
       error: (error) => {
-        this.errorMessage = 'Lỗi kết nối đến server';
+        // Error interceptor đã chuẩn hóa message vào normalizedMessage
+        this.errorMessage = error.normalizedMessage || 'Lỗi kết nối đến server';
         this.isLoading = false;
       }
     });

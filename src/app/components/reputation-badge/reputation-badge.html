@@ -1,0 +1,14 @@
+<div class="reputation-badge" [class]="getRankClass()">
+  <div class="badge-icon">
+    <i class="bi" [ngClass]="getRankIcon()"></i>
+  </div>
+  <div class="badge-content">
+    <span class="badge-rank">{{ rank || 'Chưa xếp hạng' }}</span>
+    <div class="badge-rating">
+      <span class="rating-stars">
+        <i *ngFor="let star of getStars()" class="bi" [ngClass]="star"></i>
+      </span>
+      <span class="rating-value">{{ rating || 0 }}/5</span>
+    </div>
+  </div>
+</div>

@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, AfterViewInit } from '@angular/core';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
@@ -8,6 +8,10 @@ import { AuthService } from '../../services/auth';
 import { EventService } from '../../services/event';
 import { ToChucService } from '../../services/organization';
 import { RegistrationService } from '../../services/registration';
+import { environment } from '../../../environments/environment';
+import { getImageUrl, getOrgDefaultImage as getOrgDefaultImageUtil } from '../../utils/image-url.util';
+
+declare var bootstrap: any;
 
 @Component({
   selector: 'app-event-detail',
@@ -16,16 +20,17 @@ import { RegistrationService } from '../../services/registration';
   templateUrl: './event-detail.html',
   styleUrls: ['./event-detail.css']
 })
-export class EventDetailComponent implements OnInit {
-  apiUrl = 'http://localhost:5000/api/sukien';
-  apiVolunteerUrl = 'http://localhost:5000/api/tinhnguyenvien';
-  apiRegistrationUrl = 'http://localhost:5000/api/dondangky';
+export class EventDetailComponent implements OnInit, AfterViewInit {
+  apiUrl = `${environment.apiUrl}/sukien`;
+  apiVolunteerUrl = `${environment.apiUrl}/tinhnguyenvien`;
+  apiRegistrationUrl = `${environment.apiUrl}/dondangky`;
 
   eventId?: number;
   event: any = null;
   organization: any = null;
   similarEvents: any[] = [];
   isRegistered = false;
+  registrationStatus: number | null = null; // 0 = chờ duyệt, 1 = đã duyệt, 2 = từ chối, null = chưa đăng ký
   registrationNote = '';
   isLoading = false;
   isRegistering = false;
@@ -35,6 +40,10 @@ export class EventDetailComponent implements OnInit {
   role = '';
   volunteer: any = null;
   user: any = null;
+  
+  // Skills and Fields
+  allSkills: any[] = [];
+  allFields: any[] = [];
 
   // Mock data
   mockEvent = {
@@ -79,6 +88,7 @@ export class EventDetailComponent implements OnInit {
   ) { }
 
   ngOnInit() {
+    this.loadMasterData(); // Load skills and fields first
     this.isLoggedIn = this.auth.isAuthenticated();
     if (this.isLoggedIn) {
       this.username = this.auth.getUsername();
@@ -96,6 +106,86 @@ export class EventDetailComponent implements OnInit {
         this.loadEventDetails(this.eventId);
       }
     });
+  }
+
+  ngAfterViewInit() {
+    // Khởi tạo Bootstrap tooltip sau khi view được render
+    setTimeout(() => {
+      const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+      tooltipTriggerList.map((tooltipTriggerEl: any) => {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+      });
+    }, 100);
+  }
+  
+  loadMasterData(): void {
+    // Load all skills
+    this.http.get<any>(`${environment.apiUrl}/kynang`).subscribe({
+      next: (response) => {
+        this.allSkills = response.data || response || [];
+      },
+      error: (error) => {
+        console.error('Lỗi khi tải kỹ năng:', error);
+        this.allSkills = [];
+      }
+    });
+    
+    // Load all fields
+    this.http.get<any>(`${environment.apiUrl}/linhvuc`).subscribe({
+      next: (response) => {
+        this.allFields = response.data || response || [];
+      },
+      error: (error) => {
+        console.error('Lỗi khi tải lĩnh vực:', error);
+        this.allFields = [];
+      }
+    });
+  }
+  
+  getEventSkills(): any[] {
+    if (!this.event?.kyNangIds || this.event.kyNangIds.length === 0) {
+      return [];
+    }
+    return this.event.kyNangIds
+      .map((id: number) => this.allSkills.find(s => s.maKyNang === id))
+      .filter((skill: any) => skill != null);
+  }
+  
+  getEventFields(): any[] {
+    if (!this.event?.linhVucIds || this.event.linhVucIds.length === 0) {
+      return [];
+    }
+    return this.event.linhVucIds
+      .map((id: number) => this.allFields.find(f => f.maLinhVuc === id))
+      .filter((field: any) => field != null);
+  }
+  
+  isRecruitingOpen(): boolean {
+    if (!this.event?.tuyenBatDau || !this.event?.tuyenKetThuc) {
+      return false;
+    }
+    const now = new Date();
+    const startDate = new Date(this.event.tuyenBatDau);
+    const endDate = new Date(this.event.tuyenKetThuc);
+    return now >= startDate && now <= endDate;
+  }
+
+  hasRecruitment(): boolean {
+    return !!(this.event?.tuyenBatDau && this.event?.tuyenKetThuc);
+  }
+
+  isRecruitingNotStarted(): boolean {
+    if (!this.hasRecruitment()) return false;
+    const now = new Date();
+    const startDate = new Date(this.event.tuyenBatDau);
+    return now < startDate;
+  }
+
+  isRecruitingEnded(): boolean {
+    if (!this.hasRecruitment()) return false;
+    const now = new Date();
+    const endDate = new Date(this.event.tuyenKetThuc);
+    return now > endDate;
   }
 
   loadEventDetails(id: number) {
@@ -120,12 +210,29 @@ export class EventDetailComponent implements OnInit {
           this.loadOrganizationDetails(this.event.maToChuc);
         }
         
+        // Load sự kiện tương tự
+        this.loadSimilarEvents();
+        
         // Nếu đã đăng nhập, kiểm tra xem đã đăng ký chưa
         if (this.isLoggedIn && this.volunteer) {
           this.checkRegistrationStatus();
         }
         
         this.isLoading = false;
+        
+        // Khởi tạo lại tooltip sau khi load xong dữ liệu
+        setTimeout(() => {
+          const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+          tooltipTriggerList.map((tooltipTriggerEl: any) => {
+            // Xóa tooltip cũ nếu có
+            const existingTooltip = bootstrap.Tooltip.getInstance(tooltipTriggerEl);
+            if (existingTooltip) {
+              existingTooltip.dispose();
+            }
+            // Tạo tooltip mới
+            return new bootstrap.Tooltip(tooltipTriggerEl);
+          });
+        }, 200);
       },
       error: (err: HttpErrorResponse) => {
         console.error('Lỗi khi lấy chi tiết sự kiện:', err);
@@ -191,18 +298,34 @@ export class EventDetailComponent implements OnInit {
       next: (response: any) => {
         if (response) {
           console.log('Trạng thái đăng ký:', response);
+          const registrationData = response.data || response;
           this.isRegistered = true;
+          this.registrationStatus = registrationData.trangThai !== undefined ? registrationData.trangThai : null;
         }
       },
       error: (err: HttpErrorResponse) => {
         console.log('Chưa đăng ký sự kiện này');
         this.isRegistered = false;
+        this.registrationStatus = null;
       }
     });
   }
 
   registerForEvent() {
+    // Kiểm tra nếu là tổ chức thì không cho đăng ký
+    if (this.role === 'Organization') {
+      alert('Tổ chức không thể đăng ký tham gia sự kiện');
+      return;
+    }
+    
     if (!this.volunteer?.maTNV || !this.eventId) {
+      // Kiểm tra nếu đã đăng nhập nhưng chưa có hồ sơ tình nguyện viên
+      if (this.isLoggedIn && this.role === 'User' && this.user?.maTaiKhoan && !this.volunteer) {
+        alert('Bạn cần hoàn thiện hồ sơ tình nguyện viên trước khi đăng ký sự kiện');
+        this.router.navigate(['/profile']);
+        return;
+      }
+      
       alert('Bạn cần đăng nhập và hoàn thiện hồ sơ tình nguyện viên trước khi đăng ký');
       return;
     }
@@ -215,18 +338,29 @@ export class EventDetailComponent implements OnInit {
       ghiChu: this.registrationNote || 'Đăng ký tham gia'
     };
 
+    console.log('Đang gửi dữ liệu đăng ký:', registerData);
+
     this.registrationService.register(registerData).subscribe({
       next: (response: any) => {
         console.log('Đăng ký thành công:', response);
         this.isRegistered = true;
+        this.registrationStatus = 0; // Chờ duyệt
         this.isRegistering = false;
         alert('Đăng ký tham gia sự kiện thành công!');
       },
       error: (err: HttpErrorResponse) => {
         console.error('Lỗi khi đăng ký sự kiện:', err);
         this.isRegistering = false;
-        this.registrationError = 'Không thể đăng ký tham gia. Vui lòng thử lại sau.';
-        alert('Không thể đăng ký tham gia. Vui lòng thử lại sau.');
+        
+        let errorMessage = 'Không thể đăng ký tham gia. Vui lòng thử lại sau.';
+        
+        // Cố gắng lấy thông báo lỗi cụ thể từ API nếu có
+        if (err.error && err.error.message) {
+          errorMessage = err.error.message;
+        }
+        
+        this.registrationError = errorMessage;
+        alert(errorMessage);
       }
     });
   }
@@ -240,6 +374,7 @@ export class EventDetailComponent implements OnInit {
       next: (response: any) => {
         console.log('Hủy đăng ký thành công:', response);
         this.isRegistered = false;
+        this.registrationStatus = null;
         alert('Hủy đăng ký tham gia sự kiện thành công!');
       },
       error: (err: HttpErrorResponse) => {
@@ -256,6 +391,68 @@ export class EventDetailComponent implements OnInit {
     return now >= eventStart;
   }
 
+  loadSimilarEvents(): void {
+    if (!this.event?.maSuKien) return;
+    
+    // Load tất cả sự kiện
+    this.eventService.getAllSuKien().subscribe({
+      next: (response: any) => {
+        const allEvents = response?.data || response || [];
+        
+        // Lọc các sự kiện tương tự (không phải sự kiện hiện tại)
+        let similar: any[] = allEvents.filter((e: any) => e.maSuKien !== this.event.maSuKien);
+        
+        // Ưu tiên các sự kiện có cùng lĩnh vực hoặc kỹ năng
+        if (this.event.linhVucIds && this.event.linhVucIds.length > 0) {
+          const sameField = similar.filter((e: any) => 
+            e.linhVucIds && e.linhVucIds.some((id: number) => 
+              this.event.linhVucIds.includes(id)
+            )
+          );
+          
+          const differentField = similar.filter((e: any) => 
+            !e.linhVucIds || !e.linhVucIds.some((id: number) => 
+              this.event.linhVucIds.includes(id)
+            )
+          );
+          
+          similar = [...sameField, ...differentField];
+        }
+        
+        // Ưu tiên các sự kiện có cùng kỹ năng
+        if (this.event.kyNangIds && this.event.kyNangIds.length > 0) {
+          const sameSkill = similar.filter((e: any) => 
+            e.kyNangIds && e.kyNangIds.some((id: number) => 
+              this.event.kyNangIds.includes(id)
+            )
+          );
+          
+          const differentSkill = similar.filter((e: any) => 
+            !e.kyNangIds || !e.kyNangIds.some((id: number) => 
+              this.event.kyNangIds.includes(id)
+            )
+          );
+          
+          similar = [...sameSkill, ...differentSkill];
+        }
+        
+        // Ưu tiên các sự kiện cùng tổ chức
+        if (this.event.maToChuc) {
+          const sameOrg = similar.filter((e: any) => e.maToChuc === this.event.maToChuc);
+          const differentOrg = similar.filter((e: any) => e.maToChuc !== this.event.maToChuc);
+          similar = [...sameOrg, ...differentOrg];
+        }
+        
+        // Giới hạn tối đa 6 sự kiện
+        this.similarEvents = similar.slice(0, 6);
+      },
+      error: (err: HttpErrorResponse) => {
+        console.error('Lỗi khi tải sự kiện tương tự:', err);
+        this.similarEvents = [];
+      }
+    });
+  }
+
   navigateToOtherEvent(eventId: number) {
     this.router.navigate(['/su-kien', eventId]);
   }
@@ -264,5 +461,35 @@ export class EventDetailComponent implements OnInit {
     if (!dateStr) return '';
     const date = new Date(dateStr);
     return date.toLocaleDateString('vi-VN');
+  }
+
+  getSimilarEventsExplanation(): string {
+    const reasons: string[] = [];
+    
+    if (this.event?.linhVucIds && this.event.linhVucIds.length > 0) {
+      reasons.push('cùng lĩnh vực');
+    }
+    
+    if (this.event?.kyNangIds && this.event.kyNangIds.length > 0) {
+      reasons.push('cùng kỹ năng yêu cầu');
+    }
+    
+    if (this.event?.maToChuc) {
+      reasons.push('cùng tổ chức');
+    }
+    
+    if (reasons.length === 0) {
+      return 'Các sự kiện được gợi ý dựa trên các sự kiện khác trong hệ thống.';
+    }
+    
+    return `Các sự kiện được gợi ý vì có ${reasons.join(', ')} với sự kiện này.`;
+  }
+
+  getImageUrl(path: string | null | undefined): string {
+    return getImageUrl(path);
+  }
+
+  getOrgDefaultImage(): string {
+    return getOrgDefaultImageUtil();
   }
 }

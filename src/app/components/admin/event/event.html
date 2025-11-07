@@ -1,76 +1,314 @@
-<div class="container">
-  <h2>Quản lý Sự kiện</h2>
-
+<div class="main-header">
+  <h1>Quản lý Sự kiện</h1>
   <div class="actions">
-    <input type="text" [(ngModel)]="tuKhoaTimKiem" (input)="timKiem()" placeholder="Tìm kiếm sự kiện..." />
-    <button class="btn btn-primary" (click)="batDauThemMoi()">+ Thêm sự kiện</button>
+    <div class="search-box">
+      <i class="bi bi-search"></i>
+      <input type="text" [(ngModel)]="tuKhoaTimKiem" (input)="timKiem()" placeholder="Tìm kiếm sự kiện..." />
+    </div>
+    <button class="btn btn-primary" (click)="batDauThemMoi()">
+      <i class="bi bi-plus-circle"></i> Thêm sự kiện
+    </button>
   </div>
+</div>
 
-  <table class="table">
+<div class="statistics">
+  <div class="stat-card">
+    <div class="stat-value">{{ tongSoSuKien }}</div>
+    <div class="stat-label">Tổng số sự kiện</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-value">{{ suKienDangDienRa }}</div>
+    <div class="stat-label">Đang diễn ra</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-value">{{ suKienSapDienRa }}</div>
+    <div class="stat-label">Sắp diễn ra</div>
+  </div>
+</div>
+
+<div class="table-container">
+  <table class="data-table">
     <thead>
       <tr>
-        <th>Mã</th>
+        <th>Hình ảnh</th>
         <th>Tên sự kiện</th>
         <th>Địa điểm</th>
-        <th>Ngày diễn ra</th>
+        <th>Ngày bắt đầu</th>
+        <th>Ngày kết thúc</th>
+        <th>Số lượng TNV</th>
         <th>Trạng thái</th>
         <th>Thao tác</th>
       </tr>
     </thead>
     <tbody>
       <tr *ngFor="let sk of danhSachHienThi">
-        <td>{{ sk.maSuKien }}</td>
-        <td>{{ sk.tenSuKien }}</td>
-        <td>{{ sk.diaChi }}</td>
-        <td>{{ formatNgay(sk.ngayBatDau) }} - {{ formatNgay(sk.ngayKetThuc) }}</td>
-        <td>{{ sk.trangThai }}</td>
         <td>
-          <button class="btn btn-edit" (click)="suaSuKien(sk)">Sửa</button>
-          <button class="btn btn-delete" (click)="xoaSuKien(sk)">Xóa</button>
+          <img [src]="sk.hinhAnh ? getImageUrl(sk.hinhAnh) : 'assets/event-default.jpg'" 
+               class="event-image" 
+               style="width: 60px; height: 60px; object-fit: cover; border-radius: 8px;"
+               onerror="this.src='assets/event-default.jpg'">
+        </td>
+        <td>{{ sk.tenSuKien }}</td>
+        <td>{{ sk.diaChi || '-' }}</td>
+        <td>{{ formatNgay(sk.ngayBatDau) }}</td>
+        <td>{{ formatNgay(sk.ngayKetThuc) }}</td>
+        <td>{{ sk.soLuong || 0 }}</td>
+        <td>
+          <span class="badge" [ngClass]="{
+            'bg-success': sk.trangThai === 'Đã duyệt' || sk.trangThai === 'Kết thúc' || sk.trangThai === 'Đã kết thúc',
+            'bg-warning': sk.trangThai === 'Đang tuyển' || sk.trangThai === 'Sắp diễn ra',
+            'bg-danger': sk.trangThai === 'Hủy bỏ' || sk.trangThai === 'Đã hủy',
+            'bg-info': sk.trangThai === 'Đang diễn ra',
+            'bg-secondary': !sk.trangThai
+          }">{{ sk.trangThai || 'Đang tuyển' }}</span>
+        </td>
+        <td>
+          <div class="btn-group">
+            <button class="btn-action btn-view" (click)="xemChiTiet(sk)" title="Xem chi tiết">
+              <i class="bi bi-eye"></i>
+            </button>
+            <button class="btn-action btn-edit" (click)="suaSuKien(sk)" title="Sửa">
+              <i class="bi bi-pencil"></i>
+            </button>
+            <button class="btn-action btn-delete" (click)="xoaSuKien(sk)" title="Xóa">
+              <i class="bi bi-trash"></i>
+            </button>
+          </div>
+        </td>
+      </tr>
+      <tr *ngIf="danhSachHienThi.length === 0">
+        <td colspan="8" class="text-center py-3">
+          <p class="text-muted mb-0">Không tìm thấy sự kiện nào</p>
         </td>
       </tr>
     </tbody>
   </table>
+</div>
 
-  <!-- Form thêm/sửa -->
-  <div class="form-container" *ngIf="dangThemMoi">
-    <h3>{{ suKienDangChinhSua ? 'Chỉnh sửa sự kiện' : 'Thêm sự kiện mới' }}</h3>
-
-    <div class="form-group">
-      <label>Tên sự kiện</label>
-      <input type="text" [(ngModel)]="suKienMoi.tenSuKien" />
+<!-- Modal thêm/sửa sự kiện -->
+<div class="modal" *ngIf="dangThemMoi" (click)="huyBo()">
+  <div class="modal-content" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h2>{{ suKienDangChinhSua ? 'Chỉnh sửa sự kiện' : 'Thêm sự kiện mới' }}</h2>
+      <button class="btn-close" (click)="huyBo()">&times;</button>
     </div>
-
-    <div class="form-group">
-      <label>Nội dung</label>
-      <textarea [(ngModel)]="suKienMoi.noiDung"></textarea>
+    <div class="modal-body">
+      <form (ngSubmit)="luuSuKien()">
+        <div class="form-grid">
+          <div class="form-group full-width">
+            <label>Tên sự kiện *</label>
+            <input type="text" [(ngModel)]="suKienMoi.tenSuKien" name="tenSuKien" required>
+          </div>
+          
+          <div class="form-group full-width">
+            <label>Mô tả sự kiện *</label>
+            <textarea [(ngModel)]="suKienMoi.noiDung" name="noiDung" rows="4" required></textarea>
+          </div>
+          
+          <div class="form-group">
+            <label>Ngày bắt đầu *</label>
+            <input type="date" [(ngModel)]="suKienMoi.ngayBatDau" name="ngayBatDau" required>
+          </div>
+          
+          <div class="form-group">
+            <label>Ngày kết thúc *</label>
+            <input type="date" [(ngModel)]="suKienMoi.ngayKetThuc" name="ngayKetThuc" required>
+          </div>
+          
+          <div class="form-group">
+            <label>Ngày bắt đầu tuyển</label>
+            <input type="date" [(ngModel)]="suKienMoi.tuyenBatDau" name="tuyenBatDau">
+          </div>
+          
+          <div class="form-group">
+            <label>Ngày kết thúc tuyển</label>
+            <input type="date" [(ngModel)]="suKienMoi.tuyenKetThuc" name="tuyenKetThuc">
+          </div>
+          
+          <div class="form-group">
+            <label>Địa điểm *</label>
+            <input type="text" [(ngModel)]="suKienMoi.diaChi" name="diaChi" required>
+          </div>
+          
+          <div class="form-group">
+            <label>Số lượng tình nguyện viên</label>
+            <input type="number" min="1" [(ngModel)]="suKienMoi.soLuong" name="soLuong">
+          </div>
+          
+          <div class="form-group full-width">
+            <label>Hình ảnh sự kiện</label>
+            <input type="file" accept="image/*" (change)="onFileSelected($event)">
+            <div *ngIf="previewUrl" class="mt-2">
+              <img [src]="previewUrl" alt="Preview" style="max-height: 200px; max-width: 100%; border-radius: 8px;">
+            </div>
+            <div *ngIf="!previewUrl && suKienMoi.hinhAnh" class="mt-2">
+              <img [src]="getImageUrl(suKienMoi.hinhAnh)" alt="Current" style="max-height: 200px; max-width: 100%; border-radius: 8px;">
+            </div>
+          </div>
+          
+          <div class="form-group full-width">
+            <label>Lĩnh vực liên quan</label>
+            <div class="d-flex flex-wrap gap-2">
+              <div *ngFor="let field of linhVucs" class="form-check">
+                <input class="form-check-input" type="checkbox" 
+                       [id]="'field' + field.maLinhVuc" 
+                       [checked]="isLinhVucSelected(field.maLinhVuc)" 
+                       (change)="toggleLinhVuc(field.maLinhVuc)">
+                <label class="form-check-label" [for]="'field' + field.maLinhVuc">
+                  {{ field.tenLinhVuc }}
+                </label>
+              </div>
+              <div *ngIf="linhVucs.length === 0" class="text-muted fst-italic">
+                Chưa có lĩnh vực nào
+              </div>
+            </div>
+          </div>
+          
+          <div class="form-group full-width">
+            <label>Kỹ năng cần thiết</label>
+            <div class="d-flex flex-wrap gap-2">
+              <div *ngFor="let skill of kyNangs" class="form-check">
+                <input class="form-check-input" type="checkbox" 
+                       [id]="'skill' + skill.maKyNang" 
+                       [checked]="isKyNangSelected(skill.maKyNang)" 
+                       (change)="toggleKyNang(skill.maKyNang)">
+                <label class="form-check-label" [for]="'skill' + skill.maKyNang">
+                  {{ skill.tenKyNang }}
+                </label>
+              </div>
+              <div *ngIf="kyNangs.length === 0" class="text-muted fst-italic">
+                Chưa có kỹ năng nào
+              </div>
+            </div>
+          </div>
+          
+          <div class="form-group">
+            <label>Tổ chức *</label>
+            <select [(ngModel)]="suKienMoi.maToChuc" name="maToChuc" required>
+              <option [ngValue]="-1">Admin (Sự kiện hệ thống)</option>
+              <option *ngFor="let org of organizations" [ngValue]="org.maToChuc">
+                {{ org.tenToChuc }}
+              </option>
+            </select>
+            <small class="text-muted">Chọn tổ chức tổ chức sự kiện hoặc "Admin" cho sự kiện hệ thống</small>
+          </div>
+          
+          <div class="form-group">
+            <label>Trạng thái</label>
+            <select [(ngModel)]="suKienMoi.trangThai" name="trangThai">
+              <option value="Đang tuyển">Đang tuyển</option>
+              <option value="Sắp diễn ra">Sắp diễn ra</option>
+              <option value="Đang diễn ra">Đang diễn ra</option>
+              <option value="Kết thúc">Kết thúc</option>
+              <option value="Hủy bỏ">Hủy bỏ</option>
+            </select>
+          </div>
+        </div>
+        
+        <div class="modal-footer">
+          <button type="button" class="btn-modal btn-cancel" (click)="huyBo()">Hủy</button>
+          <button type="submit" class="btn-modal btn-approve">{{ suKienDangChinhSua ? 'Cập nhật' : 'Thêm mới' }}</button>
+        </div>
+      </form>
     </div>
+  </div>
+</div>
 
-    <div class="form-group">
-      <label>Địa điểm</label>
-      <input type="text" [(ngModel)]="suKienMoi.diaChi" />
+<!-- Modal xem chi tiết sự kiện -->
+<div class="modal" *ngIf="suKienDangXem" (click)="dongChiTietSuKien()">
+  <div class="modal-content modal-lg" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h2>Chi tiết sự kiện</h2>
+      <button class="btn-close" (click)="dongChiTietSuKien()">&times;</button>
     </div>
-
-    <div class="form-group">
-      <label>Ngày bắt đầu</label>
-      <input type="date" [(ngModel)]="suKienMoi.ngayBatDau" />
+    <div class="modal-body" *ngIf="suKienDangXem">
+      <div class="row">
+        <div class="col-md-4 text-center mb-3">
+          <img [src]="suKienDangXem.hinhAnh ? getImageUrl(suKienDangXem.hinhAnh) : 'assets/event-default.jpg'" 
+               class="img-fluid rounded" 
+               alt="Hình ảnh sự kiện" 
+               style="max-height: 300px; width: 100%; object-fit: cover;"
+               onerror="this.src='assets/event-default.jpg'">
+        </div>
+        <div class="col-md-8">
+          <h3>{{ suKienDangXem.tenSuKien || 'Chưa có tên' }}</h3>
+          
+          <div class="detail-row">
+            <div class="label">Mã sự kiện:</div>
+            <div class="value">{{ suKienDangXem.maSuKien }}</div>
+          </div>
+          
+          <div class="detail-row">
+            <div class="label">Trạng thái:</div>
+            <div class="value">
+              <span class="badge" [ngClass]="{
+                'bg-success': suKienDangXem.trangThai === 'Đã duyệt' || suKienDangXem.trangThai === 'Kết thúc' || suKienDangXem.trangThai === 'Đã kết thúc',
+                'bg-warning': suKienDangXem.trangThai === 'Đang tuyển' || suKienDangXem.trangThai === 'Sắp diễn ra',
+                'bg-danger': suKienDangXem.trangThai === 'Hủy bỏ' || suKienDangXem.trangThai === 'Đã hủy',
+                'bg-info': suKienDangXem.trangThai === 'Đang diễn ra',
+                'bg-secondary': !suKienDangXem.trangThai
+              }">{{ suKienDangXem.trangThai || 'Đang tuyển' }}</span>
+            </div>
+          </div>
+          
+          <div class="detail-row">
+            <div class="label">Địa điểm:</div>
+            <div class="value">{{ suKienDangXem.diaChi || 'Chưa cập nhật' }}</div>
+          </div>
+          
+          <div class="detail-row">
+            <div class="label">Ngày bắt đầu:</div>
+            <div class="value">{{ suKienDangXem.ngayBatDau ? formatNgay(suKienDangXem.ngayBatDau) : 'Chưa có' }}</div>
+          </div>
+          
+          <div class="detail-row">
+            <div class="label">Ngày kết thúc:</div>
+            <div class="value">{{ suKienDangXem.ngayKetThuc ? formatNgay(suKienDangXem.ngayKetThuc) : 'Chưa có' }}</div>
+          </div>
+          
+          <div class="detail-row">
+            <div class="label">Số lượng TNV:</div>
+            <div class="value">{{ suKienDangXem.soLuong || 0 }}</div>
+          </div>
+          
+          <div class="detail-row" *ngIf="suKienDangXem.tuyenBatDau">
+            <div class="label">Ngày bắt đầu tuyển:</div>
+            <div class="value">{{ formatNgay(suKienDangXem.tuyenBatDau) }}</div>
+          </div>
+          
+          <div class="detail-row" *ngIf="suKienDangXem.tuyenKetThuc">
+            <div class="label">Ngày kết thúc tuyển:</div>
+            <div class="value">{{ formatNgay(suKienDangXem.tuyenKetThuc) }}</div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="mt-3">
+        <div class="label"><strong>Nội dung sự kiện:</strong></div>
+        <div class="value">{{ suKienDangXem.noiDung || 'Chưa có mô tả' }}</div>
+      </div>
+      
+      <div class="mt-3" *ngIf="suKienDangXemLinhVucs.length > 0">
+        <div class="label"><strong>Lĩnh vực:</strong></div>
+        <div class="d-flex flex-wrap gap-2 mt-2">
+          <span *ngFor="let lv of suKienDangXemLinhVucs" class="badge bg-info">
+            {{ lv.tenLinhVuc }}
+          </span>
+        </div>
+      </div>
+      
+      <div class="mt-3" *ngIf="suKienDangXemKyNangs.length > 0">
+        <div class="label"><strong>Kỹ năng cần thiết:</strong></div>
+        <div class="d-flex flex-wrap gap-2 mt-2">
+          <span *ngFor="let kn of suKienDangXemKyNangs" class="badge bg-success">
+            {{ kn.tenKyNang }}
+          </span>
+        </div>
+      </div>
     </div>
-
-    <div class="form-group">
-      <label>Ngày kết thúc</label>
-      <input type="date" [(ngModel)]="suKienMoi.ngayKetThuc" />
-    </div>
-
-    <div class="form-group">
-      <label>Trạng thái</label>
-      <select [(ngModel)]="suKienMoi.trangThai">
-        <option *ngFor="let t of (['Đang tuyển', 'Sắp diễn ra', 'Đang diễn ra', 'Kết thúc', 'Hủy bỏ'])">{{ t }}</option>
-      </select>
-    </div>
-
-    <div class="form-actions">
-      <button class="btn btn-success" (click)="luuSuKien()">Lưu</button>
-      <button class="btn btn-secondary" (click)="huyBo()">Hủy</button>
+    <div class="modal-footer">
+      <button class="btn-modal btn-edit" (click)="suaSuKien(suKienDangXem!)">Chỉnh sửa</button>
+      <button class="btn-modal btn-cancel" (click)="dongChiTietSuKien()">Đóng</button>
     </div>
   </div>
 </div>

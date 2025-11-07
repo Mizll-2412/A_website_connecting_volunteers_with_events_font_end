@@ -1,0 +1,120 @@
+<main class="container py-5">
+  <div *ngIf="isLoading" class="text-center py-5">
+    <div class="spinner-border text-primary" role="status"></div>
+    <p class="mt-2">Đang tải thông tin...</p>
+  </div>
+
+  <div *ngIf="errorMessage" class="alert alert-danger">
+    {{ errorMessage }}
+  </div>
+
+  <div *ngIf="!isLoading && !errorMessage && organization">
+    <!-- Header -->
+    <div class="row mb-4">
+      <div class="col-12">
+        <button class="btn btn-outline-secondary mb-3" (click)="goBack()">
+          <i class="bi bi-arrow-left me-2"></i>Quay lại
+        </button>
+      </div>
+    </div>
+
+    <!-- Organization Info -->
+    <div class="card mb-4">
+      <div class="card-body">
+        <div class="row">
+          <div class="col-md-3 text-center mb-3 mb-md-0">
+            <img [src]="organization.anhDaiDien ? getImageUrl(organization.anhDaiDien) : getOrgDefaultImage()" 
+                 class="img-fluid rounded shadow-sm" 
+                 alt="{{ organization.tenToChuc }}"
+                 onerror="this.onerror=null; this.src=this.getAttribute('data-fallback')"
+                 [attr.data-fallback]="getOrgDefaultImage()"
+                 style="max-height: 200px;">
+            <div class="mt-3">
+              <span class="badge bg-success" *ngIf="organization.trangThaiXacMinh === 1">
+                <i class="bi bi-check-circle me-1"></i>Đã xác minh
+              </span>
+              <span class="badge bg-warning" *ngIf="organization.trangThaiXacMinh === 0">
+                <i class="bi bi-hourglass-split me-1"></i>Đang chờ xác minh
+              </span>
+              <span class="badge bg-danger" *ngIf="organization.trangThaiXacMinh === 2">
+                <i class="bi bi-x-circle me-1"></i>Bị từ chối
+              </span>
+            </div>
+          </div>
+          <div class="col-md-9">
+            <h2 class="mb-3">{{ organization.tenToChuc }}</h2>
+            
+            <div class="row mb-3">
+              <div class="col-md-6">
+                <p class="mb-2"><strong><i class="bi bi-envelope me-2"></i>Email:</strong> {{ organization.email }}</p>
+                <p class="mb-2" *ngIf="organization.soDienThoai">
+                  <strong><i class="bi bi-telephone me-2"></i>Số điện thoại:</strong> {{ organization.soDienThoai }}
+                </p>
+                <p class="mb-2" *ngIf="organization.diaChi">
+                  <strong><i class="bi bi-geo-alt me-2"></i>Địa chỉ:</strong> {{ organization.diaChi }}
+                </p>
+              </div>
+              <div class="col-md-6">
+                <p class="mb-2" *ngIf="organization.website">
+                  <strong><i class="bi bi-link-45deg me-2"></i>Website:</strong> 
+                  <a [href]="(organization.website.startsWith('http') ? '' : 'https://') + organization.website" 
+                     target="_blank">{{ organization.website }}</a>
+                </p>
+                <p class="mb-2" *ngIf="organization.diemTrungBinh">
+                  <strong><i class="bi bi-star-fill text-warning me-2"></i>Đánh giá:</strong> 
+                  {{ organization.diemTrungBinh | number:'1.1-1' }}/5
+                  <span class="text-muted ms-2" *ngIf="organization.soLuotDanhGia">
+                    ({{ organization.soLuotDanhGia }} lượt đánh giá)
+                  </span>
+                </p>
+              </div>
+            </div>
+
+            <div *ngIf="organization.gioiThieu" class="mt-3">
+              <h5>Giới thiệu</h5>
+              <p class="text-muted">{{ organization.gioiThieu }}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Events List -->
+    <div class="card">
+      <div class="card-header">
+        <h5 class="mb-0">Danh sách sự kiện</h5>
+      </div>
+      <div class="card-body">
+        <div *ngIf="events.length === 0" class="text-center py-4 text-muted">
+          <p>Chưa có sự kiện nào</p>
+        </div>
+        <div *ngIf="events.length > 0" class="row g-3">
+          <div *ngFor="let event of events" class="col-md-6 col-lg-4">
+            <div class="card h-100">
+              <img [src]="event.hinhAnh ? getImageUrl(event.hinhAnh) : 'assets/event-default.jpg'" 
+                   class="card-img-top" 
+                   style="height:160px; object-fit:cover;"
+                   onerror="this.src='assets/event-default.jpg'">
+              <div class="card-body">
+                <h6 class="card-title">{{ event.tenSuKien }}</h6>
+                <p class="card-text text-muted small mb-2">{{ event.diaChi }}</p>
+                <p class="card-text text-muted small mb-2">
+                  {{ formatDate(event.ngayBatDau) }} - {{ formatDate(event.ngayKetThuc) }}
+                </p>
+                <span class="badge mb-2" [ngClass]="getStatusClass(event.trangThai)">
+                  {{ getStatusText(event.trangThai) }}
+                </span>
+              </div>
+              <div class="card-footer bg-white">
+                <a [routerLink]="['/su-kien', event.maSuKien]" class="btn btn-sm btn-outline-primary w-100">
+                  Xem chi tiết
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+

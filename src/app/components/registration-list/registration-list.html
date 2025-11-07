@@ -85,11 +85,33 @@
                   </span>
                 </td>
                 <td>
-                  <button *ngIf="canCancelRegistration(reg)" 
-                          class="btn btn-sm btn-outline-danger"
-                          (click)="cancelRegistration(reg)">
-                    <i class="bi bi-trash"></i> Hủy đăng ký
-                  </button>
+                  <div class="btn-group" role="group">
+                    <button *ngIf="canCancelRegistration(reg)" 
+                            class="btn btn-sm btn-outline-danger"
+                            (click)="cancelRegistration(reg)"
+                            [title]="getCancelButtonText(reg)">
+                      <i class="bi" [ngClass]="{
+                        'bi-x-circle': reg.trangThai === 0,
+                        'bi-trash': reg.trangThai === 1
+                      }"></i>
+                      {{ getCancelButtonText(reg) }}
+                    </button>
+                    <button *ngIf="canReRegister(reg)" 
+                            class="btn btn-sm btn-outline-success"
+                            (click)="reRegister(reg)"
+                            title="Đăng ký lại">
+                      <i class="bi bi-arrow-clockwise"></i> Đăng ký lại
+                    </button>
+                    <button *ngIf="canEvaluate(reg)" 
+                            class="btn btn-sm btn-outline-primary"
+                            (click)="openEvaluationModal(reg)"
+                            title="Đánh giá tổ chức">
+                      <i class="bi bi-star"></i> Đánh giá
+                    </button>
+                  </div>
+                  <span *ngIf="!canCancelRegistration(reg) && !canReRegister(reg) && !canEvaluate(reg)" class="text-muted">
+                    -
+                  </span>
                 </td>
               </tr>
               <tr *ngIf="filteredRegistrations.length === 0">
@@ -101,6 +123,80 @@
             </tbody>
           </table>
         </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Đánh giá -->
+<div class="modal fade" id="evaluationModal" tabindex="-1" aria-labelledby="evaluationModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="evaluationModalLabel">
+          <i class="bi bi-star-fill text-warning me-2"></i>Đánh giá tổ chức
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body" *ngIf="selectedRegistration">
+        <!-- Thông tin sự kiện -->
+        <div class="alert alert-info mb-3">
+          <strong>Sự kiện:</strong> {{ selectedRegistration.event?.tenSuKien }}
+        </div>
+
+        <!-- Đánh giá sao -->
+        <div class="mb-3">
+          <label class="form-label fw-semibold">
+            Đánh giá của bạn <span class="text-danger">*</span>
+          </label>
+          <div class="rating-stars d-flex gap-2 justify-content-center py-3">
+            <i *ngFor="let star of [1,2,3,4,5]" 
+               class="bi fs-1 cursor-pointer"
+               [ngClass]="{
+                 'bi-star-fill text-warning': star <= evaluationRating,
+                 'bi-star text-secondary': star > evaluationRating
+               }"
+               (click)="setRating(star)"
+               style="cursor: pointer;">
+            </i>
+          </div>
+          <p class="text-center text-muted mb-0">
+            <span *ngIf="evaluationRating === 1">Rất không hài lòng</span>
+            <span *ngIf="evaluationRating === 2">Không hài lòng</span>
+            <span *ngIf="evaluationRating === 3">Bình thường</span>
+            <span *ngIf="evaluationRating === 4">Hài lòng</span>
+            <span *ngIf="evaluationRating === 5">Rất hài lòng</span>
+          </p>
+        </div>
+
+        <!-- Nhận xét -->
+        <div class="mb-3">
+          <label for="evaluationComment" class="form-label fw-semibold">
+            Nhận xét chi tiết (tùy chọn)
+          </label>
+          <textarea 
+            class="form-control" 
+            id="evaluationComment" 
+            rows="4"
+            [(ngModel)]="evaluationComment"
+            placeholder="Chia sẻ trải nghiệm của bạn về tổ chức này..."
+            maxlength="500">
+          </textarea>
+          <small class="text-muted">{{ evaluationComment.length }}/500 ký tự</small>
+        </div>
+
+        <div class="alert alert-warning">
+          <i class="bi bi-info-circle me-2"></i>
+          <small>Đánh giá của bạn sẽ giúp cải thiện chất lượng các sự kiện trong tương lai.</small>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+          Hủy
+        </button>
+        <button type="button" class="btn btn-primary" (click)="submitEvaluation()">
+          <i class="bi bi-send me-2"></i>Gửi đánh giá
+        </button>
       </div>
     </div>
   </div>

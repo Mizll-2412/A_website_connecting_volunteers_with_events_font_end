@@ -6,7 +6,7 @@ body {
 }
 
 .event-header {
-  background-color: var(--primary);
+  background: linear-gradient(135deg, #5cb85c 0%, #5bc0de 100%);
   padding: 3rem 0;
   color: var(--white);
   position: relative;
@@ -19,7 +19,7 @@ body {
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: rgba(0, 0, 0, 0.2);
+  background: linear-gradient(135deg, rgba(92, 184, 92, 0.8) 0%, rgba(91, 192, 222, 0.8) 100%);
 }
 
 .event-header-content {

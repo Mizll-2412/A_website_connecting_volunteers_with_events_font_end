@@ -1,14 +1,17 @@
-import { Component, OnInit, HostListener } from '@angular/core';
+import { Component, OnInit, OnDestroy, HostListener } from '@angular/core';
 import { Router, RouterModule } from '@angular/router';
 import { CommonModule } from '@angular/common';
+import { HttpClient } from '@angular/common/http';
 import { AuthService } from '../../services/auth';
-
-interface Notification {
-  id: number;
-  content: string;
-  time: string;
-  read: boolean;
-}
+import { NotificationService } from '../../services/notification.service';
+import { Notification } from '../../models/notification';
+import { ToChucService } from '../../services/organization';
+import { TinhNguyenVienService } from '../../services/volunteer';
+import { Subscription } from 'rxjs';
+import { formatDistanceToNow } from 'date-fns';
+import { vi } from 'date-fns/locale';
+import { environment } from '../../../environments/environment';
+import { getImageUrl } from '../../utils/image-url.util';
 
 @Component({
   selector: 'app-header',
@@ -17,11 +20,12 @@ interface Notification {
   templateUrl: './header.html',
   styleUrl: './header.css'
 })
-export class Header implements OnInit {
+export class Header implements OnInit, OnDestroy {
   isLoggedIn = false;
   username = '';
   role = '';
   userAvatar: string | null = null;
+  verificationStatus: number | null = null; // 0: pending, 1: verified, 2: rejected, null: not set
   isUserMenuOpen = false;
   isMobileMenuOpen = false;
   isScrolled = false;
@@ -32,8 +36,17 @@ export class Header implements OnInit {
   showNotifications = false;
   notificationCount = 0;
   notifications: Notification[] = [];
+  private notificationsSubscription: Subscription | undefined;
+  private unreadCountSubscription: Subscription | undefined;
 
-  constructor(private router: Router, private auth: AuthService) { }
+  constructor(
+    private router: Router, 
+    private auth: AuthService,
+    private notificationService: NotificationService,
+    private toChucService: ToChucService,
+    private volunteerService: TinhNguyenVienService,
+    private http: HttpClient
+  ) { }
 
   @HostListener('window:scroll', [])
   onWindowScroll(): void {
@@ -81,7 +94,37 @@ export class Header implements OnInit {
   ngOnInit(): void {
     this.checkAuthStatus();
     this.checkAuthStatusPeriodically();
-    this.loadDummyNotifications();
+    
+    // Subscribe để lắng nghe thay đổi thông tin user
+    this.auth.userInfo$.subscribe(user => {
+      if (user) {
+        this.userAvatar = user.profileImage || user.anhDaiDien || null;
+        this.username = user.hoTen || this.username;
+      }
+    });
+    
+    this.loadNotifications();
+    
+    // Đăng ký theo dõi thông báo
+    this.notificationsSubscription = this.notificationService.notifications$.subscribe(notifications => {
+      this.notifications = notifications.slice(0, 5); // Chỉ hiển thị 5 thông báo mới nhất
+    });
+    
+    // Đăng ký theo dõi số lượng thông báo chưa đọc
+    this.unreadCountSubscription = this.notificationService.unreadCount$.subscribe(count => {
+      this.notificationCount = count;
+    });
+  }
+  
+  ngOnDestroy(): void {
+    // Hủy đăng ký để tránh memory leak
+    if (this.notificationsSubscription) {
+      this.notificationsSubscription.unsubscribe();
+    }
+    
+    if (this.unreadCountSubscription) {
+      this.unreadCountSubscription.unsubscribe();
+    }
   }
 
   toggleMobileMenu(): void {
@@ -123,12 +166,73 @@ export class Header implements OnInit {
       const userInfo = localStorage.getItem('user');
       if (userInfo) {
         const user = JSON.parse(userInfo);
-        this.userAvatar = user.profileImage || null;
+        this.userAvatar = user.profileImage || user.anhDaiDien || null;
+        
+        // Ensure username is displayed correctly
+        if (user.hoTen && !this.username) {
+          this.username = user.hoTen;
+        }
+        
+        // Load avatar from API based on role
+        if (user.maTaiKhoan) {
+          if (this.role === 'Organization') {
+            this.loadOrganizationAvatar(user.maTaiKhoan);
+          } else if (this.role === 'User') {
+            this.loadVolunteerAvatar(user.maTaiKhoan);
+          }
+        }
       }
     }
   }
+  
+  private loadOrganizationAvatar(accountId: number): void {
+    this.toChucService.getOrganizationByAccountId(accountId).subscribe({
+      next: (response: any) => {
+        const org = response.data || response;
+        if (org?.anhDaiDien) {
+          this.userAvatar = getImageUrl(org.anhDaiDien);
+          // Update localStorage
+          const userInfo = localStorage.getItem('user');
+          if (userInfo) {
+            const user = JSON.parse(userInfo);
+            user.anhDaiDien = org.anhDaiDien;
+            localStorage.setItem('user', JSON.stringify(user));
+          }
+        }
+        // Load verification status
+        if (org?.trangThaiXacMinh !== undefined) {
+          this.verificationStatus = org.trangThaiXacMinh;
+        }
+      },
+      error: (err) => {
+        console.error('Lỗi tải avatar tổ chức:', err);
+      }
+    });
+  }
+  
+  private loadVolunteerAvatar(accountId: number): void {
+    this.volunteerService.getVolunteerByAccountId(accountId).subscribe({
+      next: (response: any) => {
+        const volunteer = response.data || response;
+        if (volunteer?.anhDaiDien) {
+          this.userAvatar = getImageUrl(volunteer.anhDaiDien);
+          // Update localStorage
+          const userInfo = localStorage.getItem('user');
+          if (userInfo) {
+            const user = JSON.parse(userInfo);
+            user.anhDaiDien = volunteer.anhDaiDien;
+            localStorage.setItem('user', JSON.stringify(user));
+          }
+        }
+      },
+      error: (err) => {
+        console.error('Lỗi tải avatar tình nguyện viên:', err);
+      }
+    });
+  }
 
   logout(): void {
+    // Hiển thị loading hoặc thông báo nếu cần
     this.auth.logout();
     this.router.navigate(['/login']);
     this.isUserMenuOpen = false;
@@ -140,7 +244,7 @@ export class Header implements OnInit {
     
     // Chuyển hướng dựa trên vai trò
     if (this.role === 'Organization') {
-      this.router.navigate(['/manage-org']);
+      this.router.navigate(['/org-profile']);
     } else if (this.role === 'Admin') {
       this.router.navigate(['/admin']);
     } else {
@@ -158,39 +262,148 @@ export class Header implements OnInit {
   }
 
   markAllAsRead(): void {
-    this.notifications = this.notifications.map(notification => ({
-      ...notification,
-      read: true
-    }));
-    this.notificationCount = 0;
+    this.notificationService.markAllAsRead();
   }
   
-  // Tạo dữ liệu thông báo mẫu
-  loadDummyNotifications(): void {
+  loadNotifications(): void {
     if (this.isLoggedIn) {
-      this.notifications = [
-        {
-          id: 1,
-          content: 'Bạn vừa được phê duyệt tham gia sự kiện "Hỗ trợ trẻ em vùng cao 2025"',
-          time: '1 giờ trước',
-          read: false
-        },
-        {
-          id: 2,
-          content: 'Sự kiện "Hiến máu tình nguyện" sẽ diễn ra vào ngày mai',
-          time: '3 giờ trước',
-          read: false
-        },
-        {
-          id: 3,
-          content: 'Bạn nhận được chứng nhận từ sự kiện "Dọn dẹp bãi biển"',
-          time: '1 ngày trước',
-          read: true
+      this.notificationService.loadNotifications();
+    }
+  }
+  
+  formatTime(date: Date | string): string {
+    if (!date) return '';
+    
+    const dateObj = typeof date === 'string' ? new Date(date) : date;
+    return formatDistanceToNow(dateObj, { addSuffix: true, locale: vi });
+  }
+  
+  markAsRead(notification: Notification, event?: Event): void {
+    if (event) {
+      event.stopPropagation();
+    }
+    
+    if (notification.daDoc) {
+      console.log('Thông báo đã được đánh dấu đã đọc rồi');
+      return;
+    }
+    
+    console.log('Đang đánh dấu thông báo đã đọc:', notification.maThongBao);
+    
+    // Cập nhật trạng thái ngay lập tức để UI phản hồi nhanh
+    notification.daDoc = true;
+    
+    this.notificationService.markAsRead(notification.maThongBao).subscribe({
+      next: (response) => {
+        console.log('Đánh dấu đã đọc thành công:', response);
+        
+        // Cập nhật số lượng chưa đọc
+        const newUnreadCount = this.notifications.filter(n => !n.daDoc).length;
+        this.notificationService.updateUnreadCount(newUnreadCount);
+        
+        // Reload lại danh sách thông báo để đảm bảo đồng bộ với server
+        setTimeout(() => {
+          this.notificationService.loadNotifications();
+        }, 500);
+      },
+      error: (err) => {
+        console.error('Lỗi đánh dấu đã đọc:', err);
+        console.error('Chi tiết lỗi:', JSON.stringify(err));
+        
+        // Revert lại trạng thái nếu có lỗi
+        notification.daDoc = false;
+        
+        // Hiển thị thông báo lỗi cho người dùng
+        if (err.error?.message) {
+          alert('Lỗi: ' + err.error.message);
+        } else if (err.status === 401) {
+          alert('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.');
+        } else {
+          alert('Không thể đánh dấu thông báo đã đọc. Vui lòng thử lại.');
         }
-      ];
+      }
+    });
+  }
+  
+  viewAllNotifications(): void {
+    this.showNotifications = false;
+    this.router.navigate(['/notifications']);
+  }
+
+  // Extract event ID from notification content (format: [EVENT_ID:id] or URL)
+  extractEventId(notification: Notification): number | null {
+    // Kiểm tra nếu là thông báo sự kiện (phanLoai = 1 hoặc 2 - tùy backend)
+    // Hoặc nếu nội dung có chứa "sự kiện" hoặc "su-kien"
+    const isEventNotification = notification.phanLoai === 1 || // NotificationType.Event = 1
+                                notification.phanLoai === 2 || // Cá nhân có thể là sự kiện
+                                notification.noiDung.toLowerCase().includes('sự kiện') ||
+                                notification.noiDung.toLowerCase().includes('su-kien');
+    
+    if (!isEventNotification) {
+      return null;
+    }
+    
+    // Tìm event ID trong nội dung thông báo theo format [EVENT_ID:id]
+    const eventIdMatch = notification.noiDung.match(/\[EVENT_ID:(\d+)\]/);
+    if (eventIdMatch && eventIdMatch[1]) {
+      return parseInt(eventIdMatch[1], 10);
+    }
+    
+    // Tìm event ID từ URL trong nội dung (format cũ: http://.../su-kien/10 hoặc /su-kien/10)
+    const urlMatch = notification.noiDung.match(/\/su-kien\/(\d+)/);
+    if (urlMatch && urlMatch[1]) {
+      return parseInt(urlMatch[1], 10);
+    }
+    
+    return null;
+  }
+
+  // Get clean notification content without event ID marker and URLs
+  getCleanNotificationContent(notification: Notification): string {
+    let content = notification.noiDung;
+    
+    // Loại bỏ marker [EVENT_ID:id] (có thể có khoảng trắng trước/sau)
+    content = content.replace(/\s*\[EVENT_ID:\d+\]\s*/g, ' ');
+    
+    // Loại bỏ URL (http://.../su-kien/10 hoặc /su-kien/10)
+    content = content.replace(/https?:\/\/[^\s]+\/su-kien\/\d+/g, '');
+    content = content.replace(/\/su-kien\/\d+/g, '');
+    
+    // Loại bỏ các cụm từ liên quan đến link
+    content = content.replace(/Xem chi tiết tại:\s*/gi, '');
+    content = content.replace(/tại:\s*/gi, '');
+    
+    // Loại bỏ khoảng trắng thừa và trim
+    content = content.replace(/\s+/g, ' ').trim();
+    
+    // Loại bỏ dấu chấm hoặc dấu phẩy thừa ở cuối (nhưng giữ lại nếu là phần của câu)
+    // Chỉ xóa nếu có dấu chấm/phẩy đơn lẻ ở cuối
+    content = content.replace(/[.,;]\s*$/, '');
+    
+    return content;
+  }
+
+  // Handle click on "Xem chi tiết" button
+  viewEventDetails(notification: Notification, event: Event): void {
+    event.stopPropagation(); // Ngăn chặn event bubbling
+    
+    const eventId = this.extractEventId(notification);
+    if (eventId) {
+      // Đánh dấu đã đọc nếu chưa đọc
+      if (!notification.daDoc) {
+        this.markAsRead(notification);
+      }
       
-      // Đếm số thông báo chưa đọc
-      this.notificationCount = this.notifications.filter(n => !n.read).length;
+      // Nếu là thông báo đăng ký mới và user là tổ chức, điều hướng đến trang quản lý sự kiện
+      if (this.role === 'Organization' && notification.noiDung?.includes('đã đăng ký tham gia sự kiện')) {
+        this.showNotifications = false;
+        this.router.navigate(['/manage-org'], { queryParams: { tab: 'event-detail', eventId: eventId } });
+        return;
+      }
+      
+      // Đóng dropdown và điều hướng tới trang chi tiết sự kiện
+      this.showNotifications = false;
+      this.router.navigate(['/su-kien', eventId]);
     }
   }
 }

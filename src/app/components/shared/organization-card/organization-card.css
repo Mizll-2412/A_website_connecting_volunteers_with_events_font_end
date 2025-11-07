@@ -1,0 +1,42 @@
+.organization-card {
+  transition: transform 0.3s, box-shadow 0.3s;
+  border-radius: 8px;
+  border: 1px solid #e0e0e0;
+}
+
+.organization-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+}
+
+.org-avatar {
+  width: 60px;
+  height: 60px;
+  object-fit: cover;
+  border-radius: 8px;
+  transition: transform 0.3s;
+}
+
+.organization-card:hover .org-avatar {
+  transform: scale(1.1);
+}
+
+.rating-stars {
+  font-size: 0.9rem;
+}
+
+.rating-stars i {
+  margin-right: 2px;
+}
+
+.organization-info {
+  border-top: 1px solid #f0f0f0;
+  padding-top: 0.75rem;
+  margin-top: 0.75rem;
+}
+
+.badge-sm {
+  font-size: 0.7rem;
+  padding: 0.25rem 0.5rem;
+}
+

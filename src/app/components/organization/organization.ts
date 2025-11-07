@@ -1,10 +1,12 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { User } from '../../models/user';
 import { RouterLink, RouterModule, Router } from '@angular/router';
 import { AuthService } from '../../services/auth';
 import { ToChucService } from '../../services/organization';
 import { HttpErrorResponse } from '@angular/common/http';
+import { getImageUrl } from '../../utils/image-url.util';
 
 export enum TrangThaiXacMinh {
   ChoDuyet = 0,
@@ -30,12 +32,14 @@ export interface ToChuc {
 @Component({
   selector: 'app-tochuc-list',
   standalone: true,
-  imports: [CommonModule, RouterModule],
+  imports: [CommonModule, RouterModule, FormsModule],
   templateUrl: './organization.html',
   styleUrls: ['./organization.css']
 })
 export class ToChucListComponent implements OnInit {
   danhSachToChuc: ToChuc[] = [];
+  filteredToChuc: ToChuc[] = [];
+  searchTerm: string = '';
   user?: User;
   isLoggedIn = false;
   username = '';
@@ -89,6 +93,7 @@ export class ToChucListComponent implements OnInit {
           this.useMockData(); // Sử dụng dữ liệu mẫu nếu API trả về dữ liệu không đúng định dạng
         }
         
+        this.filteredToChuc = [...this.danhSachToChuc];
         this.isLoading = false;
       },
       error: (err: HttpErrorResponse) => {
@@ -185,5 +190,30 @@ export class ToChucListComponent implements OnInit {
       default:
         return '';
     }
+  }
+  
+  // Tìm kiếm tổ chức
+  searchOrganization(): void {
+    if (!this.searchTerm.trim()) {
+      this.filteredToChuc = [...this.danhSachToChuc];
+      return;
+    }
+    
+    const term = this.searchTerm.toLowerCase().trim();
+    this.filteredToChuc = this.danhSachToChuc.filter(org => 
+      org.tenToChuc.toLowerCase().includes(term) ||
+      org.email.toLowerCase().includes(term) ||
+      org.diaChi?.toLowerCase().includes(term)
+    );
+  }
+  
+  // Xem chi tiết tổ chức
+  viewDetails(org: ToChuc): void {
+    // TODO: Implement modal or navigate to detail page
+    alert(`Chi tiết tổ chức: ${org.tenToChuc}\nEmail: ${org.email}\nĐịa chỉ: ${org.diaChi || 'Chưa cập nhật'}\nĐánh giá: ${org.diemTrungBinh || 0}/5`);
+  }
+
+  getImageUrl(path: string | null | undefined): string {
+    return getImageUrl(path);
   }
 }

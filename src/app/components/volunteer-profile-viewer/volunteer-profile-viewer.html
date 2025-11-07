@@ -1,0 +1,101 @@
+<!-- Modal Chi tiết TNV -->
+<div class="modal fade" [id]="modalId" tabindex="-1" aria-labelledby="volunteerProfileModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="volunteerProfileModalLabel">
+          <i class="bi bi-person-circle me-2"></i>Chi tiết Tình nguyện viên
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <!-- Loading state -->
+        <div *ngIf="isLoading" class="text-center py-4">
+          <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Đang tải...</span>
+          </div>
+          <p class="mt-2">Đang tải thông tin...</p>
+        </div>
+
+        <!-- Volunteer detail -->
+        <div *ngIf="!isLoading && volunteerDetail" class="row">
+          <!-- Cột trái: Avatar và thông tin cơ bản -->
+          <div class="col-md-4 text-center mb-3">
+            <img [src]="volunteerDetail.anhDaiDien ? getImageUrl(volunteerDetail.anhDaiDien) : 'user.png'" 
+                 alt="Avatar" 
+                 class="img-fluid rounded-circle mb-3" 
+                 style="max-width: 150px; max-height: 150px; object-fit: cover;">
+            <h5 class="fw-bold">{{ volunteerDetail.hoTen || 'Chưa cập nhật' }}</h5>
+            <div class="mb-2" *ngIf="volunteerDetail.danhGiaTrungBinh">
+              <span *ngFor="let type of getStarRating(volunteerDetail.danhGiaTrungBinh)" class="star">
+                <i class="fas" [ngClass]="{
+                  'fa-star text-warning': type === 'full',
+                  'fa-star-half-alt text-warning': type === 'half',
+                  'fa-star text-muted': type === 'empty'
+                }"></i>
+              </span>
+              <span class="ms-2">{{ volunteerDetail.danhGiaTrungBinh | number:'1.1-1' }}</span>
+            </div>
+          </div>
+
+          <!-- Cột phải: Thông tin chi tiết -->
+          <div class="col-md-8">
+            <h6 class="fw-semibold border-bottom pb-2 mb-3">Thông tin liên hệ</h6>
+            <div class="mb-2">
+              <i class="bi bi-envelope me-2 text-primary"></i>
+              <strong>Email:</strong> {{ volunteerDetail.email || 'Chưa cập nhật' }}
+            </div>
+            <div class="mb-2" *ngIf="volunteerDetail.soDienThoai">
+              <i class="bi bi-phone me-2 text-primary"></i>
+              <strong>Số điện thoại:</strong> {{ volunteerDetail.soDienThoai }}
+            </div>
+            <div class="mb-3" *ngIf="volunteerDetail.diaChi">
+              <i class="bi bi-geo-alt me-2 text-primary"></i>
+              <strong>Địa chỉ:</strong> {{ volunteerDetail.diaChi }}
+            </div>
+
+            <h6 class="fw-semibold border-bottom pb-2 mb-3">Thông tin cá nhân</h6>
+            <div class="mb-2" *ngIf="volunteerDetail.ngaySinh">
+              <i class="bi bi-calendar-event me-2 text-primary"></i>
+              <strong>Ngày sinh:</strong> {{ volunteerDetail.ngaySinh | date:'dd/MM/yyyy' }}
+            </div>
+            <div class="mb-3" *ngIf="volunteerDetail.gioiThieu">
+              <i class="bi bi-chat-left-text me-2 text-primary"></i>
+              <strong>Giới thiệu:</strong>
+              <p class="mt-1 text-muted">{{ volunteerDetail.gioiThieu }}</p>
+            </div>
+
+            <h6 class="fw-semibold border-bottom pb-2 mb-3">Kỹ năng & Lĩnh vực</h6>
+            <div class="mb-2">
+              <strong>Kỹ năng:</strong>
+              <div class="mt-1">
+                <span *ngFor="let skill of getDetailSkills(volunteerDetail)" class="badge bg-primary me-1 mb-1">
+                  {{ skill.tenKyNang }}
+                </span>
+                <span *ngIf="getDetailSkills(volunteerDetail).length === 0" class="text-muted">Chưa cập nhật</span>
+              </div>
+            </div>
+            <div class="mb-2">
+              <strong>Lĩnh vực:</strong>
+              <div class="mt-1">
+                <span *ngFor="let field of getDetailFields(volunteerDetail)" class="badge bg-info me-1 mb-1">
+                  {{ field.tenLinhVuc }}
+                </span>
+                <span *ngIf="getDetailFields(volunteerDetail).length === 0" class="text-muted">Chưa cập nhật</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Error state -->
+        <div *ngIf="!isLoading && !volunteerDetail" class="text-center py-4">
+          <p class="text-muted">Không thể tải thông tin tình nguyện viên</p>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+      </div>
+    </div>
+  </div>
+</div>
+

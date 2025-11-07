@@ -10,6 +10,8 @@ import { ToChucService } from '../../services/organization';
 import { ToChucResponseDto } from '../../models/organiztion';
 import { TinhNguyenVien } from '../../models/volunteer';
 import { FormsModule } from '@angular/forms';
+import { environment } from '../../../environments/environment';
+import { getImageUrl } from '../../utils/image-url.util';
 
 @Component({
   selector: 'app-event-registered',
@@ -19,8 +21,8 @@ import { FormsModule } from '@angular/forms';
   styleUrls: ['./events.css']
 })
 export class EventRegisteredComponent implements OnInit, OnDestroy {
-  apiUrl = 'http://localhost:5000/api/dondangky';
-  apiVolunteerUrl = 'http://localhost:5000/api/tinhnguyenvien';
+  apiUrl = `${environment.apiUrl}/dondangky`;
+  apiVolunteerUrl = `${environment.apiUrl}/tinhnguyenvien`;
   
   // Thêm dữ liệu giả
   mockEvents = [
@@ -331,5 +333,9 @@ export class EventRegisteredComponent implements OnInit, OnDestroy {
     }
     
     this.filteredEvents = results;
+  }
+
+  getImageUrl(path: string | null | undefined): string {
+    return getImageUrl(path);
   }
 }

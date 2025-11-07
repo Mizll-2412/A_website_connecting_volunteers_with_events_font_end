@@ -1,41 +1,52 @@
 <footer class="footer">
-  <div class="footer-container">
-    <div class="footer-section">
-      <h3>Về chúng tôi</h3>
-      <p>Kết nối tình nguyện viên với các sự kiện có ý nghĩa, tạo nên những thay đổi tích cực cho cộng đồng.</p>
-    </div>
-    
-    <div class="footer-section">
-      <h3>Liên kết</h3>
-      <ul>
-        <li><a routerLink="/home">Trang chủ</a></li>
-        <li><a routerLink="/su-kien">Sự kiện</a></li>
-        <li><a routerLink="/organization">Tổ chức</a></li>
-        <li><a routerLink="/profile">Hồ sơ tình nguyện viên</a></li>
-      </ul>
-    </div>
-    
-    <div class="footer-section">
-      <h3>Liên hệ</h3>
-      <ul>
-        <li><i class="fas fa-envelope"></i> info@tinhnguyenvien.vn</li>
-        <li><i class="fas fa-phone"></i> +84 123 456 789</li>
-        <li><i class="fas fa-map-marker-alt"></i> Hà Nội, Việt Nam</li>
-      </ul>
-    </div>
-    
-    <div class="footer-section">
-      <h3>Theo dõi</h3>
-      <div class="social-icons">
-        <a href="#" class="social-icon"><i class="fab fa-facebook-f"></i></a>
-        <a href="#" class="social-icon"><i class="fab fa-twitter"></i></a>
-        <a href="#" class="social-icon"><i class="fab fa-instagram"></i></a>
-        <a href="#" class="social-icon"><i class="fab fa-linkedin-in"></i></a>
+  <div class="container">
+    <div class="row">
+      <div class="col-md-4 footer-column">
+        <h4>Về chúng tôi</h4>
+        <p>Tình Nguyện Viên là nền tảng kết nối tình nguyện viên với các sự kiện và tổ chức, tạo điều kiện cho mọi người đóng góp cho cộng đồng.</p>
+        <div class="social-links">
+          <a href="#" aria-label="Facebook"><i class="fab fa-facebook-f"></i></a>
+          <a href="#" aria-label="Twitter"><i class="fab fa-twitter"></i></a>
+          <a href="#" aria-label="Instagram"><i class="fab fa-instagram"></i></a>
+          <a href="#" aria-label="LinkedIn"><i class="fab fa-linkedin-in"></i></a>
+        </div>
+      </div>
+      <div class="col-md-2 footer-column">
+        <h4>Liên kết</h4>
+        <ul class="footer-links">
+          <li><a routerLink="/home">Trang chủ</a></li>
+          <li><a routerLink="/su-kien">Sự kiện</a></li>
+          <li><a routerLink="/organization">Tổ chức</a></li>
+          <li><a routerLink="/search">Tìm kiếm</a></li>
+        </ul>
+      </div>
+      <div class="col-md-3 footer-column">
+        <h4>Hỗ trợ</h4>
+        <ul class="footer-links">
+          <li><a href="#">Trung tâm trợ giúp</a></li>
+          <li><a href="#">Câu hỏi thường gặp</a></li>
+          <li><a href="#">Điều khoản sử dụng</a></li>
+          <li><a href="#">Chính sách bảo mật</a></li>
+        </ul>
+      </div>
+      <div class="col-md-3 footer-column">
+        <h4>Liên hệ</h4>
+        <ul class="contact-info">
+          <li><i class="fas fa-map-marker-alt"></i> ĐẠI HỌC MỞ HÀ NỘI</li>
+          <li><i class="fas fa-phone"></i> (84) 123 456 789</li>
+          <li><i class="fas fa-envelope"></i> info@tinhnguyenvien.com</li>
+        </ul>
       </div>
     </div>
-  </div>
-  
-  <div class="footer-bottom">
-    <p>&copy; 2025 Kết nối tình nguyện. Bản quyền thuộc về trang web.</p>
+    <div class="footer-bottom">
+      <div class="row">
+        <div class="col-md-6">
+          <p>&copy; {{ currentYear }} Tình Nguyện Viên. Tất cả quyền được bảo lưu.</p>
+        </div>
+        <div class="col-md-6 text-md-end">
+          <p class="small">Thiết kế và phát triển bởi <a href="#">Team Tình Nguyện Viên</a></p>
+        </div>
+      </div>
+    </div>
   </div>
 </footer>

@@ -15,7 +15,7 @@
   top: 0;
   left: 0;
   right: 0;
-  z-index: 1000;
+  z-index: 9999;
   transition: all 0.3s ease;
   height: 70px;
   width: 100%;
@@ -297,6 +297,11 @@
   transform: scale(0.98);
 }
 
+.avatar-wrapper {
+  position: relative;
+  display: inline-block;
+}
+
 .user-menu .avatar {
   width: 38px;
   height: 38px;
@@ -305,6 +310,27 @@
   border: 2px solid var(--light-gray);
   transition: border-color 0.3s, transform 0.2s;
   cursor: pointer;
+}
+
+.verification-icon {
+  position: absolute;
+  bottom: -8px;
+  right: -8px;
+  font-size: 14px;
+  border-radius: 50%;
+  padding: 2px;
+}
+
+.verification-icon.verified {
+  color: #1b29f3 !important; /* Green */
+}
+
+.verification-icon.pending {
+  color: #f59e0b; /* Yellow/Orange */
+}
+
+.verification-icon.unverified {
+  color: #6b7280; /* Gray */
 }
 
 .user-menu:hover .avatar {
@@ -499,6 +525,15 @@
   background-color: rgba(0, 0, 0, 0.02);
 }
 
+.notification-item.clickable {
+  cursor: pointer;
+}
+
+.notification-item.clickable:hover {
+  background-color: #e3f2fd;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
 .notification-item.unread {
   background-color: rgba(44, 123, 229, 0.05);
 }
@@ -512,6 +547,36 @@
 .notification-time {
   font-size: 0.75rem;
   color: #888;
+}
+
+.notification-type {
+  font-size: 0.75rem;
+  padding: 2px 6px;
+  border-radius: 10px;
+  display: inline-block;
+  margin-bottom: 5px;
+  font-weight: 600;
+}
+
+.type-system {
+  background-color: #e9ecef;
+  color: #495057;
+}
+
+.type-event {
+  background-color: #d1e7dd;
+  color: #0f5132;
+}
+
+.type-personal {
+  background-color: #cfe2ff;
+  color: #084298;
+}
+
+.notification-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
 .notification-footer {
@@ -536,6 +601,10 @@
 /* Responsive */
 @media (min-width: 1600px) {
   .header-container {
+    max-width: 1600px;
+  }
+
+  .section-container {
     max-width: 1600px;
   }
 }

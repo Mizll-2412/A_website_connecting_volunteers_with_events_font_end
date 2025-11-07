@@ -1,0 +1,107 @@
+.reputation-badge {
+  display: flex;
+  align-items: center;
+  padding: 10px 15px;
+  border-radius: 8px;
+  background-color: #f8f9fa;
+  margin-bottom: 15px;
+  transition: all 0.3s ease;
+}
+
+.reputation-badge:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
+}
+
+.badge-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 15px;
+  flex-shrink: 0;
+  color: white;
+  font-size: 1.2rem;
+}
+
+.badge-content {
+  flex: 1;
+}
+
+.badge-rank {
+  display: block;
+  font-weight: 600;
+  font-size: 1rem;
+  margin-bottom: 5px;
+}
+
+.badge-rating {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.rating-stars {
+  color: #ffc107;
+  letter-spacing: -2px;
+}
+
+.rating-value {
+  font-size: 0.85rem;
+  color: #6c757d;
+}
+
+/* Rank styles */
+.rank-bronze {
+  border-left: 4px solid #cd7f32;
+}
+
+.rank-bronze .badge-icon {
+  background-color: #cd7f32;
+}
+
+.rank-silver {
+  border-left: 4px solid #c0c0c0;
+}
+
+.rank-silver .badge-icon {
+  background-color: #c0c0c0;
+}
+
+.rank-gold {
+  border-left: 4px solid #ffd700;
+}
+
+.rank-gold .badge-icon {
+  background-color: #ffd700;
+  color: #212529;
+}
+
+.rank-platinum {
+  border-left: 4px solid #e5e4e2;
+}
+
+.rank-platinum .badge-icon {
+  background-color: #e5e4e2;
+  color: #212529;
+}
+
+.rank-diamond {
+  border-left: 4px solid #b9f2ff;
+  background: linear-gradient(to right, #f8f9fa, #e3fbff);
+}
+
+.rank-diamond .badge-icon {
+  background: linear-gradient(135deg, #b9f2ff, #e3fbff);
+  color: #212529;
+}
+
+.rank-none {
+  border-left: 4px solid #6c757d;
+}
+
+.rank-none .badge-icon {
+  background-color: #6c757d;
+}

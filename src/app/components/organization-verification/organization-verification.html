@@ -1,0 +1,248 @@
+<div class="container my-4">
+  <div class="row">
+    <div class="col-lg-8 mx-auto">
+      <div class="card border-0 shadow-sm">
+        <div class="card-header bg-white py-3">
+          <h4 class="mb-0">Xác minh tổ chức</h4>
+        </div>
+        <div class="card-body">
+          <!-- Trạng thái xác minh -->
+          <div class="verification-status mb-4">
+            <div class="d-flex align-items-center mb-3">
+              <h5 class="mb-0 me-2">Trạng thái xác minh:</h5>
+              <span class="badge" [ngClass]="getVerificationBadgeClass()">
+                {{ getVerificationStatusText() }}
+              </span>
+            </div>
+
+            <!-- Hiển thị thông báo dựa trên trạng thái -->
+            <div *ngIf="organization?.trangThaiXacMinh === 0" class="alert alert-info">
+              <i class="bi bi-info-circle me-2"></i>
+              Tổ chức của bạn chưa được xác minh. Vui lòng tải lên giấy tờ pháp lý để yêu cầu xác minh.
+            </div>
+            
+            <div *ngIf="organization?.trangThaiXacMinh === 1" class="alert alert-success">
+              <i class="bi bi-check-circle me-2"></i>
+              Tổ chức của bạn đã được xác minh. Bạn có thể tạo và quản lý các sự kiện.
+            </div>
+            
+            <div *ngIf="organization?.trangThaiXacMinh === 0" class="alert alert-warning">
+              <i class="bi bi-hourglass-split me-2"></i>
+              Yêu cầu xác minh của bạn đang được xem xét. Chúng tôi sẽ thông báo khi có kết quả.
+            </div>
+            
+            <div *ngIf="organization?.trangThaiXacMinh === 2" class="alert alert-danger">
+              <i class="bi bi-x-circle me-2"></i>
+              Yêu cầu xác minh của bạn đã bị từ chối.
+              <div *ngIf="organization?.lyDoTuChoi" class="mt-2">
+                <strong>Lý do:</strong> {{ organization?.lyDoTuChoi }}
+              </div>
+            </div>
+          </div>
+
+          <!-- Thông tin tổ chức -->
+          <div class="organization-info mb-4">
+            <h5 class="mb-3">Thông tin tổ chức</h5>
+            <div class="row">
+              <div class="col-md-6">
+                <div class="mb-3">
+                  <label class="form-label fw-bold">Tên tổ chức</label>
+                  <p>{{ organization?.tenToChuc || 'Chưa cập nhật' }}</p>
+                </div>
+                <div class="mb-3">
+                  <label class="form-label fw-bold">Email</label>
+                  <p>{{ organization?.email || 'Chưa cập nhật' }}</p>
+                </div>
+                <div class="mb-3">
+                  <label class="form-label fw-bold">Số điện thoại</label>
+                  <p>{{ organization?.soDienThoai || 'Chưa cập nhật' }}</p>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="mb-3">
+                  <label class="form-label fw-bold">Địa chỉ</label>
+                  <p>{{ organization?.diaChi || 'Chưa cập nhật' }}</p>
+                </div>
+                <div class="mb-3">
+                  <label class="form-label fw-bold">Ngày tạo</label>
+                  <p>{{ (organization?.ngayTao | date:'dd/MM/yyyy') || 'Chưa cập nhật' }}</p>
+                </div>
+                <div class="mb-3">
+                  <label class="form-label fw-bold">Điểm đánh giá</label>
+                  <p>{{ organization?.diemTrungBinh || '0' }}/5</p>
+                </div>
+              </div>
+            </div>
+            <div class="mb-3">
+              <label class="form-label fw-bold">Giới thiệu</label>
+              <p>{{ organization?.gioiThieu || 'Chưa cập nhật' }}</p>
+            </div>
+          </div>
+
+          <!-- Giấy tờ pháp lý đã tải lên -->
+          <div class="legal-documents mb-4">
+            <h5 class="mb-3">Giấy tờ pháp lý đã tải lên</h5>
+            <div *ngIf="legalDocuments.length === 0" class="alert alert-warning">
+              <i class="bi bi-exclamation-triangle me-2"></i>
+              Bạn chưa tải lên giấy tờ pháp lý nào. Vui lòng tải lên để yêu cầu xác minh.
+            </div>
+            <div *ngIf="legalDocuments.length > 0" class="row g-3">
+              <div class="col-md-6 col-lg-4" *ngFor="let doc of legalDocuments">
+                <div class="card h-100 shadow-sm border-0">
+                  <div class="card-body">
+                    <div class="d-flex align-items-start mb-3">
+                      <div class="document-icon me-3">
+                        <i class="bi fs-1" [ngClass]="{
+                          'bi-file-earmark-pdf-fill text-danger': isPdfFile(getDocumentFileName(doc)),
+                          'bi-file-earmark-image-fill text-primary': isImageFile(getDocumentFileName(doc)),
+                          'bi-file-earmark-fill text-secondary': !isPdfFile(getDocumentFileName(doc)) && !isImageFile(getDocumentFileName(doc))
+                        }"></i>
+                      </div>
+                      <div class="flex-grow-1">
+                        <h6 class="card-title mb-1 fw-semibold">
+                          {{ doc.tenGiayTo || doc.tenFile || 'Giấy tờ pháp lý' }}
+                        </h6>
+                        <p class="text-muted small mb-2">
+                          <i class="bi bi-file-earmark me-1"></i>
+                          {{ getDocumentFileName(doc) }}
+                        </p>
+                      </div>
+                    </div>
+                    
+                    <div class="mb-3" *ngIf="doc.moTa">
+                      <p class="small text-muted mb-0">
+                        <i class="bi bi-info-circle me-1"></i>
+                        <strong>Mô tả:</strong> {{ doc.moTa }}
+                      </p>
+                    </div>
+                    
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                      <small class="text-muted">
+                        <i class="bi bi-calendar3 me-1"></i>
+                        {{ doc.ngayTao | date:'dd/MM/yyyy HH:mm' }}
+                      </small>
+                      <span class="badge bg-light text-dark">
+                        <i class="bi bi-hash me-1"></i>ID: {{ doc.maGiayTo }}
+                      </span>
+                    </div>
+                    
+                    <div class="btn-group w-100" role="group">
+                      <a [href]="getDocumentUrl(doc)" 
+                         target="_blank" 
+                         class="btn btn-outline-primary btn-sm"
+                         [class.disabled]="!getDocumentUrl(doc)">
+                        <i class="bi bi-eye me-1"></i> Xem
+                      </a>
+                      <button class="btn btn-outline-danger btn-sm" (click)="deleteDocument(doc)">
+                        <i class="bi bi-trash me-1"></i> Xóa
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Tải lên giấy tờ mới -->
+          <div class="upload-documents mb-4">
+            <h5 class="mb-3">Tải lên giấy tờ pháp lý mới</h5>
+            <form (ngSubmit)="uploadLegalDocuments()">
+              <div class="mb-3">
+                <label for="documentName" class="form-label">Tên giấy tờ <span class="text-danger">*</span></label>
+                <input type="text" class="form-control" id="documentName" 
+                       [(ngModel)]="legalDocName" 
+                       name="legalDocName" 
+                       placeholder="Ví dụ: Giấy phép hoạt động, Giấy chứng nhận đăng ký..."
+                       required>
+                <small class="text-muted">Tên giấy tờ pháp lý (bắt buộc)</small>
+              </div>
+              
+              <div class="mb-3">
+                <label for="documentFiles" class="form-label">Chọn file</label>
+                <input type="file" class="form-control" id="documentFiles" 
+                       accept=".pdf,.jpg,.jpeg,.png" 
+                       (change)="onLegalDocSelected($event)" 
+                       multiple>
+                <small class="text-muted">Tải lên giấy tờ pháp lý (PDF, JPG, PNG). Có thể chọn nhiều tệp cùng lúc.</small>
+              </div>
+              
+              <div class="mb-3">
+                <label for="documentDescription" class="form-label">Mô tả giấy tờ</label>
+                <textarea class="form-control" id="documentDescription" 
+                          rows="2" 
+                          [(ngModel)]="legalDocDescription" 
+                          name="legalDocDescription" 
+                          placeholder="Mô tả ngắn gọn về giấy tờ pháp lý (không bắt buộc)"></textarea>
+              </div>
+              
+              <div *ngIf="selectedLegalDocs && selectedLegalDocs.length > 0" class="mt-2">
+                <p><strong>Đã chọn {{selectedLegalDocs.length}} tệp:</strong></p>
+                <ul class="list-group">
+                  <li *ngFor="let doc of selectedLegalDocs" class="list-group-item d-flex justify-content-between align-items-center">
+                    {{doc.name}}
+                    <span class="badge bg-primary rounded-pill">{{formatFileSize(doc.size)}}</span>
+                  </li>
+                </ul>
+              </div>
+              
+              <div class="d-flex justify-content-end mt-3">
+                <button type="submit" class="btn btn-primary" [disabled]="!selectedLegalDocs || selectedLegalDocs.length === 0">
+                  <i class="bi bi-cloud-upload me-1"></i> Tải lên giấy tờ
+                </button>
+              </div>
+            </form>
+          </div>
+
+          <!-- Nút yêu cầu xác minh -->
+          <div class="verification-request text-center mt-4">
+            <button class="btn btn-success btn-lg" 
+                    [disabled]="isRequestingVerification || organization?.trangThaiXacMinh === 1 || organization?.trangThaiXacMinh === 2 || legalDocuments.length === 0"
+                    (click)="requestVerification()">
+              <i class="bi bi-shield-check me-1"></i>
+              {{ getRequestButtonText() }}
+            </button>
+            <div *ngIf="legalDocuments.length === 0" class="text-danger mt-2">
+              <small>Bạn cần tải lên ít nhất một giấy tờ pháp lý để yêu cầu xác minh</small>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal xem giấy tờ -->
+<div class="modal fade" id="documentModal" tabindex="-1" aria-labelledby="documentModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="documentModalLabel">Xem giấy tờ pháp lý</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body text-center">
+        <div *ngIf="selectedDocument">
+          <!-- Hiển thị hình ảnh hoặc PDF -->
+          <img *ngIf="isImageFile(getDocumentFileName(selectedDocument))" 
+               [src]="getDocumentUrl(selectedDocument)" 
+               class="img-fluid" 
+               alt="Legal Document">
+               
+          <iframe *ngIf="isPdfFile(getDocumentFileName(selectedDocument))" 
+                  [src]="getSafeUrl(getDocumentUrl(selectedDocument))" 
+                  width="100%" 
+                  height="500px" 
+                  frameborder="0"></iframe>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+        <a *ngIf="selectedDocument" 
+           [href]="getDocumentUrl(selectedDocument)" 
+           target="_blank" 
+           class="btn btn-primary">
+          <i class="bi bi-download"></i> Tải xuống
+        </a>
+      </div>
+    </div>
+  </div>
+</div>

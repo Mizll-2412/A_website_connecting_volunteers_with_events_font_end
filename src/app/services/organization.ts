@@ -42,6 +42,11 @@ export class ToChucService {
     return this.http.put(`${this.apiUrl}/${id}`, formData);
   }
   
+  // Giấy tờ pháp lý của tổ chức (Admin/Org)
+  getLegalDocuments(toChucId: number): Observable<any> {
+    return this.http.get<any>(`${environment.apiUrl}/GiayToPhapLy/tochuc/${toChucId}`);
+  }
+  
   // Phương thức xác minh tổ chức
   verifyOrganization(id: number, daXacMinh: boolean, lyDoTuChoi?: string): Observable<any> {
     return this.http.put(`${this.apiUrl}/${id}/verify`, { 

@@ -1,0 +1,107 @@
+<div class="container my-4">
+  <div class="row">
+    <div class="col-lg-8 mx-auto">
+      <div class="card border-0 shadow-sm">
+        <div class="card-header bg-white py-3">
+          <h4 class="mb-0">Hệ thống điểm uy tín và cấp bậc</h4>
+        </div>
+        
+        <div class="card-body">
+          <!-- Thông tin điểm uy tín của người dùng -->
+          <div *ngIf="isLoggedIn" class="user-reputation mb-4">
+            <h5 class="mb-3">Điểm uy tín của bạn</h5>
+            <app-reputation-badge 
+              [rank]="userRank" 
+              [rating]="userRating">
+            </app-reputation-badge>
+            
+            <div class="reputation-stats">
+              <div class="row g-3">
+                <div class="col-md-4">
+                  <div class="stat-card">
+                    <div class="stat-icon">
+                      <i class="bi bi-star"></i>
+                    </div>
+                    <div class="stat-content">
+                      <span class="stat-value">{{ userRating || 0 }}/5</span>
+                      <span class="stat-label">Điểm đánh giá</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="col-md-4">
+                  <div class="stat-card">
+                    <div class="stat-icon">
+                      <i class="bi bi-calendar-check"></i>
+                    </div>
+                    <div class="stat-content">
+                      <span class="stat-value">{{ eventsCompleted || 0 }}</span>
+                      <span class="stat-label">Sự kiện đã hoàn thành</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="col-md-4">
+                  <div class="stat-card">
+                    <div class="stat-icon">
+                      <i class="bi bi-people"></i>
+                    </div>
+                    <div class="stat-content">
+                      <span class="stat-value">{{ evaluationsReceived || 0 }}</span>
+                      <span class="stat-label">Lượt đánh giá</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Giải thích về hệ thống điểm uy tín -->
+          <div class="reputation-explanation mb-4">
+            <h5 class="mb-3">Về hệ thống điểm uy tín</h5>
+            <div class="alert alert-info">
+              <p>Điểm uy tín được tính dựa trên đánh giá từ các tổ chức sau khi bạn tham gia sự kiện. Điểm cao giúp bạn có cơ hội được ưu tiên tham gia các sự kiện có số lượng đăng ký giới hạn.</p>
+            </div>
+            <p>Cách tính điểm uy tín:</p>
+            <ul>
+              <li>Điểm uy tín là điểm trung bình của các đánh giá từ tổ chức</li>
+              <li>Mỗi đánh giá có thang điểm từ 1-5 sao</li>
+              <li>Điểm uy tín được cập nhật sau mỗi lần nhận đánh giá mới</li>
+              <li>Cấp bậc được xác định dựa trên điểm uy tín và số sự kiện đã tham gia</li>
+            </ul>
+          </div>
+
+          <!-- Bảng cấp bậc -->
+          <div class="rank-table">
+            <h5 class="mb-3">Các cấp bậc</h5>
+            <div class="table-responsive">
+              <table class="table table-hover">
+                <thead>
+                  <tr>
+                    <th>Cấp bậc</th>
+                    <th>Điểm tối thiểu</th>
+                    <th>Mô tả</th>
+                    <th>Đặc quyền</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let rank of ranks">
+                    <td>
+                      <div class="d-flex align-items-center">
+                        <div class="rank-icon me-2" [ngClass]="'rank-icon-' + rank.cssClass">
+                          <i class="bi" [ngClass]="rank.icon"></i>
+                        </div>
+                        <span>{{ rank.name }}</span>
+                      </div>
+                    </td>
+                    <td>{{ rank.minRating }}</td>
+                    <td>{{ rank.description }}</td>
+                    <td>{{ rank.privileges }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

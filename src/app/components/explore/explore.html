@@ -1,0 +1,119 @@
+<div class="container py-4">
+  <h2 class="mb-3">Sự kiện & Tổ chức</h2>
+
+  <div class="input-group mb-3">
+    <input type="text" class="form-control" placeholder="Tìm kiếm sự kiện hoặc tổ chức..." [(ngModel)]="searchTerm" (input)="applyFilter()">
+    <button class="btn btn-outline-secondary" type="button" (click)="applyFilter()">Tìm</button>
+  </div>
+
+  <ul class="nav nav-tabs mb-3">
+    <li class="nav-item">
+      <a class="nav-link" [class.active]="activeTab==='all'" (click)="setTab('all')">Tất cả</a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link" [class.active]="activeTab==='events'" (click)="setTab('events')">Sự kiện</a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link" [class.active]="activeTab==='orgs'" (click)="setTab('orgs')">Tổ chức</a>
+    </li>
+  </ul>
+
+  <div *ngIf="isLoading" class="text-center py-4">
+    <div class="spinner-border text-primary" role="status"></div>
+    <p class="mt-2">Đang tải dữ liệu...</p>
+  </div>
+
+  <div *ngIf="!isLoading">
+    <div *ngIf="activeTab==='all' || activeTab==='events'" class="mb-4">
+      <h5 class="mb-3">Sự kiện</h5>
+      <div class="row g-3">
+        <div *ngFor="let e of filteredEvents" class="col-md-6 col-lg-4">
+          <app-event-card [event]="e"></app-event-card>
+        </div>
+        <div *ngIf="filteredEvents.length===0" class="text-muted fst-italic ps-2">Không có sự kiện phù hợp.</div>
+      </div>
+    </div>
+
+    <div *ngIf="activeTab==='all' || activeTab==='orgs'">
+      <h5 class="mb-3">Tổ chức</h5>
+      <div class="row g-3">
+        <div *ngFor="let o of filteredOrgs" class="col-md-6 col-lg-4">
+          <app-organization-card [organization]="o"></app-organization-card>
+        </div>
+        <div *ngIf="filteredOrgs.length===0" class="text-muted fst-italic ps-2">Không có tổ chức phù hợp.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Organization Detail Modal -->
+<div class="modal fade" id="orgDetailModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content" *ngIf="selectedOrg">
+      <div class="modal-header">
+        <h5 class="modal-title">
+          <i class="bi bi-building me-2"></i>{{ selectedOrg.tenToChuc }}
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div class="row">
+          <div class="col-md-4 text-center mb-3">
+            <img [src]="selectedOrg.anhDaiDien ? getImageUrl(selectedOrg.anhDaiDien) : getOrgDefaultImage()" 
+                 class="img-fluid rounded shadow-sm" 
+                 alt="{{selectedOrg.tenToChuc}}"
+                 onerror="this.onerror=null; this.src=this.getAttribute('data-fallback')"
+                 [attr.data-fallback]="getOrgDefaultImage()"
+                 style="max-height: 200px;">
+            <div class="mt-2">
+              <span class="badge bg-success" *ngIf="selectedOrg.trangThaiXacMinh === 1">
+                <i class="bi bi-check-circle me-1"></i>Đã xác minh
+              </span>
+              <span class="badge bg-warning" *ngIf="selectedOrg.trangThaiXacMinh === 0">
+                <i class="bi bi-hourglass-split me-1"></i>Đang chờ xác minh
+              </span>
+            </div>
+          </div>
+          <div class="col-md-8">
+            <div class="mb-3">
+              <label class="text-muted small">Email:</label>
+              <p class="mb-1"><i class="bi bi-envelope me-2"></i>{{ selectedOrg.email }}</p>
+            </div>
+            <div class="mb-3" *ngIf="selectedOrg.soDienThoai">
+              <label class="text-muted small">Số điện thoại:</label>
+              <p class="mb-1"><i class="bi bi-telephone me-2"></i>{{ selectedOrg.soDienThoai }}</p>
+            </div>
+            <div class="mb-3" *ngIf="selectedOrg.diaChi">
+              <label class="text-muted small">Địa chỉ:</label>
+              <p class="mb-1"><i class="bi bi-geo-alt me-2"></i>{{ selectedOrg.diaChi }}</p>
+            </div>
+            <div class="mb-3" *ngIf="selectedOrg.diemTrungBinh">
+              <label class="text-muted small">Đánh giá:</label>
+              <p class="mb-1">
+                <i class="bi bi-star-fill text-warning me-1"></i>
+                {{ selectedOrg.diemTrungBinh | number:'1.1-1' }}/5
+              </p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="mt-3" *ngIf="selectedOrg.gioiThieu">
+          <label class="text-muted small">Giới thiệu:</label>
+          <p>{{ selectedOrg.gioiThieu }}</p>
+        </div>
+        
+        <div class="mt-3" *ngIf="selectedOrg.website">
+          <label class="text-muted small">Website:</label>
+          <p><a [href]="selectedOrg.website" target="_blank">{{ selectedOrg.website }}</a></p>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+        <a [routerLink]="['/to-chuc', selectedOrg.maToChuc]" class="btn btn-primary" data-bs-dismiss="modal">
+          <i class="bi bi-box-arrow-up-right me-1"></i>Xem sự kiện của tổ chức
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+

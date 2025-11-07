@@ -1,0 +1,329 @@
+<div class="container my-4">
+  <div class="card shadow-sm">
+    <div class="card-header bg-primary text-white">
+      <h4 class="mb-0">Tìm kiếm nâng cao</h4>
+    </div>
+    <div class="card-body">
+      <form [formGroup]="searchForm" (ngSubmit)="onSubmit()">
+        <!-- Tìm kiếm cơ bản -->
+        <div class="row mb-4">
+          <div class="col-md-8">
+            <div class="input-group">
+              <input type="text" class="form-control" placeholder="Nhập từ khóa tìm kiếm..." 
+                     formControlName="keyword">
+              <button class="btn btn-primary" type="submit">
+                <i class="bi bi-search me-2"></i> Tìm kiếm
+              </button>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <select class="form-select" formControlName="searchType">
+              <option value="event">Sự kiện</option>
+              <option value="organization">Tổ chức</option>
+              <option value="volunteer">Tình nguyện viên</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Bộ lọc nâng cao -->
+        <div class="advanced-filters">
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <h5 class="mb-0">Bộ lọc nâng cao</h5>
+            <button type="button" class="btn btn-link p-0" (click)="toggleAdvancedFilters()">
+              {{ showAdvancedFilters ? 'Ẩn bộ lọc' : 'Hiển thị bộ lọc' }}
+              <i class="bi" [ngClass]="showAdvancedFilters ? 'bi-chevron-up' : 'bi-chevron-down'"></i>
+            </button>
+          </div>
+
+          <div *ngIf="showAdvancedFilters" class="advanced-filters-content">
+            <!-- Bộ lọc cho sự kiện -->
+            <div *ngIf="searchForm.get('searchType')?.value === 'event'">
+              <div class="row g-3">
+                <div class="col-md-6">
+                  <label class="form-label">Trạng thái</label>
+                  <div class="d-flex flex-wrap gap-2">
+                    <div class="form-check form-check-inline">
+                      <input class="form-check-input" type="checkbox" id="upcoming" formControlName="upcoming">
+                      <label class="form-check-label" for="upcoming">Sắp diễn ra</label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                      <input class="form-check-input" type="checkbox" id="ongoing" formControlName="ongoing">
+                      <label class="form-check-label" for="ongoing">Đang diễn ra</label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                      <input class="form-check-input" type="checkbox" id="completed" formControlName="completed">
+                      <label class="form-check-label" for="completed">Đã kết thúc</label>
+                    </div>
+                  </div>
+                </div>
+                
+                <div class="col-md-6">
+                  <label class="form-label">Thời gian</label>
+                  <div class="row g-2">
+                    <div class="col-6">
+                      <input type="date" class="form-control" placeholder="Từ ngày" formControlName="startDate">
+                    </div>
+                    <div class="col-6">
+                      <input type="date" class="form-control" placeholder="Đến ngày" formControlName="endDate">
+                    </div>
+                  </div>
+                </div>
+                
+                <div class="col-md-6">
+                  <label class="form-label">Địa điểm</label>
+                  <select class="form-select" formControlName="location">
+                    <option value="">Tất cả địa điểm</option>
+                    <option *ngFor="let location of locations" [value]="location">{{ location }}</option>
+                  </select>
+                </div>
+                
+                <div class="col-md-6">
+                  <label class="form-label">Tổ chức</label>
+                  <select class="form-select" formControlName="organization">
+                    <option value="">Tất cả tổ chức</option>
+                    <option *ngFor="let org of organizations" [value]="org.maToChuc">{{ org.tenToChuc }}</option>
+                  </select>
+                </div>
+                
+                <div class="col-md-6">
+                  <label class="form-label">Lĩnh vực</label>
+                  <select class="form-select" formControlName="field">
+                    <option value="">Tất cả lĩnh vực</option>
+                    <option *ngFor="let field of fields" [value]="field.maLinhVuc">{{ field.tenLinhVuc }}</option>
+                  </select>
+                </div>
+                
+                <div class="col-md-6">
+                  <label class="form-label">Kỹ năng yêu cầu</label>
+                  <select class="form-select" formControlName="skill">
+                    <option value="">Tất cả kỹ năng</option>
+                    <option *ngFor="let skill of skills" [value]="skill.maKyNang">{{ skill.tenKyNang }}</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Bộ lọc cho tổ chức -->
+            <div *ngIf="searchForm.get('searchType')?.value === 'organization'">
+              <div class="row g-3">
+                <div class="col-md-6">
+                  <label class="form-label">Trạng thái xác minh</label>
+                  <div class="d-flex flex-wrap gap-2">
+                    <div class="form-check form-check-inline">
+                      <input class="form-check-input" type="checkbox" id="verified" formControlName="verified">
+                      <label class="form-check-label" for="verified">Đã xác minh</label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                      <input class="form-check-input" type="checkbox" id="unverified" formControlName="unverified">
+                      <label class="form-check-label" for="unverified">Chưa xác minh</label>
+                    </div>
+                  </div>
+                </div>
+                
+                <div class="col-md-6">
+                  <label class="form-label">Địa điểm</label>
+                  <select class="form-select" formControlName="location">
+                    <option value="">Tất cả địa điểm</option>
+                    <option *ngFor="let location of locations" [value]="location">{{ location }}</option>
+                  </select>
+                </div>
+                
+                <div class="col-md-6">
+                  <label class="form-label">Lĩnh vực hoạt động</label>
+                  <select class="form-select" formControlName="field">
+                    <option value="">Tất cả lĩnh vực</option>
+                    <option *ngFor="let field of fields" [value]="field.maLinhVuc">{{ field.tenLinhVuc }}</option>
+                  </select>
+                </div>
+                
+                <div class="col-md-6">
+                  <label class="form-label">Số sự kiện đã tổ chức</label>
+                  <select class="form-select" formControlName="eventCount">
+                    <option value="">Không giới hạn</option>
+                    <option value="1-5">1-5 sự kiện</option>
+                    <option value="6-10">6-10 sự kiện</option>
+                    <option value="10+">Trên 10 sự kiện</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Bộ lọc cho tình nguyện viên -->
+            <div *ngIf="searchForm.get('searchType')?.value === 'volunteer'">
+              <div class="row g-3">
+                <div class="col-md-6">
+                  <label class="form-label">Cấp bậc</label>
+                  <select class="form-select" formControlName="rank">
+                    <option value="">Tất cả cấp bậc</option>
+                    <option value="Tình nguyện viên Đồng">Tình nguyện viên Đồng</option>
+                    <option value="Tình nguyện viên Bạc">Tình nguyện viên Bạc</option>
+                    <option value="Tình nguyện viên Vàng">Tình nguyện viên Vàng</option>
+                    <option value="Tình nguyện viên Bạch Kim">Tình nguyện viên Bạch Kim</option>
+                    <option value="Tình nguyện viên Kim Cương">Tình nguyện viên Kim Cương</option>
+                  </select>
+                </div>
+                
+                <div class="col-md-6">
+                  <label class="form-label">Kỹ năng</label>
+                  <select class="form-select" formControlName="skill">
+                    <option value="">Tất cả kỹ năng</option>
+                    <option *ngFor="let skill of skills" [value]="skill.maKyNang">{{ skill.tenKyNang }}</option>
+                  </select>
+                </div>
+                
+                <div class="col-md-6">
+                  <label class="form-label">Lĩnh vực quan tâm</label>
+                  <select class="form-select" formControlName="field">
+                    <option value="">Tất cả lĩnh vực</option>
+                    <option *ngFor="let field of fields" [value]="field.maLinhVuc">{{ field.tenLinhVuc }}</option>
+                  </select>
+                </div>
+                
+                <div class="col-md-6">
+                  <label class="form-label">Số sự kiện đã tham gia</label>
+                  <select class="form-select" formControlName="participationCount">
+                    <option value="">Không giới hạn</option>
+                    <option value="1-5">1-5 sự kiện</option>
+                    <option value="6-10">6-10 sự kiện</option>
+                    <option value="10+">Trên 10 sự kiện</option>
+                  </select>
+                </div>
+                
+                <div class="col-md-6">
+                  <label class="form-label">Điểm đánh giá</label>
+                  <select class="form-select" formControlName="rating">
+                    <option value="">Tất cả điểm đánh giá</option>
+                    <option value="4+">4 sao trở lên</option>
+                    <option value="3+">3 sao trở lên</option>
+                    <option value="2+">2 sao trở lên</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="d-flex justify-content-between mt-4">
+          <button type="button" class="btn btn-outline-secondary" (click)="resetForm()">
+            <i class="bi bi-arrow-counterclockwise me-2"></i> Đặt lại
+          </button>
+          <button type="submit" class="btn btn-primary">
+            <i class="bi bi-search me-2"></i> Tìm kiếm
+          </button>
+        </div>
+      </form>
+
+      <!-- Kết quả tìm kiếm -->
+      <div *ngIf="searchResults.length > 0" class="search-results mt-5">
+        <h5 class="mb-3">Kết quả tìm kiếm ({{ searchResults.length }})</h5>
+        
+        <!-- Kết quả tìm kiếm sự kiện -->
+        <div *ngIf="searchForm.get('searchType')?.value === 'event'" class="row g-4">
+          <div *ngFor="let event of searchResults" class="col-md-6 col-lg-4">
+            <div class="card event-card h-100">
+              <img [src]="getImageUrl(event.hinhAnh) || 'assets/event-default.jpg'" 
+                   class="card-img-top" alt="{{ event.tenSuKien }}">
+              <div class="card-body">
+                <h5 class="card-title">{{ event.tenSuKien }}</h5>
+                <p class="card-text small text-muted mb-3">{{ event.noiDung }}</p>
+                <div class="event-info">
+                  <i class="bi bi-building"></i>
+                  <span>{{ event.tenToChuc }}</span>
+                </div>
+                <div class="event-info">
+                  <i class="bi bi-geo-alt"></i>
+                  <span>{{ event.diaChi }}</span>
+                </div>
+                <div class="event-info">
+                  <i class="bi bi-calendar-event"></i>
+                  <span>{{ event.ngayBatDau | date:'dd/MM/yyyy' }}</span>
+                </div>
+              </div>
+              <div class="card-footer bg-transparent border-top-0">
+                <button class="btn btn-primary w-100" (click)="viewDetails('event', event.maSuKien)">
+                  Xem chi tiết
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Kết quả tìm kiếm tổ chức -->
+        <div *ngIf="searchForm.get('searchType')?.value === 'organization'" class="row g-4">
+          <div *ngFor="let org of searchResults" class="col-md-6 col-lg-4">
+            <div class="card org-card h-100">
+              <img [src]="getImageUrl(org.anhDaiDien) || getOrgDefaultImage()" 
+                   class="card-img-top org-img" 
+                   alt="{{ org.tenToChuc }}"
+                   onerror="this.onerror=null; this.src=this.getAttribute('data-fallback')"
+                   [attr.data-fallback]="getOrgDefaultImage()">
+              <div class="card-body">
+                <h5 class="card-title">{{ org.tenToChuc }}</h5>
+                <p class="card-text small text-muted mb-3">{{ org.gioiThieu }}</p>
+                <div class="org-info">
+                  <i class="bi bi-geo-alt"></i>
+                  <span>{{ org.diaChi }}</span>
+                </div>
+                <div class="org-info">
+                  <i class="bi bi-envelope"></i>
+                  <span>{{ org.email }}</span>
+                </div>
+                <div class="org-info">
+                  <i class="bi bi-telephone"></i>
+                  <span>{{ org.soDienThoai }}</span>
+                </div>
+              </div>
+              <div class="card-footer bg-transparent border-top-0">
+                <button class="btn btn-primary w-100" (click)="viewDetails('organization', org.maToChuc)">
+                  Xem chi tiết
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Kết quả tìm kiếm tình nguyện viên -->
+        <div *ngIf="searchForm.get('searchType')?.value === 'volunteer'" class="row g-4">
+          <div *ngFor="let volunteer of searchResults" class="col-md-6 col-lg-4">
+            <div class="card volunteer-card h-100">
+              <img [src]="getImageUrl(volunteer.anhDaiDien) || 'assets/user-default.jpg'" 
+                   class="card-img-top volunteer-img" alt="{{ volunteer.hoTen }}">
+              <div class="card-body">
+                <h5 class="card-title">{{ volunteer.hoTen }}</h5>
+                <div class="d-flex align-items-center mb-3">
+                  <app-reputation-badge [rank]="volunteer.capBac || 'Chưa có'" [showIcon]="true"></app-reputation-badge>
+                  <div class="ms-3">
+                    <i class="bi bi-star-fill text-warning"></i>
+                    <span class="ms-1">{{ volunteer.diemTrungBinh || 0 }}/5</span>
+                  </div>
+                </div>
+                <p class="card-text small text-muted mb-3">{{ volunteer.gioiThieu || 'Chưa có giới thiệu' }}</p>
+                <div class="volunteer-info">
+                  <i class="bi bi-calendar-check"></i>
+                  <span>{{ volunteer.tongSuKienThamGia || 0 }} sự kiện đã tham gia</span>
+                </div>
+                <div *ngIf="volunteer.kyNangs && volunteer.kyNangs.length > 0" class="mt-3">
+                  <span *ngFor="let skill of volunteer.kyNangs" class="badge bg-light text-dark me-1 mb-1">
+                    {{ skill.tenKyNang }}
+                  </span>
+                </div>
+              </div>
+              <div class="card-footer bg-transparent border-top-0">
+                <button class="btn btn-primary w-100" (click)="viewDetails('volunteer', volunteer.maTNV)">
+                  Xem hồ sơ
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Không có kết quả -->
+      <div *ngIf="isSearched && searchResults.length === 0" class="no-results text-center my-5">
+        <i class="bi bi-search display-1 text-muted"></i>
+        <h5 class="mt-3">Không tìm thấy kết quả nào</h5>
+        <p class="text-muted">Vui lòng thử lại với từ khóa hoặc bộ lọc khác</p>
+      </div>
+    </div>
+  </div>
+</div>

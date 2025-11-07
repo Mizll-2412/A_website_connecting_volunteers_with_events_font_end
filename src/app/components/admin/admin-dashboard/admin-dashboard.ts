@@ -17,6 +17,13 @@ export class AdminDashboard implements OnInit {
     events: 0
   };
 
+  organizationStats = {
+    total: 0,
+    verified: 0,
+    pending: 0,
+    unverified: 0
+  };
+
   pendingOrganizations: any[] = [];
   recentEvents: any[] = [];
   recentUsers: any[] = [];
@@ -25,6 +32,7 @@ export class AdminDashboard implements OnInit {
 
   ngOnInit(): void {
     this.loadStatistics();
+    this.loadOrganizationStatistics();
     this.loadPendingOrganizations();
     this.loadRecentEvents();
     this.loadRecentUsers();
@@ -32,6 +40,7 @@ export class AdminDashboard implements OnInit {
 
   refreshStats(): void {
     this.loadStatistics();
+    this.loadOrganizationStatistics();
     this.loadPendingOrganizations();
     this.loadRecentEvents();
     this.loadRecentUsers();
@@ -84,6 +93,37 @@ export class AdminDashboard implements OnInit {
       },
       error: (error) => {
         console.error('Lỗi khi lấy danh sách sự kiện:', error);
+      }
+    });
+  }
+  
+  loadOrganizationStatistics(): void {
+    this.adminService.getOrganizationStatistics().subscribe({
+      next: (response: any) => {
+        console.log('Organization statistics:', response);
+        const data = response.data || response;
+        
+        this.organizationStats = {
+          total: data.totalOrganizations || 0,
+          verified: data.verifiedOrganizations || 0,
+          pending: data.pendingVerificationOrganizations || 0,
+          unverified: 0
+        };
+        
+        // Tính số tổ chức chưa xác minh = tổng - đã xác minh - đang chờ
+        this.organizationStats.unverified = 
+          this.organizationStats.total - 
+          this.organizationStats.verified - 
+          this.organizationStats.pending;
+      },
+      error: (error: any) => {
+        console.error('Lỗi khi lấy thống kê tổ chức:', error);
+        this.organizationStats = {
+          total: 0,
+          verified: 0,
+          pending: 0,
+          unverified: 0
+        };
       }
     });
   }

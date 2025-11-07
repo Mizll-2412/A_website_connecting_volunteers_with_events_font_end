@@ -1,0 +1,110 @@
+<div class="container my-4">
+  <div class="row">
+    <div class="col-lg-10 mx-auto">
+      <div class="card border-0 shadow-sm">
+        <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+          <h4 class="mb-0">Thông báo</h4>
+          <div class="d-flex align-items-center">
+            <button class="btn btn-outline-primary me-2" (click)="loadNotifications()">
+              <i class="bi bi-arrow-clockwise"></i> Làm mới
+            </button>
+            <button class="btn btn-outline-success" (click)="markAllAsRead()" [disabled]="unreadCount === 0">
+              <i class="bi bi-check-all"></i> Đánh dấu tất cả đã đọc
+            </button>
+          </div>
+        </div>
+        
+        <div class="card-body">
+          <!-- Bộ lọc -->
+          <div class="filters mb-4">
+            <div class="d-flex flex-wrap gap-2">
+              <button class="btn" [class.btn-primary]="activeFilter === 'all'" [class.btn-outline-primary]="activeFilter !== 'all'" (click)="filterNotifications('all')">
+                Tất cả
+              </button>
+              <button class="btn" [class.btn-primary]="activeFilter === 'unread'" [class.btn-outline-primary]="activeFilter !== 'unread'" (click)="filterNotifications('unread')">
+                Chưa đọc
+              </button>
+              <button class="btn" [class.btn-primary]="activeFilter === 'system'" [class.btn-outline-primary]="activeFilter !== 'system'" (click)="filterNotifications('system')">
+                Hệ thống
+              </button>
+              <button class="btn" [class.btn-primary]="activeFilter === 'event'" [class.btn-outline-primary]="activeFilter !== 'event'" (click)="filterNotifications('event')">
+                Sự kiện
+              </button>
+              <button class="btn" [class.btn-primary]="activeFilter === 'personal'" [class.btn-outline-primary]="activeFilter !== 'personal'" (click)="filterNotifications('personal')">
+                Cá nhân
+              </button>
+            </div>
+          </div>
+
+          <!-- Loading state -->
+          <div *ngIf="isLoading" class="text-center py-4">
+            <div class="spinner-border text-primary" role="status">
+              <span class="visually-hidden">Đang tải...</span>
+            </div>
+            <p class="mt-2">Đang tải thông báo...</p>
+          </div>
+          
+          <!-- Empty state -->
+          <div *ngIf="!isLoading && (!filteredNotifications || filteredNotifications.length === 0)" class="text-center py-4">
+            <div class="empty-state">
+              <i class="bi bi-bell-slash display-1 text-muted"></i>
+              <p class="mt-3">Không có thông báo nào</p>
+            </div>
+          </div>
+          
+          <!-- Notifications list -->
+          <div *ngIf="!isLoading && filteredNotifications && filteredNotifications.length > 0" class="notifications-list">
+            <div *ngFor="let notification of filteredNotifications" 
+                 class="notification-item" 
+                 [class.unread]="!notification.daDoc">
+              <div class="notification-icon" [ngClass]="{
+                'icon-system': notification.phanLoai === 0,
+                'icon-event': notification.phanLoai === 1,
+                'icon-personal': notification.phanLoai === 2
+              }">
+                <i class="bi" [ngClass]="{
+                  'bi-gear': notification.phanLoai === 0,
+                  'bi-calendar-event': notification.phanLoai === 1,
+                  'bi-person': notification.phanLoai === 2
+                }"></i>
+              </div>
+              
+              <div class="notification-content">
+                <div class="d-flex justify-content-between align-items-start">
+                  <div>
+                    <span class="notification-category">{{ getNotificationCategoryText(notification) }}</span>
+                    <span class="notification-sender" *ngIf="notification.tenNguoiTao">từ {{ notification.tenNguoiTao }}</span>
+                  </div>
+                  <div class="notification-actions">
+                    <button class="btn btn-sm btn-link text-primary" *ngIf="!notification.daDoc" (click)="markAsRead(notification); $event.stopPropagation()">
+                      <i class="bi bi-check"></i> Đánh dấu đã đọc
+                    </button>
+                    <button class="btn btn-sm btn-link text-danger" (click)="deleteNotification(notification); $event.stopPropagation()">
+                      <i class="bi bi-trash"></i>
+                    </button>
+                  </div>
+                </div>
+                
+                <p class="notification-message">{{ getCleanNotificationContent(notification) }}</p>
+                
+                <div class="notification-footer">
+                  <span class="notification-time">{{ formatTime(notification.ngayGui) }}</span>
+                  <div class="d-flex align-items-center gap-2">
+                    <button *ngIf="extractEventId(notification) !== null" 
+                            class="btn btn-sm btn-primary" 
+                            (click)="viewEventDetails(notification, $event)">
+                      <i class="bi bi-eye"></i> Xem chi tiết
+                    </button>
+                    <span class="notification-status" *ngIf="notification.daDoc">
+                      <i class="bi bi-check-all"></i> Đã đọc
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

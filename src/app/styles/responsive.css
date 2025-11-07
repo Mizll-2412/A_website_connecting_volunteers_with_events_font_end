@@ -1,0 +1,315 @@
+/* Responsive Styles */
+
+/* Extra small devices (phones, less than 576px) */
+@media (max-width: 575.98px) {
+  /* Header & Navigation */
+  .header-container {
+    padding: 0 15px;
+  }
+  
+  .logo-text {
+    display: none;
+  }
+  
+  .mobile-menu-toggle {
+    margin-left: auto;
+  }
+  
+  .actions {
+    margin-left: 10px;
+  }
+  
+  .user-menu .username {
+    display: none;
+  }
+  
+  /* Cards & Containers */
+  .card {
+    margin-bottom: 20px;
+  }
+  
+  .container {
+    padding-left: 15px;
+    padding-right: 15px;
+  }
+  
+  /* Forms */
+  .form-group {
+    margin-bottom: 15px;
+  }
+  
+  .btn {
+    width: 100%;
+    margin-bottom: 10px;
+  }
+  
+  .btn-group .btn {
+    width: auto;
+    margin-bottom: 0;
+  }
+  
+  /* Tables */
+  .table-responsive {
+    border: 0;
+  }
+  
+  /* Event cards */
+  .event-card {
+    height: auto;
+  }
+  
+  .event-card .card-img-top {
+    height: 150px;
+  }
+  
+  /* Profile page */
+  .profile-header {
+    flex-direction: column;
+    text-align: center;
+  }
+  
+  .profile-avatar {
+    margin-right: 0;
+    margin-bottom: 15px;
+  }
+  
+  /* Notifications */
+  .notification-dropdown {
+    width: 300px;
+    right: -100px;
+  }
+  
+  /* Search filters */
+  .filter-container {
+    padding: 10px;
+  }
+  
+  /* Advanced search */
+  .advanced-filters-content .row {
+    row-gap: 10px;
+  }
+}
+
+/* Small devices (landscape phones, 576px and up) */
+@media (min-width: 576px) and (max-width: 767.98px) {
+  /* Header & Navigation */
+  .logo-text {
+    font-size: 0.9rem;
+  }
+  
+  .user-menu .username {
+    max-width: 80px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  
+  /* Cards & Containers */
+  .card {
+    margin-bottom: 20px;
+  }
+  
+  /* Buttons */
+  .btn-group .btn {
+    padding-left: 10px;
+    padding-right: 10px;
+  }
+  
+  /* Event cards */
+  .event-card .card-img-top {
+    height: 160px;
+  }
+  
+  /* Notifications */
+  .notification-dropdown {
+    width: 350px;
+    right: -50px;
+  }
+}
+
+/* Medium devices (tablets, 768px and up) */
+@media (min-width: 768px) and (max-width: 991.98px) {
+  /* Navigation */
+  .nav-links a {
+    padding: 0 10px;
+    font-size: 0.9rem;
+  }
+  
+  /* Event cards */
+  .event-card .card-img-top {
+    height: 170px;
+  }
+  
+  /* Profile page */
+  .profile-sidebar {
+    margin-bottom: 20px;
+  }
+}
+
+/* Large devices (desktops, 992px and up) */
+@media (min-width: 992px) and (max-width: 1199.98px) {
+  /* Navigation */
+  .nav-links a {
+    padding: 0 12px;
+  }
+  
+  /* Event cards */
+  .event-card .card-img-top {
+    height: 180px;
+  }
+}
+
+/* Extra large devices (large desktops, 1200px and up) */
+@media (min-width: 1200px) {
+  /* Container width */
+  .container {
+    max-width: 1140px;
+  }
+  
+  /* Event cards */
+  .event-card .card-img-top {
+    height: 200px;
+  }
+}
+
+/* Common responsive styles */
+
+/* Hide desktop navigation on mobile */
+@media (max-width: 991.98px) {
+  .desktop-nav {
+    display: none;
+  }
+  
+  .mobile-menu-toggle {
+    display: flex;
+  }
+  
+  .header-container {
+    padding: 0 15px;
+  }
+}
+
+/* Show desktop navigation on larger screens */
+@media (min-width: 992px) {
+  .desktop-nav {
+    display: flex;
+  }
+  
+  .mobile-menu-toggle {
+    display: none;
+  }
+  
+  .mobile-nav {
+    display: none !important;
+  }
+}
+
+/* Responsive tables */
+.table-responsive {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Responsive images */
+img {
+  max-width: 100%;
+  height: auto;
+}
+
+/* Responsive form elements */
+input,
+select,
+textarea {
+  max-width: 100%;
+}
+
+/* Responsive grid adjustments */
+@media (max-width: 767.98px) {
+  .row {
+    margin-left: -10px;
+    margin-right: -10px;
+  }
+  
+  [class*="col-"] {
+    padding-left: 10px;
+    padding-right: 10px;
+  }
+}
+
+/* Responsive typography */
+@media (max-width: 767.98px) {
+  h1, .h1 {
+    font-size: 1.8rem;
+  }
+  
+  h2, .h2 {
+    font-size: 1.5rem;
+  }
+  
+  h3, .h3 {
+    font-size: 1.3rem;
+  }
+  
+  h4, .h4 {
+    font-size: 1.2rem;
+  }
+  
+  h5, .h5 {
+    font-size: 1.1rem;
+  }
+  
+  p {
+    font-size: 0.95rem;
+  }
+}
+
+/* Fix for fixed headers on mobile */
+@media (max-width: 767.98px) {
+  .header-spacer {
+    height: 60px;
+  }
+}
+
+/* Responsive utilities */
+.d-xs-none {
+  display: none !important;
+}
+
+@media (min-width: 576px) {
+  .d-xs-none {
+    display: initial !important;
+  }
+  
+  .d-sm-none {
+    display: none !important;
+  }
+}
+
+@media (min-width: 768px) {
+  .d-sm-none {
+    display: initial !important;
+  }
+  
+  .d-md-none {
+    display: none !important;
+  }
+}
+
+@media (min-width: 992px) {
+  .d-md-none {
+    display: initial !important;
+  }
+  
+  .d-lg-none {
+    display: none !important;
+  }
+}
+
+@media (min-width: 1200px) {
+  .d-lg-none {
+    display: initial !important;
+  }
+  
+  .d-xl-none {
+    display: none !important;
+  }
+}

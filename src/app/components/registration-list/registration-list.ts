@@ -7,6 +7,7 @@ import { AuthService } from '../../services/auth';
 import { RegistrationService } from '../../services/registration';
 import { EventService } from '../../services/event';
 import { TinhNguyenVienService } from '../../services/volunteer';
+import { EvaluationService, CreateEvaluationDto } from '../../services/evaluation.service';
 
 @Component({
   selector: 'app-registration-list',
@@ -31,11 +32,17 @@ export class RegistrationListComponent implements OnInit {
   user: any = null;
   volunteer: any = null;
   
+  // Đánh giá
+  selectedRegistration: any = null;
+  evaluationRating: number = 5;
+  evaluationComment: string = '';
+  
   constructor(
     private authService: AuthService,
     private registrationService: RegistrationService,
     private eventService: EventService,
-    private volunteerService: TinhNguyenVienService
+    private volunteerService: TinhNguyenVienService,
+    private evaluationService: EvaluationService
   ) {}
 
   ngOnInit() {
@@ -212,7 +219,65 @@ export class RegistrationListComponent implements OnInit {
       if (now >= eventStart) return false; // Đã bắt đầu
     }
     
-    return true;
+    // Có thể hủy nếu đang chờ duyệt (0) hoặc đã được duyệt (1)
+    return registration.trangThai === 0 || registration.trangThai === 1;
+  }
+
+  canReRegister(registration: any): boolean {
+    // Có thể đăng ký lại nếu bị từ chối (2) và sự kiện còn đang tuyển
+    if (registration.trangThai !== 2) return false;
+    
+    if (!registration.event) return false;
+    
+    // Kiểm tra thời gian tuyển
+    if (registration.event.tuyenBatDau && registration.event.tuyenKetThuc) {
+      const now = new Date();
+      const startDate = new Date(registration.event.tuyenBatDau);
+      const endDate = new Date(registration.event.tuyenKetThuc);
+      return now >= startDate && now <= endDate;
+    }
+    
+    // Nếu không có thời gian tuyển, kiểm tra trạng thái sự kiện
+    return registration.event.trangThai === 0 || registration.event.trangThai === 'Đang tuyển';
+  }
+
+  reRegister(registration: any) {
+    if (!this.volunteer?.maTNV || !registration.maSuKien) return;
+    
+    if (!confirm('Bạn có chắc chắn muốn đăng ký lại tham gia sự kiện này?')) return;
+    
+    const registerData = {
+      maTNV: this.volunteer.maTNV,
+      maSuKien: registration.maSuKien,
+      ghiChu: 'Đăng ký lại sau khi bị từ chối'
+    };
+    
+    this.registrationService.register(registerData).subscribe({
+      next: (response) => {
+        console.log('Đăng ký lại thành công:', response);
+        // Cập nhật trạng thái trong danh sách
+        const index = this.registrations.findIndex(r => 
+          r.maTNV === registration.maTNV && r.maSuKien === registration.maSuKien
+        );
+        if (index !== -1) {
+          this.registrations[index].trangThai = 0; // Chờ duyệt
+          this.registrations[index].ngayDangKy = new Date();
+        }
+        this.applyFilters();
+        alert('Đăng ký lại thành công!');
+      },
+      error: (err: HttpErrorResponse) => {
+        console.error('Lỗi khi đăng ký lại:', err);
+        const errorMsg = err.error?.message || 'Không thể đăng ký lại. Vui lòng thử lại sau.';
+        alert(errorMsg);
+      }
+    });
+  }
+
+  getCancelButtonText(registration: any): string {
+    if (registration.trangThai === 0) return 'Hủy chờ duyệt';
+    if (registration.trangThai === 1) return 'Hủy đăng ký';
+    return 'Hủy đăng ký';
   }
 
   getMockRegistrations(): any[] {
@@ -248,5 +313,76 @@ export class RegistrationListComponent implements OnInit {
         }
       }
     ];
+  }
+
+  // Đánh giá tổ chức
+  openEvaluationModal(registration: any): void {
+    this.selectedRegistration = registration;
+    this.evaluationRating = 5;
+    this.evaluationComment = '';
+    
+    const modalEl = document.getElementById('evaluationModal');
+    if (modalEl && (window as any).bootstrap) {
+      const modal = new (window as any).bootstrap.Modal(modalEl);
+      modal.show();
+    }
+  }
+
+  submitEvaluation(): void {
+    if (!this.selectedRegistration || !this.selectedRegistration.event) {
+      alert('Không thể gửi đánh giá. Vui lòng thử lại.');
+      return;
+    }
+
+    // Kiểm tra sự kiện đã kết thúc chưa
+    const eventEndDate = new Date(this.selectedRegistration.event.ngayKetThuc);
+    if (eventEndDate > new Date()) {
+      alert('Sự kiện chưa kết thúc. Bạn chỉ có thể đánh giá sau khi sự kiện kết thúc.');
+      return;
+    }
+
+    const evaluation: CreateEvaluationDto = {
+      maNguoiDanhGia: this.user.maTaiKhoan,
+      maNguoiDuocDanhGia: this.selectedRegistration.event.maToChuc, // Đánh giá tổ chức
+      maSuKien: this.selectedRegistration.maSuKien,
+      diemSo: this.evaluationRating,
+      noiDung: this.evaluationComment.trim() || undefined
+    };
+
+    this.evaluationService.createEvaluation(evaluation).subscribe({
+      next: (response) => {
+        alert('Đánh giá thành công! Cảm ơn bạn đã đóng góp ý kiến.');
+        
+        // Đóng modal
+        const modalEl = document.getElementById('evaluationModal');
+        if (modalEl && (window as any).bootstrap) {
+          const modal = (window as any).bootstrap.Modal.getInstance(modalEl);
+          if (modal) modal.hide();
+        }
+
+        // Mark as evaluated
+        this.selectedRegistration.hasEvaluated = true;
+      },
+      error: (err) => {
+        console.error('Lỗi đánh giá:', err);
+        const errorMsg = err.normalizedMessage || err.error?.message || 'Không thể gửi đánh giá';
+        alert(errorMsg);
+      }
+    });
+  }
+
+  canEvaluate(registration: any): boolean {
+    // Chỉ có thể đánh giá nếu:
+    // 1. Đơn đã được duyệt (trangThai === 1)
+    // 2. Sự kiện đã kết thúc
+    if (registration.trangThai !== 1) return false;
+    if (!registration.event || !registration.event.ngayKetThuc) return false;
+    
+    const eventEndDate = new Date(registration.event.ngayKetThuc);
+    return eventEndDate < new Date();
+  }
+
+  setRating(rating: number): void {
+    this.evaluationRating = rating;
   }
 }

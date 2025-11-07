@@ -2,6 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { AdminService } from '../../../services/admin';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { getImageUrl } from '../../../utils/image-url.util';
 
 declare var bootstrap: any;
 
@@ -120,8 +121,72 @@ export class OrganizationVerification implements OnInit {
   }
 
   viewOrganizationDetails(org: any): void {
-    this.selectedOrganization = org;
-    this.orgDetailsModal.show();
+    // Load chi tiết đầy đủ từ API
+    this.adminService.getOrganizationDetails(org.maToChuc).subscribe({
+      next: (response) => {
+        this.selectedOrganization = response.data || response;
+        
+        // Load legal documents
+        this.adminService.getLegalDocuments(org.maToChuc).subscribe({
+          next: (docsResponse: any) => {
+            this.selectedOrganization.giayToPhapLys = docsResponse.data || docsResponse || [];
+            this.orgDetailsModal.show();
+          },
+          error: (error: any) => {
+            console.error('Lỗi khi tải giấy tờ pháp lý:', error);
+            this.selectedOrganization.giayToPhapLys = [];
+        this.orgDetailsModal.show();
+          }
+        });
+      },
+      error: (error) => {
+        console.error('Lỗi khi tải chi tiết tổ chức:', error);
+        // Fallback: dùng dữ liệu hiện có
+        this.selectedOrganization = org;
+        this.selectedOrganization.giayToPhapLys = [];
+        this.orgDetailsModal.show();
+      }
+    });
+  }
+
+  // Preview giấy tờ pháp lý
+  previewDocument(doc: any): void {
+    if (doc.duongDan || doc.file) {
+      const filePath = doc.duongDan || doc.file;
+      const fileUrl = getImageUrl(filePath);
+      
+      // Kiểm tra loại file
+      const extension = filePath.split('.').pop()?.toLowerCase();
+      if (extension === 'pdf') {
+        // Mở PDF trong tab mới
+        window.open(fileUrl, '_blank');
+      } else if (['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(extension || '')) {
+        // Hiển thị ảnh trong modal
+        const modalEl = document.getElementById('documentPreviewModal');
+        if (modalEl) {
+          const imgEl = modalEl.querySelector('#previewImage') as HTMLImageElement;
+          if (imgEl) {
+            imgEl.src = fileUrl;
+          }
+          const modal = new bootstrap.Modal(modalEl);
+          modal.show();
+        }
+      } else {
+        // Tải file về
+        window.open(fileUrl, '_blank');
+      }
+    }
+  }
+
+  // Tải về giấy tờ
+  downloadDocument(doc: any): void {
+    if (doc.duongDan || doc.file) {
+      const filePath = doc.duongDan || doc.file;
+      const link = document.createElement('a');
+      link.href = getImageUrl(filePath);
+      link.download = doc.tenGiayTo || 'giay-to-phap-ly';
+      link.click();
+    }
   }
 
   verifyOrganization(org: any, isVerified: boolean): void {
@@ -155,6 +220,34 @@ export class OrganizationVerification implements OnInit {
     });
   }
 
+  revokeVerification(org: any): void {
+    const lyDo = prompt('Nhập lý do thu hồi xác minh:');
+    if (lyDo === null) return; // Người dùng đã hủy
+    
+    if (!lyDo || lyDo.trim() === '') {
+      this.showToast('Vui lòng nhập lý do thu hồi xác minh', 'Lỗi');
+      return;
+    }
+    
+    // Gọi API để thu hồi xác minh (set về trạng thái chờ xác minh)
+    this.adminService.verifyOrganization(org.maToChuc, false, lyDo).subscribe({
+      next: (response) => {
+        org.trangThaiXacMinh = 0; // Chờ xác minh
+        org.lyDoTuChoi = lyDo;
+        
+        this.showToast('Đã thu hồi xác minh tổ chức', 'Thành công');
+        
+        if (this.orgDetailsModal) {
+          this.orgDetailsModal.hide();
+        }
+      },
+      error: (error) => {
+        console.error('Lỗi khi thu hồi xác minh:', error);
+        this.showToast('Không thể thu hồi xác minh', 'Lỗi');
+      }
+    });
+  }
+
   getVerificationStatus(status: number | null): string {
     if (status === null || status === 0) return 'Chờ xác minh';
     if (status === 1) return 'Đã xác minh';
@@ -165,5 +258,9 @@ export class OrganizationVerification implements OnInit {
   // Thay thế toastr bằng phương thức hiển thị thông báo đơn giản
   showToast(message: string, type: string): void {
     alert(`${type}: ${message}`);
+  }
+
+  getImageUrl(path: string | null | undefined): string {
+    return getImageUrl(path);
   }
 }

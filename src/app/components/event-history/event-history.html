@@ -1,0 +1,227 @@
+<div class="container my-4">
+  <div class="row">
+    <div class="col-12">
+      <div class="card border-0 shadow-sm">
+        <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+          <h4 class="mb-0">Lịch sử tham gia sự kiện</h4>
+          <div class="d-flex align-items-center">
+            <span class="badge bg-primary rounded-pill me-2">Tổng: {{ eventStats?.tongSuKien || 0 }}</span>
+            <span class="badge bg-success rounded-pill me-2">Hoàn thành: {{ eventStats?.suKienDaHoanThanh || 0 }}</span>
+            <span class="badge bg-warning rounded-pill me-2">Đang chờ: {{ eventStats?.suKienDangCho || 0 }}</span>
+            <span class="badge bg-danger rounded-pill">Đã hủy: {{ eventStats?.suKienDaHuy || 0 }}</span>
+          </div>
+        </div>
+        
+        <div class="card-body">
+          <!-- Bộ lọc -->
+          <div class="filters mb-4 p-3 bg-light rounded">
+            <div class="row g-3">
+              <div class="col-md-3">
+                <label class="form-label">Năm</label>
+                <select class="form-select" [(ngModel)]="filter.nam" (change)="applyFilter()">
+                  <option [ngValue]="null">Tất cả các năm</option>
+                  <option *ngFor="let year of availableYears" [value]="year">{{ year }}</option>
+                </select>
+              </div>
+              <div class="col-md-3">
+                <label class="form-label">Tháng</label>
+                <select class="form-select" [(ngModel)]="filter.thang" (change)="applyFilter()">
+                  <option [ngValue]="null">Tất cả các tháng</option>
+                  <option *ngFor="let month of availableMonths" [value]="month">Tháng {{ month }}</option>
+                </select>
+              </div>
+              <div class="col-md-3">
+                <label class="form-label">Trạng thái</label>
+                <select class="form-select" [(ngModel)]="filter.hoanThanh" (change)="applyFilter()">
+                  <option [ngValue]="null">Tất cả trạng thái</option>
+                  <option [ngValue]="true">Đã hoàn thành</option>
+                  <option [ngValue]="false">Chưa hoàn thành</option>
+                </select>
+              </div>
+              <div class="col-md-3">
+                <label class="form-label">Giấy chứng nhận</label>
+                <select class="form-select" [(ngModel)]="filter.coGiayChungNhan" (change)="applyFilter()">
+                  <option [ngValue]="null">Tất cả</option>
+                  <option [ngValue]="true">Có giấy chứng nhận</option>
+                  <option [ngValue]="false">Không có giấy chứng nhận</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <!-- Biểu đồ thống kê -->
+          <div class="chart-container mb-4" *ngIf="eventStats">
+            <h5 class="mb-3">Thống kê theo tháng</h5>
+            <div class="chart-wrapper" style="height: 300px;">
+              <!-- Placeholder for chart (would use a chart library like Chart.js) -->
+              <div class="chart-bars">
+                <div *ngFor="let month of getMonthsArray()" class="chart-bar-container">
+                  <div class="chart-bar" [style.height.%]="getMonthPercentage(month)"></div>
+                  <div class="chart-label">T{{ month }}</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Danh sách sự kiện -->
+          <div class="events-list">
+            <h5 class="mb-3">Danh sách sự kiện đã tham gia</h5>
+            
+            <!-- Loading state -->
+            <div *ngIf="isLoading" class="text-center py-4">
+              <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Đang tải...</span>
+              </div>
+              <p class="mt-2">Đang tải dữ liệu...</p>
+            </div>
+            
+            <!-- Empty state -->
+            <div *ngIf="!isLoading && (!events || events.length === 0)" class="text-center py-4">
+              <div class="empty-state">
+                <i class="bi bi-calendar-x display-1 text-muted"></i>
+                <p class="mt-3">Bạn chưa tham gia sự kiện nào</p>
+                <a routerLink="/su-kien" class="btn btn-primary mt-2">Tìm sự kiện để tham gia</a>
+              </div>
+            </div>
+            
+            <!-- Events list -->
+            <div *ngIf="!isLoading && events && events.length > 0" class="row g-4">
+              <div *ngFor="let event of events" class="col-md-6 col-lg-4">
+                <div class="card h-100 event-card">
+                  <div class="event-status" [ngClass]="{
+                    'status-completed': event.daHoanThanh,
+                    'status-pending': !event.daHoanThanh && event.trangThaiDangKy === 1,
+                    'status-rejected': event.trangThaiDangKy === 2
+                  }">
+                    {{ getEventStatusText(event) }}
+                  </div>
+                  
+                  <img [src]="event.hinhAnh ? getImageUrl(event.hinhAnh) : 'assets/event-default.jpg'" 
+                       class="card-img-top" alt="Event Image" style="height: 160px; object-fit: cover;">
+                  
+                  <div class="card-body">
+                    <h5 class="card-title">{{ event.tenSuKien }}</h5>
+                    <p class="card-text text-muted mb-1">
+                      <i class="bi bi-geo-alt me-1"></i> {{ event.diaChi }}
+                    </p>
+                    <p class="card-text text-muted mb-2">
+                      <i class="bi bi-calendar me-1"></i> {{ formatDate(event.ngayBatDau) }} - {{ formatDate(event.ngayKetThuc) }}
+                    </p>
+                    <p class="card-text text-muted mb-2">
+                      <i class="bi bi-building me-1"></i> {{ event.tenToChuc }}
+                    </p>
+                    
+                    <div class="d-flex justify-content-between align-items-center mt-3">
+                      <div>
+                        <span class="badge bg-primary me-1">Đăng ký: {{ formatDate(event.ngayDangKy) }}</span>
+                        <span *ngIf="event.coGiayChungNhan" class="badge bg-success">
+                          <i class="bi bi-award me-1"></i> Có chứng nhận
+                        </span>
+                      </div>
+                      <button class="btn btn-sm btn-outline-primary" (click)="viewEventDetails(event.maSuKien)">
+                        Chi tiết
+                      </button>
+                    </div>
+                  </div>
+                  
+                  <div class="card-footer bg-white d-flex justify-content-between">
+                    <button *ngIf="event.daHoanThanh && !event.daDanhGia" 
+                            class="btn btn-sm btn-outline-success" 
+                            (click)="rateEvent(event.maSuKien)">
+                      <i class="bi bi-star me-1"></i> Đánh giá
+                    </button>
+                    <button *ngIf="event.daHoanThanh && event.daDanhGia" 
+                            class="btn btn-sm btn-outline-secondary" 
+                            disabled>
+                      <i class="bi bi-star-fill me-1"></i> Đã đánh giá
+                    </button>
+                    <button *ngIf="event.coGiayChungNhan" 
+                            class="btn btn-sm btn-outline-info" 
+                            (click)="viewCertificate(event.maSuKien)">
+                      <i class="bi bi-file-earmark-text me-1"></i> Xem chứng nhận
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal đánh giá -->
+<div class="modal fade" id="ratingModal" tabindex="-1" aria-labelledby="ratingModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="ratingModalLabel">Đánh giá sự kiện</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div *ngIf="selectedEvent" class="rating-form">
+          <h6>{{ selectedEvent.tenSuKien }}</h6>
+          <p class="text-muted">{{ formatDate(selectedEvent.ngayBatDau) }} - {{ formatDate(selectedEvent.ngayKetThuc) }}</p>
+          
+          <div class="mb-3">
+            <label class="form-label">Đánh giá của bạn</label>
+            <div class="star-rating">
+              <i *ngFor="let star of [1,2,3,4,5]" 
+                 class="bi" 
+                 [class.bi-star-fill]="star <= rating" 
+                 [class.bi-star]="star > rating"
+                 (click)="setRating(star)"></i>
+            </div>
+          </div>
+          
+          <div class="mb-3">
+            <label for="ratingComment" class="form-label">Nhận xét</label>
+            <textarea class="form-control" id="ratingComment" rows="3" [(ngModel)]="ratingComment"></textarea>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+        <button type="button" class="btn btn-primary" (click)="submitRating()">Gửi đánh giá</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal xem chứng nhận -->
+<div class="modal fade" id="certificateModal" tabindex="-1" aria-labelledby="certificateModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="certificateModalLabel">Giấy chứng nhận</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body text-center">
+        <div *ngIf="certificate">
+          <!-- Hiển thị hình ảnh hoặc PDF -->
+          <img *ngIf="isImageFile(certificate.filePath || certificate.file)" 
+               [src]="getImageUrl(certificate.filePath || certificate.file)" 
+               class="img-fluid" 
+               alt="Certificate">
+               
+          <iframe *ngIf="isPdfFile(certificate.filePath || certificate.file)" 
+                  [src]="getSafeUrl(getImageUrl(certificate.filePath || certificate.file))" 
+                  width="100%" 
+                  height="500px" 
+                  frameborder="0"></iframe>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+        <a *ngIf="certificate" 
+           [href]="getImageUrl(certificate.filePath || certificate.file)" 
+           target="_blank" 
+           download
+           class="btn btn-primary">
+          <i class="bi bi-download"></i> Tải xuống
+        </a>
+      </div>
+    </div>
+  </div>
+</div>

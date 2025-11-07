@@ -61,6 +61,10 @@
                     class="btn btn-sm btn-outline-success" (click)="verifyOrganization(org, true)">
                     <i class="bi bi-arrow-repeat"></i> Xác minh lại
                   </button>
+                  <button *ngIf="org.trangThaiXacMinh === 1" 
+                    class="btn btn-sm btn-outline-warning" (click)="revokeVerification(org)" title="Thu hồi xác minh">
+                    <i class="bi bi-x-octagon"></i> Thu hồi
+                  </button>
                 </div>
               </td>
             </tr>
@@ -113,7 +117,7 @@
       <div class="modal-body">
         <div class="row">
           <div class="col-md-4 text-center mb-3">
-            <img [src]="selectedOrganization.anhDaiDien ? 'http://localhost:5000' + selectedOrganization.anhDaiDien : 'assets/images/organization-placeholder.png'" 
+            <img [src]="getImageUrl(selectedOrganization.anhDaiDien) || 'assets/images/organization-placeholder.png'" 
               class="img-fluid rounded" alt="Logo tổ chức" style="max-height: 200px;"
               onerror="this.src='assets/images/organization-placeholder.png'">
           </div>
@@ -133,22 +137,46 @@
         
         <div class="mt-4">
           <h5>Giấy tờ pháp lý</h5>
-          <div class="list-group">
-            <div *ngIf="!selectedOrganization.giayToPhapLys || selectedOrganization.giayToPhapLys.length === 0" 
-              class="text-center p-3">
-              <p class="text-muted">Tổ chức chưa tải lên giấy tờ pháp lý</p>
-            </div>
-            <a *ngFor="let doc of selectedOrganization.giayToPhapLys" 
-              [href]="'http://localhost:5000' + doc.duongDan" 
-              target="_blank" 
-              class="list-group-item list-group-item-action">
-              <div class="d-flex w-100 justify-content-between">
-                <h5 class="mb-1">{{doc.tenGiayTo || 'Giấy tờ pháp lý'}}</h5>
-                <small>{{doc.ngayTao | date:'dd/MM/yyyy'}}</small>
-              </div>
-              <p class="mb-1">{{doc.moTa || 'Không có mô tả'}}</p>
-              <small>Nhấn để xem tài liệu</small>
-            </a>
+          <div class="alert alert-info" *ngIf="!selectedOrganization.giayToPhapLys || selectedOrganization.giayToPhapLys.length === 0">
+            <i class="bi bi-info-circle me-2"></i>
+            Tổ chức chưa tải lên giấy tờ pháp lý
+          </div>
+          
+          <div class="table-responsive" *ngIf="selectedOrganization.giayToPhapLys && selectedOrganization.giayToPhapLys.length > 0">
+            <table class="table table-sm table-hover">
+              <thead>
+                <tr>
+                  <th>Tên giấy tờ</th>
+                  <th>Mô tả</th>
+                  <th>Ngày tải lên</th>
+                  <th>Thao tác</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let doc of selectedOrganization.giayToPhapLys">
+                  <td>
+                    <i class="bi bi-file-earmark-text me-2"></i>
+                    {{doc.tenGiayTo || 'Giấy tờ pháp lý'}}
+                  </td>
+                  <td>{{doc.moTa || 'Không có mô tả'}}</td>
+                  <td>{{doc.ngayTao | date:'dd/MM/yyyy HH:mm'}}</td>
+                  <td>
+                    <div class="btn-group btn-group-sm">
+                      <button class="btn btn-outline-primary" 
+                              (click)="previewDocument(doc)"
+                              title="Xem trước">
+                        <i class="bi bi-eye"></i>
+                      </button>
+                      <button class="btn btn-outline-success" 
+                              (click)="downloadDocument(doc)"
+                              title="Tải về">
+                        <i class="bi bi-download"></i>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
           </div>
         </div>
         
@@ -193,6 +221,31 @@
             <i class="bi bi-x-circle"></i> Từ chối
           </button>
         </div>
+        <div *ngIf="selectedOrganization.trangThaiXacMinh === 1">
+          <button type="button" class="btn btn-warning" (click)="revokeVerification(selectedOrganization)">
+            <i class="bi bi-x-octagon"></i> Thu hồi xác minh
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Preview Ảnh giấy tờ -->
+<div class="modal fade" id="documentPreviewModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">
+          <i class="bi bi-file-image me-2"></i>Xem trước giấy tờ
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body text-center">
+        <img id="previewImage" src="" alt="Preview" class="img-fluid" style="max-height: 70vh;">
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
       </div>
     </div>
   </div>
