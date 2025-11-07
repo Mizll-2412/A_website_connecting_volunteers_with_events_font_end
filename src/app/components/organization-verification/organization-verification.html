@@ -86,34 +86,60 @@
               <i class="bi bi-exclamation-triangle me-2"></i>
               Bạn chưa tải lên giấy tờ pháp lý nào. Vui lòng tải lên để yêu cầu xác minh.
             </div>
-            <div *ngIf="legalDocuments.length > 0" class="table-responsive">
-              <table class="table table-hover">
-                <thead>
-                  <tr>
-                    <th>Tên file</th>
-                    <th>Mô tả</th>
-                    <th>Ngày tải lên</th>
-                    <th>Thao tác</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr *ngFor="let doc of legalDocuments">
-                    <td>{{ doc.tenFile }}</td>
-                    <td>{{ doc.moTa || 'Không có mô tả' }}</td>
-                    <td>{{ doc.ngayTao | date:'dd/MM/yyyy' }}</td>
-                    <td>
-                      <div class="btn-group btn-group-sm">
-                        <button class="btn btn-outline-primary" (click)="viewDocument(doc)">
-                          <i class="bi bi-eye"></i> Xem
-                        </button>
-                        <button class="btn btn-outline-danger" (click)="deleteDocument(doc)">
-                          <i class="bi bi-trash"></i> Xóa
-                        </button>
+            <div *ngIf="legalDocuments.length > 0" class="row g-3">
+              <div class="col-md-6 col-lg-4" *ngFor="let doc of legalDocuments">
+                <div class="card h-100 shadow-sm border-0">
+                  <div class="card-body">
+                    <div class="d-flex align-items-start mb-3">
+                      <div class="document-icon me-3">
+                        <i class="bi fs-1" [ngClass]="{
+                          'bi-file-earmark-pdf-fill text-danger': isPdfFile(getDocumentFileName(doc)),
+                          'bi-file-earmark-image-fill text-primary': isImageFile(getDocumentFileName(doc)),
+                          'bi-file-earmark-fill text-secondary': !isPdfFile(getDocumentFileName(doc)) && !isImageFile(getDocumentFileName(doc))
+                        }"></i>
                       </div>
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
+                      <div class="flex-grow-1">
+                        <h6 class="card-title mb-1 fw-semibold">
+                          {{ doc.tenGiayTo || doc.tenFile || 'Giấy tờ pháp lý' }}
+                        </h6>
+                        <p class="text-muted small mb-2">
+                          <i class="bi bi-file-earmark me-1"></i>
+                          {{ getDocumentFileName(doc) }}
+                        </p>
+                      </div>
+                    </div>
+                    
+                    <div class="mb-3" *ngIf="doc.moTa">
+                      <p class="small text-muted mb-0">
+                        <i class="bi bi-info-circle me-1"></i>
+                        <strong>Mô tả:</strong> {{ doc.moTa }}
+                      </p>
+                    </div>
+                    
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                      <small class="text-muted">
+                        <i class="bi bi-calendar3 me-1"></i>
+                        {{ doc.ngayTao | date:'dd/MM/yyyy HH:mm' }}
+                      </small>
+                      <span class="badge bg-light text-dark">
+                        <i class="bi bi-hash me-1"></i>ID: {{ doc.maGiayTo }}
+                      </span>
+                    </div>
+                    
+                    <div class="btn-group w-100" role="group">
+                      <a [href]="getDocumentUrl(doc)" 
+                         target="_blank" 
+                         class="btn btn-outline-primary btn-sm"
+                         [class.disabled]="!getDocumentUrl(doc)">
+                        <i class="bi bi-eye me-1"></i> Xem
+                      </a>
+                      <button class="btn btn-outline-danger btn-sm" (click)="deleteDocument(doc)">
+                        <i class="bi bi-trash me-1"></i> Xóa
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -121,6 +147,16 @@
           <div class="upload-documents mb-4">
             <h5 class="mb-3">Tải lên giấy tờ pháp lý mới</h5>
             <form (ngSubmit)="uploadLegalDocuments()">
+              <div class="mb-3">
+                <label for="documentName" class="form-label">Tên giấy tờ <span class="text-danger">*</span></label>
+                <input type="text" class="form-control" id="documentName" 
+                       [(ngModel)]="legalDocName" 
+                       name="legalDocName" 
+                       placeholder="Ví dụ: Giấy phép hoạt động, Giấy chứng nhận đăng ký..."
+                       required>
+                <small class="text-muted">Tên giấy tờ pháp lý (bắt buộc)</small>
+              </div>
+              
               <div class="mb-3">
                 <label for="documentFiles" class="form-label">Chọn file</label>
                 <input type="file" class="form-control" id="documentFiles" 
@@ -186,13 +222,13 @@
       <div class="modal-body text-center">
         <div *ngIf="selectedDocument">
           <!-- Hiển thị hình ảnh hoặc PDF -->
-          <img *ngIf="isImageFile(selectedDocument.duongDan)" 
-               [src]="'http://localhost:5000' + selectedDocument.duongDan" 
+          <img *ngIf="isImageFile(getDocumentFileName(selectedDocument))" 
+               [src]="getDocumentUrl(selectedDocument)" 
                class="img-fluid" 
                alt="Legal Document">
                
-          <iframe *ngIf="isPdfFile(selectedDocument.duongDan)" 
-                  [src]="getSafeUrl('http://localhost:5000' + selectedDocument.duongDan)" 
+          <iframe *ngIf="isPdfFile(getDocumentFileName(selectedDocument))" 
+                  [src]="getSafeUrl(getDocumentUrl(selectedDocument))" 
                   width="100%" 
                   height="500px" 
                   frameborder="0"></iframe>
@@ -201,7 +237,7 @@
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
         <a *ngIf="selectedDocument" 
-           [href]="'http://localhost:5000' + selectedDocument.duongDan" 
+           [href]="getDocumentUrl(selectedDocument)" 
            target="_blank" 
            class="btn btn-primary">
           <i class="bi bi-download"></i> Tải xuống

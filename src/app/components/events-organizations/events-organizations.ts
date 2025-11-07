@@ -1,11 +1,14 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { RouterModule, Router } from '@angular/router';
+import { RouterModule, Router, ActivatedRoute } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { AuthService } from '../../services/auth';
 import { EventService } from '../../services/event';
 import { ToChucService } from '../../services/organization';
+import { EventCardComponent } from '../shared/event-card/event-card';
+import { OrganizationCardComponent } from '../shared/organization-card/organization-card';
+import { environment } from '../../../environments/environment';
 
 interface Skill {
   maKyNang: number;
@@ -20,7 +23,7 @@ interface Field {
 @Component({
   selector: 'app-events-organizations',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule],
+  imports: [CommonModule, FormsModule, RouterModule, EventCardComponent, OrganizationCardComponent],
   templateUrl: './events-organizations.html',
   styleUrls: ['./events-organizations.css']
 })
@@ -51,17 +54,31 @@ export class EventsOrganizationsComponent implements OnInit {
   errorMessage: string = '';
   showFilters: boolean = false;
 
-  private apiUrl = 'http://localhost:5000/api';
+  private apiUrl = environment.apiUrl;
+  private searchTimeout: any = null;
 
   constructor(
     private http: HttpClient,
     private router: Router,
+    private route: ActivatedRoute,
     private auth: AuthService,
     private eventService: EventService,
     private toChucService: ToChucService
   ) {}
 
   ngOnInit(): void {
+    // Scroll về đầu trang khi component được khởi tạo
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+
+    // Đọc query parameter để xác định tab nào cần mở
+    this.route.queryParams.subscribe(params => {
+      if (params['tab'] === 'organizations') {
+        this.activeTab = 'organizations';
+      } else if (params['tab'] === 'events') {
+        this.activeTab = 'events';
+      }
+    });
+
     this.loadSkills();
     this.loadFields();
     this.loadEvents();
@@ -139,6 +156,19 @@ export class EventsOrganizationsComponent implements OnInit {
     } else {
       this.searchOrganizations();
     }
+  }
+
+  // Tự động search khi gõ (với debounce)
+  onSearchInput(): void {
+    // Clear timeout trước đó nếu có
+    if (this.searchTimeout) {
+      clearTimeout(this.searchTimeout);
+    }
+
+    // Đợi 300ms sau khi người dùng ngừng gõ rồi mới search
+    this.searchTimeout = setTimeout(() => {
+      this.search();
+    }, 300);
   }
 
   searchEvents(): void {
@@ -245,55 +275,9 @@ export class EventsOrganizationsComponent implements OnInit {
   }
 
   viewOrgDetail(org: any): void {
-    // TODO: Navigate to organization detail page
-    alert(`Xem chi tiết tổ chức: ${org.tenToChuc}`);
-  }
-
-  // Helpers
-  getImageUrl(path: string | null | undefined): string {
-    if (!path) return 'assets/default-event.png';
-    if (path.startsWith('http')) return path;
-    return `http://localhost:5000${path}`;
-  }
-
-  getEventStatus(event: any): string {
-    const now = new Date();
-    const start = new Date(event.ngayBatDau);
-    const end = new Date(event.ngayKetThuc || event.ngayBatDau);
-
-    if (now < start) return 'Sắp diễn ra';
-    if (now >= start && now <= end) return 'Đang diễn ra';
-    return 'Đã kết thúc';
-  }
-
-  getEventStatusClass(event: any): string {
-    const status = this.getEventStatus(event);
-    if (status === 'Sắp diễn ra') return 'badge bg-info';
-    if (status === 'Đang diễn ra') return 'badge bg-success';
-    return 'badge bg-secondary';
-  }
-
-  getVerificationBadge(status: number): string {
-    switch (status) {
-      case 0: return 'badge bg-warning';
-      case 1: return 'badge bg-success';
-      case 2: return 'badge bg-danger';
-      default: return 'badge bg-secondary';
+    if (org?.maToChuc) {
+      this.router.navigate(['/to-chuc', org.maToChuc]);
     }
-  }
-
-  getVerificationText(status: number): string {
-    switch (status) {
-      case 0: return 'Chờ duyệt';
-      case 1: return 'Đã xác minh';
-      case 2: return 'Bị từ chối';
-      default: return 'Không xác định';
-    }
-  }
-
-  formatDate(date: any): string {
-    if (!date) return '';
-    return new Date(date).toLocaleDateString('vi-VN');
   }
 }
 

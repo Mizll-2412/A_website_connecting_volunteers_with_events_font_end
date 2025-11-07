@@ -23,6 +23,7 @@
                 class="form-control border-start-0" 
                 placeholder="Tìm kiếm theo tên, mô tả..."
                 [(ngModel)]="searchKeyword"
+                (input)="onSearchInput()"
                 (keyup.enter)="search()">
             </div>
           </div>
@@ -38,6 +39,7 @@
                 class="form-control border-start-0" 
                 placeholder="Địa điểm..."
                 [(ngModel)]="searchLocation"
+                (input)="onSearchInput()"
                 (keyup.enter)="search()">
             </div>
           </div>
@@ -178,53 +180,7 @@
       <!-- Events Grid -->
       <div class="row g-4" *ngIf="filteredEvents.length > 0">
         <div class="col-md-6 col-lg-4" *ngFor="let event of filteredEvents">
-          <div class="event-card card h-100" (click)="viewEventDetail(event.maSuKien)">
-            <div class="event-image-wrapper">
-              <img 
-                [src]="getImageUrl(event.hinhAnh)" 
-                class="card-img-top event-image" 
-                [alt]="event.tenSuKien">
-              <span class="event-status-badge" [ngClass]="getEventStatusClass(event)">
-                {{ getEventStatus(event) }}
-              </span>
-            </div>
-            <div class="card-body">
-              <h5 class="card-title event-title">{{ event.tenSuKien }}</h5>
-              <p class="card-text event-description text-muted">
-                {{ event.noiDung?.substring(0, 100) }}{{ event.noiDung?.length > 100 ? '...' : '' }}
-              </p>
-              
-              <div class="event-meta">
-                <div class="meta-item">
-                  <i class="bi bi-calendar3 text-primary me-2"></i>
-                  <small>{{ formatDate(event.ngayBatDau) }}</small>
-                </div>
-                <div class="meta-item" *ngIf="event.diaChi">
-                  <i class="bi bi-geo-alt text-danger me-2"></i>
-                  <small>{{ event.diaChi }}</small>
-                </div>
-                <div class="meta-item" *ngIf="event.organization">
-                  <i class="bi bi-building text-success me-2"></i>
-                  <small>{{ event.organization?.tenToChuc }}</small>
-                </div>
-              </div>
-
-              <!-- Skills & Fields -->
-              <div class="mt-2" *ngIf="event.kyNangs || event.linhVucs">
-                <span *ngFor="let skill of event.kyNangs?.slice(0, 2)" class="badge bg-primary me-1 mb-1">
-                  {{ skill.tenKyNang }}
-                </span>
-                <span *ngFor="let field of event.linhVucs?.slice(0, 2)" class="badge bg-info me-1 mb-1">
-                  {{ field.tenLinhVuc }}
-                </span>
-              </div>
-            </div>
-            <div class="card-footer bg-transparent">
-              <button class="btn btn-sm btn-outline-primary w-100">
-                <i class="bi bi-eye me-2"></i>Xem chi tiết
-              </button>
-            </div>
-          </div>
+          <app-event-card [event]="event"></app-event-card>
         </div>
       </div>
     </div>
@@ -244,51 +200,7 @@
       <!-- Organizations Grid -->
       <div class="row g-4" *ngIf="filteredOrganizations.length > 0">
         <div class="col-md-6 col-lg-4" *ngFor="let org of filteredOrganizations">
-          <div class="org-card card h-100">
-            <div class="card-body">
-              <div class="d-flex align-items-start mb-3">
-                <img 
-                  [src]="getImageUrl(org.anhDaiDien)" 
-                  class="org-avatar rounded-circle me-3" 
-                  [alt]="org.tenToChuc">
-                <div class="flex-grow-1">
-                  <h5 class="org-name mb-1">{{ org.tenToChuc }}</h5>
-                  <span [ngClass]="getVerificationBadge(org.trangThaiXacMinh)">
-                    <i class="bi bi-check-circle me-1 text-primary" *ngIf="org.trangThaiXacMinh === 1"></i>
-                    {{ getVerificationText(org.trangThaiXacMinh) }}
-                  </span>
-                </div>
-              </div>
-
-              <p class="org-description text-muted">
-                {{ org.gioiThieu?.substring(0, 120) }}{{ org.gioiThieu?.length > 120 ? '...' : '' }}
-              </p>
-
-              <div class="org-meta">
-                <div class="meta-item" *ngIf="org.diaChi">
-                  <i class="bi bi-geo-alt text-danger me-2"></i>
-                  <small>{{ org.diaChi }}</small>
-                </div>
-                <div class="meta-item" *ngIf="org.email">
-                  <i class="bi bi-envelope text-primary me-2"></i>
-                  <small>{{ org.email }}</small>
-                </div>
-                <div class="meta-item" *ngIf="org.soDienThoai">
-                  <i class="bi bi-telephone text-success me-2"></i>
-                  <small>{{ org.soDienThoai }}</small>
-                </div>
-                <div class="meta-item" *ngIf="org.diemTrungBinh">
-                  <i class="bi bi-star-fill text-warning me-2"></i>
-                  <small>{{ org.diemTrungBinh | number:'1.1-1' }}/5</small>
-                </div>
-              </div>
-            </div>
-            <div class="card-footer bg-transparent">
-              <button class="btn btn-sm btn-outline-success w-100" (click)="viewOrgDetail(org)">
-                <i class="bi bi-eye me-2"></i>Xem chi tiết
-              </button>
-            </div>
-          </div>
+          <app-organization-card [organization]="org"></app-organization-card>
         </div>
       </div>
     </div>

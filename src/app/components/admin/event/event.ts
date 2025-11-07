@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { SuKien, TrangThaiSuKien } from '../../../models/event';
@@ -6,6 +6,8 @@ import { EventService } from '../../../services/event';
 import { SkillService } from '../../../services/skill';
 import { FieldService } from '../../../services/field';
 import { HttpErrorResponse, HttpClient } from '@angular/common/http';
+import { environment } from '../../../../environments/environment';
+import { getImageUrl } from '../../../utils/image-url.util';
 
 @Component({
   selector: 'app-su-kien',
@@ -42,12 +44,18 @@ export class SuKienComponent implements OnInit {
   
   // Organizations
   organizations: any[] = [];
+  
+  // Chi tiết sự kiện đang xem
+  suKienDangXem: SuKien | null = null;
+  suKienDangXemLinhVucs: any[] = [];
+  suKienDangXemKyNangs: any[] = [];
 
   constructor(
     private eventService: EventService,
     private skillService: SkillService,
     private fieldService: FieldService,
-    private http: HttpClient
+    private http: HttpClient,
+    private cdr: ChangeDetectorRef
   ) {}
 
   ngOnInit() {
@@ -108,7 +116,7 @@ export class SuKienComponent implements OnInit {
   }
   
   loadOrganizations(): void {
-    this.http.get<any>('http://localhost:5000/api/organization').subscribe({
+    this.http.get<any>(`${environment.apiUrl}/organization`).subscribe({
       next: (response) => {
         this.organizations = response.data || response || [];
       },
@@ -146,9 +154,43 @@ export class SuKienComponent implements OnInit {
   }
   
   xemChiTiet(suKien: SuKien): void {
-    // Navigate to event detail page or show modal
-    console.log('Xem chi tiết sự kiện:', suKien);
-    // You can implement a detail modal or navigation here
+    // Load đầy đủ thông tin sự kiện từ API
+    this.eventService.getSuKienById(suKien.maSuKien).subscribe({
+      next: (response: any) => {
+        const fullEvent = response.data || response || suKien;
+        this.suKienDangXem = fullEvent;
+        
+        // Load lĩnh vực và kỹ năng
+        if (fullEvent.linhVucIds && Array.isArray(fullEvent.linhVucIds)) {
+          this.suKienDangXemLinhVucs = fullEvent.linhVucIds
+            .map((id: number) => this.linhVucs.find(lv => lv.maLinhVuc === id))
+            .filter((lv: any) => lv != null);
+        } else {
+          this.suKienDangXemLinhVucs = [];
+        }
+        
+        if (fullEvent.kyNangIds && Array.isArray(fullEvent.kyNangIds)) {
+          this.suKienDangXemKyNangs = fullEvent.kyNangIds
+            .map((id: number) => this.kyNangs.find(kn => kn.maKyNang === id))
+            .filter((kn: any) => kn != null);
+        } else {
+          this.suKienDangXemKyNangs = [];
+        }
+      },
+      error: (error) => {
+        console.error('Lỗi khi tải chi tiết sự kiện:', error);
+        // Fallback: dùng dữ liệu hiện có
+        this.suKienDangXem = suKien;
+        this.suKienDangXemLinhVucs = [];
+        this.suKienDangXemKyNangs = [];
+      }
+    });
+  }
+
+  dongChiTietSuKien(): void {
+    this.suKienDangXem = null;
+    this.suKienDangXemLinhVucs = [];
+    this.suKienDangXemKyNangs = [];
   }
 
   private khoiTaoSuKienRong(): SuKien {
@@ -163,6 +205,31 @@ export class SuKienComponent implements OnInit {
 
   formatNgay(date?: Date): string {
     return date ? new Date(date).toLocaleDateString('vi-VN') : '';
+  }
+
+  // Format date for input type="date" (yyyy-MM-dd)
+  formatDateForInput(dateValue: any): string {
+    if (!dateValue) return '';
+    
+    try {
+      // If it's already a string in yyyy-MM-dd format
+      if (typeof dateValue === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(dateValue)) {
+        return dateValue;
+      }
+      
+      // If it's a Date object or ISO string
+      const date = new Date(dateValue);
+      if (isNaN(date.getTime())) return '';
+      
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      
+      return `${year}-${month}-${day}`;
+    } catch (error) {
+      console.error('Error formatting date:', error);
+      return '';
+    }
   }
 
   timKiem() {
@@ -271,24 +338,98 @@ export class SuKienComponent implements OnInit {
   }
 
   suaSuKien(suKien: SuKien) {
-    this.suKienMoi = { ...suKien };
-    this.dangThemMoi = true;
-    this.suKienDangChinhSua = suKien;
-    this.selectedFile = null;
-    this.previewUrl = null;
-    
-    // Load selected skills and fields for this event
-    // Note: You may need to fetch these from the API if they're not in the event object
-    if (suKien.linhVucIds) {
-      this.selectedLinhVucs = [...suKien.linhVucIds];
-    } else {
-      this.selectedLinhVucs = [];
-    }
-    if (suKien.kyNangIds) {
-      this.selectedKyNangs = [...suKien.kyNangIds];
-    } else {
-      this.selectedKyNangs = [];
-    }
+    // Load đầy đủ thông tin sự kiện từ API nếu cần
+    this.eventService.getSuKienById(suKien.maSuKien).subscribe({
+      next: (response: any) => {
+        const fullEvent = response.data || response || suKien;
+        
+        // Format dates for input type="date" (use 'as any' to allow string for form input)
+        this.suKienMoi = {
+          ...fullEvent,
+          ngayBatDau: this.formatDateForInput(fullEvent.ngayBatDau) as any,
+          ngayKetThuc: this.formatDateForInput(fullEvent.ngayKetThuc) as any,
+          tuyenBatDau: this.formatDateForInput(fullEvent.tuyenBatDau) as any,
+          tuyenKetThuc: this.formatDateForInput(fullEvent.tuyenKetThuc) as any,
+          soLuong: fullEvent.soLuong || 0,
+          trangThai: fullEvent.trangThai || 'Đang tuyển',
+          maToChuc: fullEvent.maToChuc || -1
+        } as SuKien;
+        
+        this.dangThemMoi = true;
+        this.suKienDangChinhSua = fullEvent;
+        
+        // Load preview image nếu có
+        if (fullEvent.hinhAnh) {
+          this.previewUrl = this.getImageUrl(fullEvent.hinhAnh);
+        } else {
+          this.previewUrl = null;
+        }
+        this.selectedFile = null;
+        
+        // Load selected skills and fields
+        if (fullEvent.linhVucIds && Array.isArray(fullEvent.linhVucIds)) {
+          this.selectedLinhVucs = [...fullEvent.linhVucIds];
+        } else if (fullEvent.linhVucs && Array.isArray(fullEvent.linhVucs)) {
+          // Nếu API trả về array objects, extract IDs
+          this.selectedLinhVucs = fullEvent.linhVucs.map((lv: any) => lv.maLinhVuc || lv.id);
+        } else {
+          this.selectedLinhVucs = [];
+        }
+        
+        if (fullEvent.kyNangIds && Array.isArray(fullEvent.kyNangIds)) {
+          this.selectedKyNangs = [...fullEvent.kyNangIds];
+        } else if (fullEvent.kyNangs && Array.isArray(fullEvent.kyNangs)) {
+          // Nếu API trả về array objects, extract IDs
+          this.selectedKyNangs = fullEvent.kyNangs.map((kn: any) => kn.maKyNang || kn.id);
+        } else {
+          this.selectedKyNangs = [];
+        }
+        
+        // Trigger change detection để đảm bảo modal hiển thị
+        this.cdr.detectChanges();
+      },
+      error: (error) => {
+        console.error('Lỗi khi tải chi tiết sự kiện:', error);
+        // Fallback: dùng dữ liệu hiện có
+        // Format dates for input type="date" (use 'as any' to allow string for form input)
+        this.suKienMoi = {
+          ...suKien,
+          ngayBatDau: this.formatDateForInput(suKien.ngayBatDau) as any,
+          ngayKetThuc: this.formatDateForInput(suKien.ngayKetThuc) as any,
+          tuyenBatDau: this.formatDateForInput(suKien.tuyenBatDau) as any,
+          tuyenKetThuc: this.formatDateForInput(suKien.tuyenKetThuc) as any,
+          soLuong: suKien.soLuong || 0,
+          trangThai: suKien.trangThai || 'Đang tuyển',
+          maToChuc: suKien.maToChuc || -1
+        } as SuKien;
+        
+        this.dangThemMoi = true;
+        this.suKienDangChinhSua = suKien;
+        
+        // Load preview image nếu có
+        if (suKien.hinhAnh) {
+          this.previewUrl = this.getImageUrl(suKien.hinhAnh);
+        } else {
+          this.previewUrl = null;
+        }
+        this.selectedFile = null;
+        
+        // Load selected skills and fields (SuKien interface only has linhVucIds and kyNangIds)
+        if (suKien.linhVucIds && Array.isArray(suKien.linhVucIds)) {
+          this.selectedLinhVucs = [...suKien.linhVucIds];
+        } else {
+          this.selectedLinhVucs = [];
+        }
+        if (suKien.kyNangIds && Array.isArray(suKien.kyNangIds)) {
+          this.selectedKyNangs = [...suKien.kyNangIds];
+        } else {
+          this.selectedKyNangs = [];
+        }
+        
+        // Trigger change detection để đảm bảo modal hiển thị
+        this.cdr.detectChanges();
+      }
+    });
   }
 
   xoaSuKien(suKien: SuKien) {
@@ -345,5 +486,9 @@ export class SuKienComponent implements OnInit {
         hinhAnh: 'public/tinhnguyen2.jpg'
       }
     ];
+  }
+
+  getImageUrl(path: string | null | undefined): string {
+    return getImageUrl(path);
   }
 }

@@ -5,14 +5,18 @@ import { HttpClient } from '@angular/common/http';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { ToChuc, TrangThaiXacMinh, UpdateToChucDto } from '../../models/organiztion';
 import { AuthService } from '../../services/auth';
+import { environment } from '../../../environments/environment';
+import { getImageUrl } from '../../utils/image-url.util';
 
 interface LegalDocument {
   maGiayTo: number;
   maToChuc: number;
-  tenFile: string;
-  duongDan: string;
+  tenGiayTo?: string; // Tên giấy tờ từ API
+  tenFile?: string; // Tên file (backward compatibility)
+  file?: string; // Đường dẫn file từ API
+  duongDan?: string; // Đường dẫn (backward compatibility)
   moTa?: string;
-  ngayTao: Date;
+  ngayTao: Date | string;
 }
 
 @Component({
@@ -27,6 +31,7 @@ export class OrganizationProfileComponent implements OnInit {
   legalDocuments: LegalDocument[] = [];
   selectedLegalDocs: File[] = [];
   legalDocDescription: string = '';
+  legalDocName: string = ''; // Tên giấy tờ pháp lý
   selectedDocument: LegalDocument | null = null;
   
   // Form data
@@ -40,7 +45,7 @@ export class OrganizationProfileComponent implements OnInit {
   selectedAvatar: File | null = null;
   previewUrl: string | null = null;
   
-  private apiUrl = 'http://localhost:5000/api';
+  private apiUrl = environment.apiUrl;
 
   constructor(
     private http: HttpClient,
@@ -81,7 +86,7 @@ export class OrganizationProfileComponent implements OnInit {
     this.gioiThieu = this.organization.gioiThieu || '';
     
     if (this.organization.anhDaiDien) {
-      this.previewUrl = `http://localhost:5000${this.organization.anhDaiDien}`;
+      this.previewUrl = getImageUrl(this.organization.anhDaiDien);
     }
   }
 
@@ -125,7 +130,7 @@ export class OrganizationProfileComponent implements OnInit {
           if (stored) {
             const u = JSON.parse(stored);
             u.anhDaiDien = this.organization.anhDaiDien;
-            u.profileImage = `http://localhost:5000${this.organization.anhDaiDien}`;
+            u.profileImage = getImageUrl(this.organization.anhDaiDien);
             this.auth.updateUserInfo(u);
           }
         }
@@ -156,6 +161,14 @@ export class OrganizationProfileComponent implements OnInit {
     const input = event.target as HTMLInputElement;
     if (input.files) {
       this.selectedLegalDocs = Array.from(input.files);
+      
+      // Tự động điền tên giấy tờ từ tên file đầu tiên (chỉ khi chưa có giá trị)
+      if (this.selectedLegalDocs.length > 0 && (!this.legalDocName || this.legalDocName.trim() === '')) {
+        const fileName = this.selectedLegalDocs[0].name;
+        // Bỏ phần mở rộng file
+        const nameWithoutExt = fileName.replace(/\.[^/.]+$/, '');
+        this.legalDocName = nameWithoutExt;
+      }
     }
   }
 
@@ -167,6 +180,12 @@ export class OrganizationProfileComponent implements OnInit {
 
     const formData = new FormData();
     formData.append('maToChuc', this.organization.maToChuc.toString());
+    
+    // Tên giấy tờ: lấy từ input hoặc dùng tên file đầu tiên
+    const tenGiayTo = this.legalDocName?.trim() || 
+                      (this.selectedLegalDocs.length > 0 ? this.selectedLegalDocs[0].name.replace(/\.[^/.]+$/, '') : 'Giấy tờ pháp lý');
+    formData.append('TenGiayTo', tenGiayTo);
+    
     this.selectedLegalDocs.forEach(file => {
       formData.append('Files', file);
     });
@@ -180,6 +199,7 @@ export class OrganizationProfileComponent implements OnInit {
         alert('Tải lên giấy tờ pháp lý thành công');
         this.selectedLegalDocs = [];
         this.legalDocDescription = '';
+        this.legalDocName = '';
         // Reset input
         const input = document.getElementById('documentFiles') as HTMLInputElement;
         if (input) input.value = '';
@@ -194,7 +214,8 @@ export class OrganizationProfileComponent implements OnInit {
   }
 
   deleteLegalDocument(doc: LegalDocument): void {
-    if (!confirm(`Bạn có chắc chắn muốn xóa giấy tờ "${doc.tenFile}"?`)) return;
+    const docName = doc.tenGiayTo || this.getDocumentFileName(doc);
+    if (!confirm(`Bạn có chắc chắn muốn xóa giấy tờ "${docName}"?`)) return;
 
     this.http.delete<any>(`${this.apiUrl}/GiayToPhapLy/${doc.maGiayTo}`).subscribe({
       next: () => {
@@ -220,12 +241,37 @@ export class OrganizationProfileComponent implements OnInit {
 
   getDocumentUrl(path: string): string {
     if (!path) return '';
-    return `http://localhost:5000${path}`;
+    return getImageUrl(path);
   }
 
   getSafeDocumentUrl(path: string): SafeResourceUrl {
     if (!path) return this.sanitizer.bypassSecurityTrustResourceUrl('');
-    return this.sanitizer.bypassSecurityTrustResourceUrl(`http://localhost:5000${path}`);
+    return this.sanitizer.bypassSecurityTrustResourceUrl(getImageUrl(path));
+  }
+
+  getDocumentFileName(doc: LegalDocument | null | undefined): string {
+    // Lấy tên file từ đường dẫn
+    if (!doc) return 'Không có tên';
+    if (doc.file) {
+      const parts = doc.file.split('/');
+      return parts[parts.length - 1] || 'Không có tên';
+    }
+    if (doc.duongDan) {
+      const parts = doc.duongDan.split('/');
+      return parts[parts.length - 1] || 'Không có tên';
+    }
+    return doc.tenFile || 'Không có tên';
+  }
+
+  getDocumentUrlForDoc(doc: LegalDocument | null | undefined): string {
+    if (!doc) return '';
+    if (doc.file) {
+      return getImageUrl(doc.file);
+    }
+    if (doc.duongDan) {
+      return getImageUrl(doc.duongDan);
+    }
+    return '';
   }
 
   isImageFile(filename: string): boolean {

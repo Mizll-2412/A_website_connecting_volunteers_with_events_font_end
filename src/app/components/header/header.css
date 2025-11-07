@@ -15,7 +15,7 @@
   top: 0;
   left: 0;
   right: 0;
-  z-index: 1000;
+  z-index: 9999;
   transition: all 0.3s ease;
   height: 70px;
   width: 100%;
@@ -525,6 +525,15 @@
   background-color: rgba(0, 0, 0, 0.02);
 }
 
+.notification-item.clickable {
+  cursor: pointer;
+}
+
+.notification-item.clickable:hover {
+  background-color: #e3f2fd;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
 .notification-item.unread {
   background-color: rgba(44, 123, 229, 0.05);
 }
@@ -592,6 +601,10 @@
 /* Responsive */
 @media (min-width: 1600px) {
   .header-container {
+    max-width: 1600px;
+  }
+
+  .section-container {
     max-width: 1600px;
   }
 }

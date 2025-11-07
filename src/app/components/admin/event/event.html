@@ -43,7 +43,7 @@
     <tbody>
       <tr *ngFor="let sk of danhSachHienThi">
         <td>
-          <img [src]="sk.hinhAnh ? ('http://localhost:5000' + sk.hinhAnh) : 'assets/event-default.jpg'" 
+          <img [src]="sk.hinhAnh ? getImageUrl(sk.hinhAnh) : 'assets/event-default.jpg'" 
                class="event-image" 
                style="width: 60px; height: 60px; object-fit: cover; border-radius: 8px;"
                onerror="this.src='assets/event-default.jpg'">
@@ -55,9 +55,11 @@
         <td>{{ sk.soLuong || 0 }}</td>
         <td>
           <span class="badge" [ngClass]="{
-            'badge-success': sk.trangThai === 'Đã duyệt' || sk.trangThai === 'Kết thúc',
-            'badge-warning': sk.trangThai === 'Đang tuyển' || sk.trangThai === 'Sắp diễn ra',
-            'badge-danger': sk.trangThai === 'Hủy bỏ'
+            'bg-success': sk.trangThai === 'Đã duyệt' || sk.trangThai === 'Kết thúc' || sk.trangThai === 'Đã kết thúc',
+            'bg-warning': sk.trangThai === 'Đang tuyển' || sk.trangThai === 'Sắp diễn ra',
+            'bg-danger': sk.trangThai === 'Hủy bỏ' || sk.trangThai === 'Đã hủy',
+            'bg-info': sk.trangThai === 'Đang diễn ra',
+            'bg-secondary': !sk.trangThai
           }">{{ sk.trangThai || 'Đang tuyển' }}</span>
         </td>
         <td>
@@ -140,7 +142,7 @@
               <img [src]="previewUrl" alt="Preview" style="max-height: 200px; max-width: 100%; border-radius: 8px;">
             </div>
             <div *ngIf="!previewUrl && suKienMoi.hinhAnh" class="mt-2">
-              <img [src]="'http://localhost:5000' + suKienMoi.hinhAnh" alt="Current" style="max-height: 200px; max-width: 100%; border-radius: 8px;">
+              <img [src]="getImageUrl(suKienMoi.hinhAnh)" alt="Current" style="max-height: 200px; max-width: 100%; border-radius: 8px;">
             </div>
           </div>
           
@@ -208,6 +210,105 @@
           <button type="submit" class="btn-modal btn-approve">{{ suKienDangChinhSua ? 'Cập nhật' : 'Thêm mới' }}</button>
         </div>
       </form>
+    </div>
+  </div>
+</div>
+
+<!-- Modal xem chi tiết sự kiện -->
+<div class="modal" *ngIf="suKienDangXem" (click)="dongChiTietSuKien()">
+  <div class="modal-content modal-lg" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h2>Chi tiết sự kiện</h2>
+      <button class="btn-close" (click)="dongChiTietSuKien()">&times;</button>
+    </div>
+    <div class="modal-body" *ngIf="suKienDangXem">
+      <div class="row">
+        <div class="col-md-4 text-center mb-3">
+          <img [src]="suKienDangXem.hinhAnh ? getImageUrl(suKienDangXem.hinhAnh) : 'assets/event-default.jpg'" 
+               class="img-fluid rounded" 
+               alt="Hình ảnh sự kiện" 
+               style="max-height: 300px; width: 100%; object-fit: cover;"
+               onerror="this.src='assets/event-default.jpg'">
+        </div>
+        <div class="col-md-8">
+          <h3>{{ suKienDangXem.tenSuKien || 'Chưa có tên' }}</h3>
+          
+          <div class="detail-row">
+            <div class="label">Mã sự kiện:</div>
+            <div class="value">{{ suKienDangXem.maSuKien }}</div>
+          </div>
+          
+          <div class="detail-row">
+            <div class="label">Trạng thái:</div>
+            <div class="value">
+              <span class="badge" [ngClass]="{
+                'bg-success': suKienDangXem.trangThai === 'Đã duyệt' || suKienDangXem.trangThai === 'Kết thúc' || suKienDangXem.trangThai === 'Đã kết thúc',
+                'bg-warning': suKienDangXem.trangThai === 'Đang tuyển' || suKienDangXem.trangThai === 'Sắp diễn ra',
+                'bg-danger': suKienDangXem.trangThai === 'Hủy bỏ' || suKienDangXem.trangThai === 'Đã hủy',
+                'bg-info': suKienDangXem.trangThai === 'Đang diễn ra',
+                'bg-secondary': !suKienDangXem.trangThai
+              }">{{ suKienDangXem.trangThai || 'Đang tuyển' }}</span>
+            </div>
+          </div>
+          
+          <div class="detail-row">
+            <div class="label">Địa điểm:</div>
+            <div class="value">{{ suKienDangXem.diaChi || 'Chưa cập nhật' }}</div>
+          </div>
+          
+          <div class="detail-row">
+            <div class="label">Ngày bắt đầu:</div>
+            <div class="value">{{ suKienDangXem.ngayBatDau ? formatNgay(suKienDangXem.ngayBatDau) : 'Chưa có' }}</div>
+          </div>
+          
+          <div class="detail-row">
+            <div class="label">Ngày kết thúc:</div>
+            <div class="value">{{ suKienDangXem.ngayKetThuc ? formatNgay(suKienDangXem.ngayKetThuc) : 'Chưa có' }}</div>
+          </div>
+          
+          <div class="detail-row">
+            <div class="label">Số lượng TNV:</div>
+            <div class="value">{{ suKienDangXem.soLuong || 0 }}</div>
+          </div>
+          
+          <div class="detail-row" *ngIf="suKienDangXem.tuyenBatDau">
+            <div class="label">Ngày bắt đầu tuyển:</div>
+            <div class="value">{{ formatNgay(suKienDangXem.tuyenBatDau) }}</div>
+          </div>
+          
+          <div class="detail-row" *ngIf="suKienDangXem.tuyenKetThuc">
+            <div class="label">Ngày kết thúc tuyển:</div>
+            <div class="value">{{ formatNgay(suKienDangXem.tuyenKetThuc) }}</div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="mt-3">
+        <div class="label"><strong>Nội dung sự kiện:</strong></div>
+        <div class="value">{{ suKienDangXem.noiDung || 'Chưa có mô tả' }}</div>
+      </div>
+      
+      <div class="mt-3" *ngIf="suKienDangXemLinhVucs.length > 0">
+        <div class="label"><strong>Lĩnh vực:</strong></div>
+        <div class="d-flex flex-wrap gap-2 mt-2">
+          <span *ngFor="let lv of suKienDangXemLinhVucs" class="badge bg-info">
+            {{ lv.tenLinhVuc }}
+          </span>
+        </div>
+      </div>
+      
+      <div class="mt-3" *ngIf="suKienDangXemKyNangs.length > 0">
+        <div class="label"><strong>Kỹ năng cần thiết:</strong></div>
+        <div class="d-flex flex-wrap gap-2 mt-2">
+          <span *ngFor="let kn of suKienDangXemKyNangs" class="badge bg-success">
+            {{ kn.tenKyNang }}
+          </span>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-modal btn-edit" (click)="suaSuKien(suKienDangXem!)">Chỉnh sửa</button>
+      <button class="btn-modal btn-cancel" (click)="dongChiTietSuKien()">Đóng</button>
     </div>
   </div>
 </div>

@@ -40,6 +40,15 @@
   border-left: 4px solid #1890ff;
 }
 
+.notification-item.clickable {
+  cursor: pointer;
+}
+
+.notification-item.clickable:hover {
+  background-color: #e3f2fd;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
 .notification-icon {
   display: flex;
   align-items: center;

@@ -3,6 +3,8 @@ import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
+import { environment } from '../../../environments/environment';
+import { getImageUrl, getOrgDefaultImage as getOrgDefaultImageUtil } from '../../utils/image-url.util';
 
 interface Skill {
   maKyNang: number;
@@ -34,7 +36,7 @@ export class AdvancedSearchComponent implements OnInit {
   locations = ['Hà Nội', 'Tp. Hồ Chí Minh', 'Đà Nẵng', 'Cần Thơ', 'Hải Phòng', 'Khác'];
   organizations: any[] = [];
   
-  private apiUrl = 'http://localhost:5000/api';
+  private apiUrl = environment.apiUrl;
   
   constructor(
     private fb: FormBuilder,
@@ -282,5 +284,13 @@ export class AdvancedSearchComponent implements OnInit {
       // Giả sử có trang hồ sơ tình nguyện viên
       this.router.navigate(['/volunteer', id]);
     }
+  }
+
+  getImageUrl(path: string | null | undefined): string {
+    return getImageUrl(path);
+  }
+
+  getOrgDefaultImage(): string {
+    return getOrgDefaultImageUtil();
   }
 }

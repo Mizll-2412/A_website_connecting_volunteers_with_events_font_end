@@ -91,7 +91,7 @@
                 <div class="col-md-6">
                   <label class="form-label">Email</label>
                   <div class="input-group">
-                    <input type="email" formControlName="email" class="form-control" placeholder="Email" [disabled]="true" />
+                    <input type="email" formControlName="email" class="form-control" placeholder="Email" />
                     <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#changeEmailModal" disabled>Đổi email</button>
                   </div>
                   <small class="text-muted">Đổi email sẽ yêu cầu xác thực qua email mới.</small>
@@ -140,13 +140,26 @@
                       </div>
                     </div>
                     <!-- Form chọn kỹ năng động -->
-                    <div class="col-md-6" *ngFor="let _ of selectedKyNangs; let knIdx = index">
-                      <div class="input-group">
+                    <div class="col-md-12" *ngFor="let _ of selectedKyNangs; let knIdx = index">
+                      <div class="input-group mb-2">
                         <select class="form-select" (change)="onKyNangChange(knIdx, $event)" [ngModel]="selectedKyNangs[knIdx]" [ngModelOptions]="{standalone: true}">
                           <option value="">-- Chọn kỹ năng {{knIdx + 1}} --</option>
                           <option *ngFor="let kn of getAvailableKyNangs(knIdx)" [value]="kn.maKyNang">{{ kn.tenKyNang }}</option>
                         </select>
                         <button type="button" class="btn btn-outline-danger" (click)="removeKyNang(knIdx)">X</button>
+                      </div>
+                      <div class="input-group">
+                        <input type="text" 
+                               class="form-control" 
+                               placeholder="Hoặc nhập kỹ năng mới..." 
+                               [(ngModel)]="newKyNangText[knIdx]"
+                               [ngModelOptions]="{standalone: true}">
+                        <button type="button" 
+                                class="btn btn-outline-success" 
+                                (click)="createNewKyNang(knIdx)"
+                                [disabled]="!newKyNangText[knIdx]?.trim()">
+                          <i class="bi bi-plus-circle"></i> Tạo mới
+                        </button>
                       </div>
                     </div>
                     <div class="col-12">
@@ -168,13 +181,26 @@
                       </div>
                     </div>
                     <!-- Form chọn lĩnh vực động -->
-                    <div class="col-md-6" *ngFor="let _ of selectedLinhVucs; let lvIdx = index">
-                      <div class="input-group">
+                    <div class="col-md-12" *ngFor="let _ of selectedLinhVucs; let lvIdx = index">
+                      <div class="input-group mb-2">
                         <select class="form-select" (change)="onLinhVucChange(lvIdx, $event)" [ngModel]="selectedLinhVucs[lvIdx]" [ngModelOptions]="{standalone: true}">
                           <option value="">-- Chọn lĩnh vực {{lvIdx + 1}} --</option>
                           <option *ngFor="let lv of getAvailableLinhVucs(lvIdx)" [value]="lv.maLinhVuc">{{ lv.tenLinhVuc }}</option>
                         </select>
                         <button type="button" class="btn btn-outline-danger" (click)="removeLinhVuc(lvIdx)">X</button>
+                      </div>
+                      <div class="input-group">
+                        <input type="text" 
+                               class="form-control" 
+                               placeholder="Hoặc nhập lĩnh vực mới..." 
+                               [(ngModel)]="newLinhVucText[lvIdx]"
+                               [ngModelOptions]="{standalone: true}">
+                        <button type="button" 
+                                class="btn btn-outline-success" 
+                                (click)="createNewLinhVuc(lvIdx)"
+                                [disabled]="!newLinhVucText[lvIdx]?.trim()">
+                          <i class="bi bi-plus-circle"></i> Tạo mới
+                        </button>
                       </div>
                     </div>
                     <div class="col-12">

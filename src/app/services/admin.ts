@@ -52,22 +52,22 @@ export class AdminService {
 
   // Lấy chi tiết đầy đủ tổ chức (bao gồm giấy tờ pháp lý, sự kiện)
   getOrganizationDetails(id: number): Observable<any> {
-    return this.http.get(`http://localhost:5000/api/organization/${id}`);
+    return this.http.get(`${environment.apiUrl}/organization/${id}`);
   }
 
   // Lấy chi tiết đầy đủ TNV (bao gồm kỹ năng, lĩnh vực, sự kiện)
   getVolunteerDetails(id: number): Observable<any> {
-    return this.http.get(`http://localhost:5000/api/tinhnguyenvien/${id}`);
+    return this.http.get(`${environment.apiUrl}/tinhnguyenvien/${id}`);
   }
 
   // Lấy giấy tờ pháp lý của tổ chức
   getLegalDocuments(organizationId: number): Observable<any> {
-    return this.http.get(`http://localhost:5000/api/GiayToPhapLy/tochuc/${organizationId}`);
+    return this.http.get(`${environment.apiUrl}/GiayToPhapLy/tochuc/${organizationId}`);
   }
   
   // Lấy thống kê tổ chức
   getOrganizationStatistics(): Observable<any> {
-    return this.http.get(`http://localhost:5000/api/statistics/organizations`);
+    return this.http.get(`${environment.apiUrl}/statistics/organizations`);
   }
 
   verifyOrganization(id: number, daXacMinh: boolean, lyDoTuChoi?: string): Observable<any> {

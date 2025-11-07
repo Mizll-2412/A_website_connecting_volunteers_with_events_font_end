@@ -89,8 +89,18 @@
                     <button *ngIf="canCancelRegistration(reg)" 
                             class="btn btn-sm btn-outline-danger"
                             (click)="cancelRegistration(reg)"
-                            title="Hủy đăng ký">
-                      <i class="bi bi-trash"></i>
+                            [title]="getCancelButtonText(reg)">
+                      <i class="bi" [ngClass]="{
+                        'bi-x-circle': reg.trangThai === 0,
+                        'bi-trash': reg.trangThai === 1
+                      }"></i>
+                      {{ getCancelButtonText(reg) }}
+                    </button>
+                    <button *ngIf="canReRegister(reg)" 
+                            class="btn btn-sm btn-outline-success"
+                            (click)="reRegister(reg)"
+                            title="Đăng ký lại">
+                      <i class="bi bi-arrow-clockwise"></i> Đăng ký lại
                     </button>
                     <button *ngIf="canEvaluate(reg)" 
                             class="btn btn-sm btn-outline-primary"
@@ -99,7 +109,7 @@
                       <i class="bi bi-star"></i> Đánh giá
                     </button>
                   </div>
-                  <span *ngIf="!canCancelRegistration(reg) && !canEvaluate(reg)" class="text-muted">
+                  <span *ngIf="!canCancelRegistration(reg) && !canReRegister(reg) && !canEvaluate(reg)" class="text-muted">
                     -
                   </span>
                 </td>

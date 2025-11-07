@@ -37,7 +37,7 @@
   <div class="organization-list" *ngIf="!isLoading && filteredToChuc.length > 0">
     <div class="organization-card" *ngFor="let org of filteredToChuc">
       <!-- Hiển thị hình ảnh từ API với fallback -->
-      <img [src]="org.anhDaiDien ? 'http://localhost:5000' + org.anhDaiDien : 'https://via.placeholder.com/100'" 
+      <img [src]="getImageUrl(org.anhDaiDien) || 'https://via.placeholder.com/100'" 
            alt="Ảnh đại diện" 
            onerror="this.src='https://via.placeholder.com/100'"/>
       

@@ -1,17 +1,22 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, ViewChild } from '@angular/core';
 import { Router, RouterModule } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { AuthService } from '../../services/auth';
 import { EventService } from '../../services/event';
 import { TinhNguyenVienService } from '../../services/volunteer';
 import { ToChucService } from '../../services/organization';
+import { RegistrationService } from '../../services/registration';
 import { SuKienResponseDto } from '../../models/event';
 import { TinhNguyenVienResponeDTos } from '../../models/volunteer';
+import { EventCardComponent } from '../shared/event-card/event-card';
+import { OrganizationCardComponent } from '../shared/organization-card/organization-card';
+import { VolunteerProfileViewerComponent } from '../volunteer-profile-viewer/volunteer-profile-viewer';
+import { getImageUrl } from '../../utils/image-url.util';
 
 @Component({
   selector: 'app-home',
   standalone: true,
-  imports: [CommonModule, RouterModule],
+  imports: [CommonModule, RouterModule, EventCardComponent, OrganizationCardComponent, VolunteerProfileViewerComponent],
   templateUrl: './home.html',
   styleUrl: './home.css'
 })
@@ -23,6 +28,8 @@ export class Home implements OnInit, OnDestroy {
   randomEvents: any[] = [];
   randomOrganizations: any[] = [];
   randomVolunteers: any[] = [];
+  
+  @ViewChild(VolunteerProfileViewerComponent) volunteerProfileViewer?: VolunteerProfileViewerComponent;
   
   mockVolunteers = [
     {
@@ -63,29 +70,45 @@ export class Home implements OnInit, OnDestroy {
   username = '';
   role = '';
   
-  // Banner items with demo images (no buttons inside)
-  bannerItems = [
+  // Banner items - có thể sử dụng video hoặc image
+  // 
+  // 📹 CÁCH SỬ DỤNG VIDEO:
+  // 1. Đặt file video vào thư mục: src/assets/banners/
+  // 2. Thay 'banner.mp4' bên dưới bằng tên file video của bạn
+  //    Ví dụ: nếu file của bạn là "my-video.mp4" thì viết: video: 'my-video.mp4'
+  // 
+  // 🖼️ CÁCH SỬ DỤNG ẢNH:
+  // 1. Đặt file ảnh vào thư mục: src/assets/banners/
+  // 2. Thay 'banner1.svg' bằng tên file ảnh của bạn
+  //    Ví dụ: image: 'my-image.jpg'
+  //
+  bannerItems: Array<{
+    id: number;
+    video?: string;
+    image?: string;
+    title: string;
+    description: string;
+  }> = [
     {
       id: 1,
-      image: 'banner1.svg',
+      video: 'banner.mp4', 
       title: 'Cùng nhau tạo nên thay đổi tích cực',
       description: 'Hãy là một phần của hành trình lan tỏa yêu thương và giá trị nhân văn'
     },
     {
       id: 2,
-      image: 'banner2.svg',
+      image: 'banner1.png', 
       title: 'Kết nối - Chia sẻ - Hành động',
       description: 'Nơi những trái tim nhiệt huyết hội tụ vì một cộng đồng tốt đẹp hơn'
     },
     {
       id: 3,
-      image: 'banner3.svg',
+      image: 'banner2.png',
       title: 'Lan tỏa tinh thần tình nguyện',
       description: 'Mỗi hành động nhỏ đều góp phần xây dựng tương lai tươi sáng'
     }
   ];
   
-  // Mock data cho các dự án phù hợp
   suitableProjects = [
     {
       maSuKien: 101,
@@ -134,7 +157,8 @@ export class Home implements OnInit, OnDestroy {
     private auth: AuthService, 
     private eventS: EventService, 
     private Volunteer: TinhNguyenVienService,
-    private toChucService: ToChucService
+    private toChucService: ToChucService,
+    private registrationService: RegistrationService
   ) { }
 
   ngOnDestroy(): void {
@@ -146,6 +170,11 @@ export class Home implements OnInit, OnDestroy {
   ngOnInit(): void {
     // Banner rotation
     this.startBanner();
+    
+    // Play video của slide đầu tiên sau khi view render
+    setTimeout(() => {
+      this.playActiveVideo();
+    }, 500);
     
     let lastScroll = 0;
     window.addEventListener('scroll', () => {
@@ -216,6 +245,13 @@ export class Home implements OnInit, OnDestroy {
       next: (data: any) => {
         const volunteers = Array.isArray(data) ? data : (data?.data || data?.items || []);
         this.randomVolunteers = this.shuffleArray(volunteers).slice(0, 5);
+        
+        // Load số sự kiện đã tham gia cho mỗi volunteer
+        this.randomVolunteers.forEach((volunteer: any) => {
+          if (volunteer.maTNV) {
+            this.loadVolunteerEventCount(volunteer);
+          }
+        });
       },
       error: (err) => {
         console.error('Lỗi tải tình nguyện viên:', err);
@@ -227,16 +263,53 @@ export class Home implements OnInit, OnDestroy {
   startBanner(): void {
     this.bannerInterval = setInterval(() => {
       this.activeBannerIndex = (this.activeBannerIndex + 1) % this.bannerItems.length;
+      // Play video của slide active
+      this.playActiveVideo();
     }, 5000);
+  }
+
+  playActiveVideo(): void {
+    setTimeout(() => {
+      const videos = document.querySelectorAll('.banner-video') as NodeListOf<HTMLVideoElement>;
+      videos.forEach((video, i) => {
+        if (i === this.activeBannerIndex) {
+          video.play().catch(err => console.log('Video play error:', err));
+        } else {
+          video.pause();
+        }
+      });
+    }, 100);
   }
   
   setBannerSlide(index: number): void {
     this.activeBannerIndex = index;
     
+    // Play video của slide active
+    this.playActiveVideo();
+    
     // Reset timer
     if (this.bannerInterval) {
       clearInterval(this.bannerInterval);
       this.startBanner();
+    }
+  }
+
+  onVideoLoaded(event: Event): void {
+    const video = event.target as HTMLVideoElement;
+    // Đảm bảo video play khi slide active
+    if (video.parentElement?.classList.contains('active')) {
+      video.play().catch(err => console.log('Video play error:', err));
+    }
+  }
+
+  onVideoCanPlay(event: Event, index: number): void {
+    const video = event.target as HTMLVideoElement;
+    // Play video nếu đây là slide đang active
+    if (index === this.activeBannerIndex) {
+      video.play().catch(err => {
+        console.log('Video play error:', err);
+        // Nếu autoplay bị chặn, thử play lại sau khi user tương tác
+      });
     }
   }
   
@@ -275,5 +348,48 @@ export class Home implements OnInit, OnDestroy {
 
   goToProfile(): void {
     this.router.navigate(['/profile']);
+  }
+
+  // Load số sự kiện đã tham gia và đang tham gia
+  loadVolunteerEventCount(volunteer: any): void {
+    if (!volunteer.maTNV) return;
+
+    this.registrationService.getRegistrationsByVolunteer(volunteer.maTNV).subscribe({
+      next: (response: any) => {
+        const registrations = response?.data || response || [];
+        
+        // Đếm số sự kiện đang tham gia (chờ duyệt + đã duyệt nhưng chưa hoàn thành)
+        // Trạng thái: 0 = Chờ duyệt, 1 = Đã duyệt (đang tham gia), 2 = Đã từ chối, 3 = Đã hoàn thành
+        const dangThamGia = registrations.filter((reg: any) => 
+          reg.trangThai === 0 || reg.trangThai === 1
+        ).length;
+        
+        // Tổng số sự kiện đã tham gia (bao gồm cả đã hoàn thành)
+        const tongSuKien = registrations.filter((reg: any) => 
+          reg.trangThai === 0 || reg.trangThai === 1 || reg.trangThai === 3
+        ).length;
+        
+        volunteer.dangThamGia = dangThamGia;
+        volunteer.tongSuKienThamGia = tongSuKien;
+        volunteer.suKienDaThamGia = tongSuKien;
+      },
+      error: (err) => {
+        console.error('Lỗi tải số sự kiện đã tham gia:', err);
+        volunteer.dangThamGia = 0;
+        volunteer.tongSuKienThamGia = 0;
+        volunteer.suKienDaThamGia = 0;
+      }
+    });
+  }
+
+  // Mở modal xem hồ sơ volunteer
+  viewVolunteerProfile(volunteer: any): void {
+    if (this.volunteerProfileViewer && volunteer.maTNV) {
+      this.volunteerProfileViewer.open(volunteer.maTNV, volunteer);
+    }
+  }
+
+  getImageUrl(path: string | null | undefined): string {
+    return getImageUrl(path);
   }
 }

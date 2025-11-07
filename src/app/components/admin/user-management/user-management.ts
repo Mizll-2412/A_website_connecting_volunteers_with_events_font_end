@@ -2,6 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { AdminService } from '../../../services/admin';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { getImageUrl } from '../../../utils/image-url.util';
 
 declare var bootstrap: any;
 
@@ -218,9 +219,9 @@ export class UserManagement implements OnInit {
 
   getUserAvatar(user: any): string {
     if (user.volunteer?.anhDaiDien) {
-      return 'http://localhost:5000' + user.volunteer.anhDaiDien;
+      return getImageUrl(user.volunteer.anhDaiDien);
     } else if (user.organization?.anhDaiDien) {
-      return 'http://localhost:5000' + user.organization.anhDaiDien;
+      return getImageUrl(user.organization.anhDaiDien);
     }
     return 'assets/default-avatar.png';
   }
@@ -239,5 +240,9 @@ export class UserManagement implements OnInit {
   // Thay thế toastr bằng phương thức hiển thị thông báo đơn giản
   showToast(message: string, type: string): void {
     alert(`${type}: ${message}`);
+  }
+
+  getImageUrl(path: string | null | undefined): string {
+    return getImageUrl(path);
   }
 }

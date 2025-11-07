@@ -6,6 +6,7 @@ import { RouterLink, RouterModule, Router } from '@angular/router';
 import { AuthService } from '../../services/auth';
 import { ToChucService } from '../../services/organization';
 import { HttpErrorResponse } from '@angular/common/http';
+import { getImageUrl } from '../../utils/image-url.util';
 
 export enum TrangThaiXacMinh {
   ChoDuyet = 0,
@@ -210,5 +211,9 @@ export class ToChucListComponent implements OnInit {
   viewDetails(org: ToChuc): void {
     // TODO: Implement modal or navigate to detail page
     alert(`Chi tiết tổ chức: ${org.tenToChuc}\nEmail: ${org.email}\nĐịa chỉ: ${org.diaChi || 'Chưa cập nhật'}\nĐánh giá: ${org.diemTrungBinh || 0}/5`);
+  }
+
+  getImageUrl(path: string | null | undefined): string {
+    return getImageUrl(path);
   }
 }

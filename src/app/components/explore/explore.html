@@ -28,17 +28,7 @@
       <h5 class="mb-3">Sự kiện</h5>
       <div class="row g-3">
         <div *ngFor="let e of filteredEvents" class="col-md-6 col-lg-4">
-          <div class="card h-100">
-            <img [src]="e.hinhAnh ? 'http://localhost:5000' + e.hinhAnh : 'assets/event-default.jpg'" class="card-img-top" style="height:160px; object-fit:cover;">
-            <div class="card-body">
-              <h6 class="card-title">{{ e.tenSuKien }}</h6>
-              <p class="card-text text-muted mb-1">{{ e.diaChi }}</p>
-              <p class="card-text text-muted mb-0">{{ e.ngayBatDau | date:'dd/MM/yyyy' }} - {{ e.ngayKetThuc | date:'dd/MM/yyyy' }}</p>
-            </div>
-            <div class="card-footer bg-white">
-              <a [routerLink]="['/su-kien', e.maSuKien]" class="btn btn-sm btn-outline-primary">Chi tiết</a>
-            </div>
-          </div>
+          <app-event-card [event]="e"></app-event-card>
         </div>
         <div *ngIf="filteredEvents.length===0" class="text-muted fst-italic ps-2">Không có sự kiện phù hợp.</div>
       </div>
@@ -48,24 +38,7 @@
       <h5 class="mb-3">Tổ chức</h5>
       <div class="row g-3">
         <div *ngFor="let o of filteredOrgs" class="col-md-6 col-lg-4">
-          <div class="card h-100 clickable" (click)="viewOrganizationDetail(o)">
-            <div class="card-body">
-              <div class="d-flex align-items-center mb-2">
-                <img [src]="o.anhDaiDien ? 'http://localhost:5000' + o.anhDaiDien : 'assets/org-default.png'" 
-                     class="org-avatar me-2" 
-                     alt="{{o.tenToChuc}}"
-                     onerror="this.src='assets/org-default.png'">
-                <h6 class="card-title mb-0">{{ o.tenToChuc }}</h6>
-              </div>
-              <p class="card-text text-muted mb-1"><i class="bi bi-envelope me-1"></i>{{ o.email }}</p>
-              <p class="card-text text-muted mb-0"><i class="bi bi-geo-alt me-1"></i>{{ o.diaChi || 'Chưa cập nhật' }}</p>
-            </div>
-            <div class="card-footer bg-white">
-              <button class="btn btn-sm btn-outline-primary w-100">
-                <i class="bi bi-eye me-1"></i>Xem chi tiết
-              </button>
-            </div>
-          </div>
+          <app-organization-card [organization]="o"></app-organization-card>
         </div>
         <div *ngIf="filteredOrgs.length===0" class="text-muted fst-italic ps-2">Không có tổ chức phù hợp.</div>
       </div>
@@ -86,10 +59,11 @@
       <div class="modal-body">
         <div class="row">
           <div class="col-md-4 text-center mb-3">
-            <img [src]="selectedOrg.anhDaiDien ? 'http://localhost:5000' + selectedOrg.anhDaiDien : 'assets/org-default.png'" 
+            <img [src]="selectedOrg.anhDaiDien ? getImageUrl(selectedOrg.anhDaiDien) : getOrgDefaultImage()" 
                  class="img-fluid rounded shadow-sm" 
                  alt="{{selectedOrg.tenToChuc}}"
-                 onerror="this.src='assets/org-default.png'"
+                 onerror="this.onerror=null; this.src=this.getAttribute('data-fallback')"
+                 [attr.data-fallback]="getOrgDefaultImage()"
                  style="max-height: 200px;">
             <div class="mt-2">
               <span class="badge bg-success" *ngIf="selectedOrg.trangThaiXacMinh === 1">

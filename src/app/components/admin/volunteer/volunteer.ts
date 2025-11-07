@@ -1,10 +1,12 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { TinhNguyenVien } from '../../../models/volunteer';
 import { TinhNguyenVienService } from '../../../services/volunteer';
 import { HttpErrorResponse } from '@angular/common/http';
 import { HttpClient } from '@angular/common/http';
+import { environment } from '../../../../environments/environment';
+import { getImageUrl as getImageUrlUtil } from '../../../utils/image-url.util';
 
 @Component({
   selector: 'app-tinh-nguyen-vien',
@@ -43,7 +45,11 @@ export class TinhNguyenVienComponent implements OnInit {
   allSkills: any[] = [];
   allFields: any[] = [];
 
-  constructor(private tnvService: TinhNguyenVienService, private http: HttpClient) {}
+  constructor(
+    private tnvService: TinhNguyenVienService, 
+    private http: HttpClient,
+    private cdr: ChangeDetectorRef
+  ) {}
 
   ngOnInit() {
     this.loadMasterData();
@@ -52,7 +58,7 @@ export class TinhNguyenVienComponent implements OnInit {
   
   loadMasterData(): void {
     // Load all skills
-    this.http.get<any>('http://localhost:5000/api/kynang').subscribe({
+    this.http.get<any>(`${environment.apiUrl}/kynang`).subscribe({
       next: (response) => {
         this.allSkills = response.data || response || [];
       },
@@ -63,7 +69,7 @@ export class TinhNguyenVienComponent implements OnInit {
     });
     
     // Load all fields
-    this.http.get<any>('http://localhost:5000/api/linhvuc').subscribe({
+    this.http.get<any>(`${environment.apiUrl}/linhvuc`).subscribe({
       next: (response) => {
         this.allFields = response.data || response || [];
       },
@@ -104,8 +110,33 @@ export class TinhNguyenVienComponent implements OnInit {
   }
 
   suaTNV(tnv: TinhNguyenVien) {
-    this.tnvmoi = { ...tnv };
-    this.dangSua = true;
+    // Load đầy đủ thông tin TNV từ API
+    this.tnvService.getVolunteerById(tnv.maTNV).subscribe({
+      next: (response: any) => {
+        const fullTNV = response.data || response || tnv;
+        this.tnvmoi = { ...fullTNV };
+        this.dangSua = true;
+        this.dangThem = false;
+        
+        // Trigger change detection để đảm bảo modal hiển thị
+        this.cdr.detectChanges();
+        
+        // Load preview avatar nếu có
+        if (fullTNV.anhDaiDien) {
+          // Preview sẽ được hiển thị tự động qua binding
+        }
+      },
+      error: (error) => {
+        console.error('Lỗi khi tải chi tiết TNV:', error);
+        // Fallback: dùng dữ liệu hiện có
+        this.tnvmoi = { ...tnv };
+        this.dangSua = true;
+        this.dangThem = false;
+        
+        // Trigger change detection
+        this.cdr.detectChanges();
+      }
+    });
   }
 
   xoaTNV(tnv: TinhNguyenVien) {
@@ -204,11 +235,30 @@ export class TinhNguyenVienComponent implements OnInit {
   }
 
   xemChiTietTNV(tnv: TinhNguyenVien): void {
-    // Lấy chi tiết cơ bản
+    // Lấy chi tiết từ API - endpoint đúng là /tinhnguyenvien/{maTNV}
     this.tnvService.getVolunteerById(tnv.maTNV).subscribe({
       next: (res: any) => {
         this.tnvdangxem = res?.data || res;
-        this.taiSkillsFields(tnv.maTNV);
+        
+        // Nếu response đã có skills và fields, dùng luôn
+        if (this.tnvdangxem.kyNangs && Array.isArray(this.tnvdangxem.kyNangs) && this.tnvdangxem.kyNangs.length > 0) {
+          this.tnvdangxemSkills = this.tnvdangxem.kyNangs;
+        } else {
+          this.tnvdangxemSkills = [];
+        }
+        
+        if (this.tnvdangxem.linhVucs && Array.isArray(this.tnvdangxem.linhVucs) && this.tnvdangxem.linhVucs.length > 0) {
+          this.tnvdangxemFields = this.tnvdangxem.linhVucs;
+        } else {
+          this.tnvdangxemFields = [];
+        }
+        
+        // Chỉ gọi API nếu không có skills hoặc fields trong response
+        if ((!this.tnvdangxemSkills || this.tnvdangxemSkills.length === 0) || 
+            (!this.tnvdangxemFields || this.tnvdangxemFields.length === 0)) {
+          this.taiSkillsFields(tnv.maTNV);
+        }
+        
         this.taiLichSuSuKien(tnv.maTNV);
         // Lấy đánh giá gần nhất theo MaTaiKhoan (nếu có)
         const maUser = this.tnvdangxem?.maTaiKhoan || tnv.maTaiKhoan;
@@ -217,6 +267,9 @@ export class TinhNguyenVienComponent implements OnInit {
         } else {
           this.tnvdangxemLatestReview = null;
         }
+        
+        // Trigger change detection để đảm bảo modal hiển thị
+        this.cdr.detectChanges();
       },
       error: () => {
         this.tnvdangxem = tnv;
@@ -224,6 +277,9 @@ export class TinhNguyenVienComponent implements OnInit {
         this.taiLichSuSuKien(tnv.maTNV);
         const maUser = tnv.maTaiKhoan;
         if (maUser) this.taiDanhGiaGanNhat(maUser);
+        
+        // Trigger change detection để đảm bảo modal hiển thị
+        this.cdr.detectChanges();
       }
     });
   }
@@ -236,25 +292,29 @@ export class TinhNguyenVienComponent implements OnInit {
   }
 
   private taiSkillsFields(maTNV: number): void {
-    this.http.get<any>(`http://localhost:5000/api/tinhnguyenvien/skills/${maTNV}`).subscribe({
-      next: (res) => { this.tnvdangxemSkills = res?.data || res || []; },
-      error: () => { this.tnvdangxemSkills = []; }
-    });
-    this.http.get<any>(`http://localhost:5000/api/tinhnguyenvien/fields/${maTNV}`).subscribe({
-      next: (res) => { this.tnvdangxemFields = res?.data || res || []; },
-      error: () => { this.tnvdangxemFields = []; }
+    // Sử dụng endpoint đúng: /tinhnguyenvien/{maTNV}/skill-fields
+    this.http.get<any>(`${environment.apiUrl}/tinhnguyenvien/${maTNV}/skill-fields`).subscribe({
+      next: (res) => {
+        const data = res?.data || res || {};
+        this.tnvdangxemSkills = data.skills || [];
+        this.tnvdangxemFields = data.fields || [];
+      },
+      error: () => {
+        this.tnvdangxemSkills = [];
+        this.tnvdangxemFields = [];
+      }
     });
   }
 
   private taiLichSuSuKien(maTNV: number): void {
-    this.http.get<any>(`http://localhost:5000/api/dondangky/history/${maTNV}`).subscribe({
+    this.http.get<any>(`${environment.apiUrl}/dondangky/history/${maTNV}`).subscribe({
       next: (res) => { this.tnvdangxemHistory = res?.data || res || []; },
       error: () => { this.tnvdangxemHistory = []; }
     });
   }
 
   private taiDanhGiaGanNhat(maUser: number): void {
-    this.http.get<any>(`http://localhost:5000/api/danhgia/user/${maUser}`, {
+    this.http.get<any>(`${environment.apiUrl}/danhgia/user/${maUser}`, {
       headers: { 'Authorization': `Bearer ${localStorage.getItem('token') || ''}` }
     }).subscribe({
       next: (res) => {
@@ -332,5 +392,9 @@ export class TinhNguyenVienComponent implements OnInit {
         diemTrungBinh: 4.5
       }
     ];
+  }
+
+  getImageUrl(path: string | null | undefined): string {
+    return getImageUrlUtil(path);
   }
 }

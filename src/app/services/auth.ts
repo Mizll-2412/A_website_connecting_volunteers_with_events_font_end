@@ -4,6 +4,7 @@ import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { ReactiveFormsModule } from '@angular/forms';
 
 import { Observable, BehaviorSubject } from 'rxjs';
+import { environment } from '../../environments/environment';
 
 export interface LoginRequest {
   email: string;
@@ -48,7 +49,7 @@ export interface ConfirmChangeEmailRequest {
   providedIn: 'root'
 })
 export class AuthService {
-  private apiUrl = 'http://localhost:5000/api';
+  private apiUrl = environment.apiUrl;
   
   // BehaviorSubject để thông báo thay đổi thông tin user
   private userInfoChanged = new BehaviorSubject<any>(null);

@@ -1,0 +1,72 @@
+<div class="card event-card h-100" [routerLink]="['/su-kien', event.maSuKien]" style="cursor: pointer;">
+  <div class="event-image-wrapper position-relative">
+    <img 
+      [src]="getImageUrl(event.hinhAnh)" 
+      class="card-img-top event-image" 
+      [alt]="event.tenSuKien"
+      onerror="this.src='assets/event-default.jpg'">
+    <span class="event-status-badge position-absolute top-0 end-0 m-2" [ngClass]="getEventStatusClass(event)">
+      {{ getEventStatus(event) }}
+    </span>
+  </div>
+  <div class="card-body">
+    <h5 class="card-title event-title">{{ event.tenSuKien }}</h5>
+    <p class="card-text event-description text-muted small">
+      {{ event.noiDung?.substring(0, 100) }}{{ event.noiDung?.length > 100 ? '...' : '' }}
+    </p>
+    
+    <!-- Organization Info -->
+    <div class="mb-2" *ngIf="showOrganization && (event.tenToChuc || event.organization)">
+      <div class="d-flex align-items-center">
+        <i class="bi bi-building text-success me-2"></i>
+        <small class="text-muted">
+          <strong>{{ event.tenToChuc || event.organization?.tenToChuc || 'Tổ chức' }}</strong>
+          <span *ngIf="event.organization?.trangThaiXacMinh === 1 || event.trangThaiXacMinhToChuc" class="ms-1">
+            <i class="bi bi-check-circle text-primary" title="Đã xác minh"></i>
+          </span>
+        </small>
+      </div>
+    </div>
+    
+    <div class="event-meta mb-2">
+      <div class="meta-item mb-1" *ngIf="event.ngayBatDau">
+        <i class="bi bi-calendar3 text-primary me-2"></i>
+        <small class="text-muted">
+          {{ formatDate(event.ngayBatDau) }}
+          <span *ngIf="event.ngayKetThuc"> - {{ formatDate(event.ngayKetThuc) }}</span>
+        </small>
+      </div>
+      <div class="meta-item mb-1" *ngIf="event.tuyenBatDau || event.tuyenKetThuc">
+        <i class="bi bi-clock text-info me-2"></i>
+        <small class="text-muted">
+          Tuyển: 
+          <span *ngIf="event.tuyenBatDau">{{ formatDate(event.tuyenBatDau) }}</span>
+          <span *ngIf="!event.tuyenBatDau">Chưa có</span>
+          <span *ngIf="event.tuyenBatDau && event.tuyenKetThuc"> - {{ formatDate(event.tuyenKetThuc) }}</span>
+        </small>
+      </div>
+      <div class="meta-item mb-1" *ngIf="event.diaChi">
+        <i class="bi bi-geo-alt text-danger me-2"></i>
+        <small class="text-muted">{{ event.diaChi }}</small>
+      </div>
+    </div>
+
+    <!-- Skills & Fields -->
+    <div class="mt-2" *ngIf="(showSkills && getSkills().length > 0) || (showFields && getFields().length > 0)">
+      <div class="d-flex flex-wrap gap-1">
+        <span *ngFor="let skill of getSkills()" class="badge bg-primary">
+          <i class="bi bi-star me-1"></i>{{ skill?.tenKyNang || skill }}
+        </span>
+        <span *ngFor="let field of getFields()" class="badge bg-info">
+          <i class="bi bi-tag me-1"></i>{{ field?.tenLinhVuc || field }}
+        </span>
+      </div>
+    </div>
+  </div>
+  <div class="card-footer bg-transparent">
+    <a [routerLink]="['/su-kien', event.maSuKien]" class="btn btn-sm btn-outline-primary w-100" (click)="$event.stopPropagation()">
+      <i class="bi bi-eye me-2"></i>Xem chi tiết
+    </a>
+  </div>
+</div>
+

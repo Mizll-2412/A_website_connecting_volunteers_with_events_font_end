@@ -1,0 +1,72 @@
+<div class="card organization-card h-100">
+  <div class="card-body">
+    <div class="d-flex align-items-center mb-3">
+      <a [routerLink]="['/to-chuc', organization.maToChuc]" class="text-decoration-none">
+        <img [src]="getImageUrl(organization.anhDaiDien)" 
+             class="org-avatar me-3" 
+             [alt]="organization.tenToChuc"
+             onerror="this.onerror=null; this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgZmlsbD0iI2U1ZTdlZSIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTQiIGZpbGw9IiM5Y2EzYWYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIj5Ub1x1MDBmMGMgY2hcdTAwZjBjYzwvdGV4dD48L3N2Zz4='"
+             style="cursor: pointer;">
+      </a>
+      <div class="flex-grow-1">
+        <a [routerLink]="['/to-chuc', organization.maToChuc]" class="text-decoration-none text-dark">
+          <h6 class="card-title mb-1 d-inline-flex align-items-center" style="cursor: pointer;">
+            {{ organization.tenToChuc }}
+            <span *ngIf="organization.trangThaiXacMinh === 1" class="ms-1">
+              <i class="bi bi-check-circle text-primary" title="Đã xác minh"></i>
+            </span>
+          </h6>
+        </a>
+      </div>
+    </div>
+    
+    <p class="card-text text-muted small mb-2" *ngIf="organization.gioiThieu">
+      {{ organization.gioiThieu?.substring(0, 80) }}{{ organization.gioiThieu?.length > 80 ? '...' : '' }}
+    </p>
+    
+    <!-- Rating -->
+    <div class="mb-2" *ngIf="showRating && organization.diemTrungBinh">
+      <div class="d-flex align-items-center">
+        <div class="rating-stars me-2">
+          <i *ngFor="let star of getRatingStars(organization.diemTrungBinh)" 
+             [class]="star === 1 ? 'bi bi-star-fill text-warning' : 'bi bi-star text-muted'">
+          </i>
+        </div>
+        <small class="text-muted">
+          <strong>{{ organization.diemTrungBinh | number:'1.1-1' }}</strong>/5
+          <span *ngIf="organization.soLuotDanhGia" class="ms-1">
+            ({{ organization.soLuotDanhGia }} đánh giá)
+          </span>
+        </small>
+      </div>
+    </div>
+    
+    <!-- Event Count -->
+    <div class="mb-2" *ngIf="showEventCount">
+      <div class="d-flex align-items-center">
+        <i class="bi bi-calendar-event text-primary me-2"></i>
+        <small class="text-muted">
+          <strong>{{ eventCount }}</strong> sự kiện đã tổ chức
+        </small>
+      </div>
+    </div>
+    
+    <div class="organization-info">
+      <p class="card-text text-muted mb-1 small" *ngIf="organization.email">
+        <i class="bi bi-envelope me-1"></i>{{ organization.email }}
+      </p>
+      <p class="card-text text-muted mb-1 small" *ngIf="organization.soDienThoai">
+        <i class="bi bi-telephone me-1"></i>{{ organization.soDienThoai }}
+      </p>
+      <p class="card-text text-muted mb-0 small" *ngIf="organization.diaChi">
+        <i class="bi bi-geo-alt me-1"></i>{{ organization.diaChi || 'Chưa cập nhật' }}
+      </p>
+    </div>
+  </div>
+  <div class="card-footer bg-white">
+    <a [routerLink]="['/to-chuc', organization.maToChuc]" class="btn btn-sm btn-outline-primary w-100">
+      <i class="bi bi-eye me-1"></i>Xem chi tiết
+    </a>
+  </div>
+</div>
+

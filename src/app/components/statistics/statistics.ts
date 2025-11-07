@@ -2,6 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { AuthService } from '../../services/auth';
+import { environment } from '../../../environments/environment';
 
 interface EventStats {
   totalEvents: number;
@@ -65,7 +66,7 @@ export class Statistics implements OnInit {
   overallStats: OverallStats | null = null;
   ratingStats: RatingStats | null = null;
   
-  private apiUrl = 'http://localhost:5000/api/statistics';
+  private apiUrl = `${environment.apiUrl}/statistics`;
   
   constructor(
     private http: HttpClient,

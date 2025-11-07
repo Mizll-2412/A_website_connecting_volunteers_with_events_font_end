@@ -24,8 +24,6 @@
           <thead>
             <tr>
               <th>ID</th>
-              <th>Avatar</th>
-              <th>Họ tên</th>
               <th>Email</th>
               <th>Vai trò</th>
               <th>Trạng thái</th>
@@ -36,13 +34,6 @@
           <tbody>
             <tr *ngFor="let user of filteredUsers">
               <td>{{user.maTaiKhoan}}</td>
-              <td>
-                <img [src]="getUserAvatar(user)" 
-                     alt="Avatar" 
-                     class="avatar-sm rounded-circle"
-                     onerror="this.src='assets/default-avatar.png'">
-              </td>
-              <td>{{getUserName(user)}}</td>
               <td>{{user.email}}</td>
               <td>
                 <span class="badge rounded-pill" [ngClass]="{
@@ -63,10 +54,13 @@
                   <button class="btn btn-sm btn-outline-info" (click)="viewUserDetail(user)" title="Xem chi tiết">
                     <i class="bi bi-eye"></i>
                   </button>
-                  <button class="btn btn-sm btn-outline-primary" (click)="openRoleModal(user)">
+                  <button class="btn btn-sm btn-outline-primary" (click)="openRoleModal(user)" title="Đổi vai trò">
                     <i class="bi bi-person-gear"></i>
                   </button>
-                  <button class="btn btn-sm" [ngClass]="{'btn-outline-danger': user.trangThai, 'btn-outline-success': !user.trangThai}" (click)="toggleUserStatus(user)">
+                  <button class="btn btn-sm btn-outline-warning" (click)="openResetPasswordModal(user)" title="Đổi mật khẩu">
+                    <i class="bi bi-key"></i>
+                  </button>
+                  <button class="btn btn-sm" [ngClass]="{'btn-outline-danger': user.trangThai, 'btn-outline-success': !user.trangThai}" (click)="toggleUserStatus(user)" [title]="user.trangThai ? 'Khóa tài khoản' : 'Mở khóa tài khoản'">
                     <i class="bi" [ngClass]="{'bi-lock-fill': user.trangThai, 'bi-unlock-fill': !user.trangThai}"></i>
                   </button>
                   <button class="btn btn-sm btn-outline-danger" (click)="confirmDeleteUser(user)" title="Xóa">
@@ -76,7 +70,7 @@
               </td>
             </tr>
             <tr *ngIf="filteredUsers.length === 0">
-              <td colspan="8" class="text-center">Không có dữ liệu</td>
+              <td colspan="6" class="text-center">Không có dữ liệu</td>
             </tr>
           </tbody>
         </table>
@@ -190,7 +184,7 @@
           <div class="card-body">
             <div class="row">
               <div class="col-md-3 text-center mb-3">
-                <img [src]="volunteerDetail.anhDaiDien ? 'http://localhost:5000' + volunteerDetail.anhDaiDien : 'assets/images/avatar-placeholder.png'" 
+                <img [src]="getImageUrl(volunteerDetail.anhDaiDien) || 'assets/images/avatar-placeholder.png'" 
                      class="img-fluid rounded-circle" 
                      alt="Avatar"
                      style="max-width: 150px; max-height: 150px;"
@@ -249,7 +243,7 @@
           <div class="card-body">
             <div class="row">
               <div class="col-md-3 text-center mb-3">
-                <img [src]="organizationDetail.anhDaiDien ? 'http://localhost:5000' + organizationDetail.anhDaiDien : 'assets/images/organization-placeholder.png'" 
+                <img [src]="organizationDetail.anhDaiDien ? getImageUrl(organizationDetail.anhDaiDien) : 'assets/images/organization-placeholder.png'" 
                      class="img-fluid rounded" 
                      alt="Logo tổ chức"
                      style="max-width: 150px;"
@@ -298,6 +292,30 @@
         <button type="button" class="btn btn-warning" (click)="openResetPasswordModal(selectedUserDetail)">
           <i class="bi bi-key"></i> Đặt lại mật khẩu
         </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal đặt lại mật khẩu -->
+<div class="modal fade" id="resetPasswordModal" tabindex="-1" aria-labelledby="resetPasswordModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="resetPasswordModalLabel">Đặt lại mật khẩu</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body" *ngIf="selectedUser">
+        <p>Tài khoản: <strong>{{selectedUser.email}}</strong></p>
+        <div class="mb-3">
+          <label for="newPassword" class="form-label">Mật khẩu mới:</label>
+          <input type="password" id="newPassword" class="form-control" [(ngModel)]="newPassword" placeholder="Nhập mật khẩu mới (tối thiểu 6 ký tự)" />
+          <small class="text-muted">Mật khẩu phải có ít nhất 6 ký tự</small>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+        <button type="button" class="btn btn-warning" (click)="adminResetPassword()">Đặt lại mật khẩu</button>
       </div>
     </div>
   </div>

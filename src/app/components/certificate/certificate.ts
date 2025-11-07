@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
 import { AuthService } from '../../services/auth';
 import { Certificate } from '../../models/certificate';
+import { environment } from '../../../environments/environment';
 // import { saveAs } from 'file-saver';
 
 declare var bootstrap: any;
@@ -24,7 +25,7 @@ export class CertificateComponent implements OnInit {
   searchTerm: string = '';
   activeTab: 'all' | 'available' | 'pending' = 'all';
   
-  private apiUrl = 'http://localhost:5000/api/certificate';
+  private apiUrl = `${environment.apiUrl}/certificate`;
   private certificateModal: any;
   
   constructor(
@@ -52,7 +53,7 @@ export class CertificateComponent implements OnInit {
     }
     
     // Lấy mã TNV theo mã tài khoản
-    this.http.get<any>(`http://localhost:5000/api/tinhnguyenvien/by-account/${user.maTaiKhoan}`).subscribe({
+    this.http.get<any>(`${environment.apiUrl}/tinhnguyenvien/by-account/${user.maTaiKhoan}`).subscribe({
       next: (res) => {
         const volunteer = res?.data || res;
         const maTNV = volunteer?.maTNV;

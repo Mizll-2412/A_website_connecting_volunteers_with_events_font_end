@@ -50,7 +50,7 @@
                     {{ (event.diemPhuHop * 100) | number:'1.0-0' }}% phù hợp
                   </div>
                   
-                  <img [src]="event.hinhAnh ? 'http://localhost:5000' + event.hinhAnh : 'assets/event-default.jpg'" 
+                  <img [src]="getImageUrl(event.hinhAnh) || 'assets/event-default.jpg'" 
                        class="card-img-top" alt="Event Image" style="height: 160px; object-fit: cover;">
                   
                   <div class="card-body">

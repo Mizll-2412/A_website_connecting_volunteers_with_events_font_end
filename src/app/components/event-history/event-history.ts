@@ -5,6 +5,8 @@ import { RouterModule, Router } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { AuthService } from '../../services/auth';
+import { environment } from '../../../environments/environment';
+import { getImageUrl as getImageUrlUtil } from '../../utils/image-url.util';
 
 interface EventHistoryFilter {
   nam?: number;
@@ -67,7 +69,7 @@ export class EventHistory implements OnInit {
   ratingComment = '';
   certificate: Certificate | null = null;
 
-  private apiUrl = 'http://localhost:5000/api';
+  private apiUrl = environment.apiUrl;
   private volunteer: any = null;
 
   constructor(
@@ -311,5 +313,9 @@ export class EventHistory implements OnInit {
 
   getSafeUrl(url: string): SafeResourceUrl {
     return this.sanitizer.bypassSecurityTrustResourceUrl(url);
+  }
+
+  getImageUrl(path: string | null | undefined): string {
+    return getImageUrlUtil(path);
   }
 }

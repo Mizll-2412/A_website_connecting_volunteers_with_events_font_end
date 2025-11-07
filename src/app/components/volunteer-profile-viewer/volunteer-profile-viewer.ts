@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { TinhNguyenVienService } from '../../services/volunteer';
 import { SkillService } from '../../services/skill';
 import { FieldService } from '../../services/field';
+import { getImageUrl } from '../../utils/image-url.util';
 
 interface Volunteer {
   maTNV: number;
@@ -139,6 +140,10 @@ export class VolunteerProfileViewerComponent implements OnInit {
         .filter((field: any) => field != null);
     }
     return [];
+  }
+
+  getImageUrl(path: string | null | undefined): string {
+    return getImageUrl(path);
   }
 }
 

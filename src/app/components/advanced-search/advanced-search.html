@@ -221,7 +221,7 @@
         <div *ngIf="searchForm.get('searchType')?.value === 'event'" class="row g-4">
           <div *ngFor="let event of searchResults" class="col-md-6 col-lg-4">
             <div class="card event-card h-100">
-              <img [src]="event.hinhAnh ? 'http://localhost:5000' + event.hinhAnh : 'assets/event-default.jpg'" 
+              <img [src]="getImageUrl(event.hinhAnh) || 'assets/event-default.jpg'" 
                    class="card-img-top" alt="{{ event.tenSuKien }}">
               <div class="card-body">
                 <h5 class="card-title">{{ event.tenSuKien }}</h5>
@@ -252,8 +252,11 @@
         <div *ngIf="searchForm.get('searchType')?.value === 'organization'" class="row g-4">
           <div *ngFor="let org of searchResults" class="col-md-6 col-lg-4">
             <div class="card org-card h-100">
-              <img [src]="org.anhDaiDien ? 'http://localhost:5000' + org.anhDaiDien : 'assets/org-default.jpg'" 
-                   class="card-img-top org-img" alt="{{ org.tenToChuc }}">
+              <img [src]="getImageUrl(org.anhDaiDien) || getOrgDefaultImage()" 
+                   class="card-img-top org-img" 
+                   alt="{{ org.tenToChuc }}"
+                   onerror="this.onerror=null; this.src=this.getAttribute('data-fallback')"
+                   [attr.data-fallback]="getOrgDefaultImage()">
               <div class="card-body">
                 <h5 class="card-title">{{ org.tenToChuc }}</h5>
                 <p class="card-text small text-muted mb-3">{{ org.gioiThieu }}</p>
@@ -283,7 +286,7 @@
         <div *ngIf="searchForm.get('searchType')?.value === 'volunteer'" class="row g-4">
           <div *ngFor="let volunteer of searchResults" class="col-md-6 col-lg-4">
             <div class="card volunteer-card h-100">
-              <img [src]="volunteer.anhDaiDien ? 'http://localhost:5000' + volunteer.anhDaiDien : 'assets/user-default.jpg'" 
+              <img [src]="getImageUrl(volunteer.anhDaiDien) || 'assets/user-default.jpg'" 
                    class="card-img-top volunteer-img" alt="{{ volunteer.hoTen }}">
               <div class="card-body">
                 <h5 class="card-title">{{ volunteer.hoTen }}</h5>

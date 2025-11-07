@@ -42,15 +42,13 @@
     <tbody>
       <tr *ngFor="let tnv of danhSachHienThi">
         <td>
-          <img [src]="tnv.anhDaiDien ? ('http://localhost:5000' + tnv.anhDaiDien) : 'assets/default-avatar.png'" 
+          <img [src]="tnv.anhDaiDien ? getImageUrl(tnv.anhDaiDien) : 'assets/default-avatar.png'" 
                class="avatar" 
                style="width: 50px; height: 50px; object-fit: cover; border-radius: 50%;"
                onerror="this.src='assets/default-avatar.png'">
         </td>
-        <td>
-          <div>{{ tnv.hoTen }}</div>
-          <small class="text-muted">{{ tnv.email }}</small>
-        </td>
+        <td>{{ tnv.hoTen || 'Chưa cập nhật' }}</td>
+        <td>{{ tnv.email || 'Chưa cập nhật' }}</td>
         <td>
           <div class="skill-badges">
             <span class="badge bg-success badge-sm" *ngFor="let skill of getVolunteerSkills(tnv.maTNV)">
@@ -164,7 +162,7 @@
     <div class="modal-body">
       <div class="row">
         <div class="col-md-4 text-center mb-3">
-          <img [src]="tnvdangxem.anhDaiDien ? ('http://localhost:5000' + tnvdangxem.anhDaiDien) : 'assets/default-avatar.png'"
+          <img [src]="tnvdangxem.anhDaiDien ? getImageUrl(tnvdangxem.anhDaiDien) : 'assets/default-avatar.png'"
                class="img-fluid rounded" alt="Avatar" style="max-height: 200px;">
         </div>
         <div class="col-md-8">

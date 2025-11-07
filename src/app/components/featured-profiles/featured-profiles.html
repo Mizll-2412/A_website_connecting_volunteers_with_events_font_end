@@ -105,7 +105,7 @@
               <!-- Avatar và thông tin cơ bản -->
               <div class="d-flex align-items-center mb-3">
                 <div class="volunteer-avatar">
-                  <img [src]="volunteer.anhDaiDien ? 'http://localhost:5000' + volunteer.anhDaiDien : 'user.png'" alt="Avatar">
+                  <img [src]="volunteer.anhDaiDien ? getImageUrl(volunteer.anhDaiDien) : 'user.png'" alt="Avatar">
                 </div>
                 <div class="volunteer-info ms-3">
                   <h5 class="volunteer-name">{{ volunteer.hoTen }}</h5>
@@ -219,7 +219,7 @@
         <div class="row">
           <!-- Cột trái: Avatar và thông tin cơ bản -->
           <div class="col-md-4 text-center mb-3">
-            <img [src]="volunteerDetail.anhDaiDien ? 'http://localhost:5000' + volunteerDetail.anhDaiDien : 'user.png'" 
+            <img [src]="volunteerDetail.anhDaiDien ? getImageUrl(volunteerDetail.anhDaiDien) : 'user.png'" 
                  alt="Avatar" 
                  class="img-fluid rounded-circle mb-3" 
                  style="max-width: 150px; max-height: 150px; object-fit: cover;">

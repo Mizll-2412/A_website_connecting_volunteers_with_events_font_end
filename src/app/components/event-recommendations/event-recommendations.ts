@@ -3,6 +3,8 @@ import { CommonModule } from '@angular/common';
 import { RouterModule, Router } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { AuthService } from '../../services/auth';
+import { environment } from '../../../environments/environment';
+import { getImageUrl } from '../../utils/image-url.util';
 
 interface EventRecommendation {
   maSuKien: number;
@@ -31,7 +33,7 @@ export class EventRecommendations implements OnInit {
   recommendations: EventRecommendation[] = [];
   volunteer: any = null;
   
-  private apiUrl = 'http://localhost:5000/api';
+  private apiUrl = environment.apiUrl;
   
   constructor(
     private http: HttpClient,
@@ -165,5 +167,9 @@ export class EventRecommendations implements OnInit {
   
   viewEventDetails(eventId: number): void {
     this.router.navigate(['/su-kien', eventId]);
+  }
+
+  getImageUrl(path: string | null | undefined): string {
+    return getImageUrl(path);
   }
 }

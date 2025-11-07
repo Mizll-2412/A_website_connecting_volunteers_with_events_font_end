@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { AuthService } from '../../services/auth';
 import { ReputationBadge } from '../reputation-badge/reputation-badge';
+import { environment } from '../../../environments/environment';
 
 interface RankInfo {
   name: string;
@@ -70,7 +71,7 @@ export class Reputation implements OnInit {
     }
   ];
   
-  private apiUrl = 'http://localhost:5000/api';
+  private apiUrl = environment.apiUrl;
   
   constructor(
     private http: HttpClient,

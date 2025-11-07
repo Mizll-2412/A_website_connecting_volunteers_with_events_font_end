@@ -36,7 +36,9 @@
             <div *ngIf="notifications.length === 0" class="empty-notification">
               Không có thông báo mới
             </div>
-            <div *ngFor="let notification of notifications" class="notification-item" [class.unread]="!notification.daDoc">
+            <div *ngFor="let notification of notifications" 
+                 class="notification-item" 
+                 [class.unread]="!notification.daDoc">
               <div class="notification-content">
                 <div class="notification-type" [ngClass]="{
                   'type-system': notification.phanLoai === 0,
@@ -45,12 +47,19 @@
                 }">
                   {{ notification.phanLoai === 0 ? 'Hệ thống' : notification.phanLoai === 1 ? 'Sự kiện' : 'Cá nhân' }}
                 </div>
-                <p>{{ notification.noiDung }}</p>
+                <p>{{ getCleanNotificationContent(notification) }}</p>
                 <div class="notification-footer">
                   <span class="notification-time">{{ formatTime(notification.ngayGui) }}</span>
-                  <button *ngIf="!notification.daDoc" class="btn btn-sm btn-link p-0" (click)="markAsRead(notification)">
-                    <i class="bi bi-check-circle"></i> Đánh dấu đã đọc
-                  </button>
+                  <div class="d-flex align-items-center gap-2">
+                    <button *ngIf="extractEventId(notification) !== null" 
+                            class="btn" 
+                            (click)="viewEventDetails(notification, $event)">
+                      <i class="bi bi-eye"></i>
+                    </button>
+                    <button *ngIf="!notification.daDoc" class="btn btn-sm btn-link p-0" (click)="markAsRead(notification, $event)">
+                      <i class="bi bi-check-circle"></i>
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>

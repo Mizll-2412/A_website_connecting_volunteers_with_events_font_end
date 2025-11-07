@@ -3,12 +3,13 @@ import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Observable, BehaviorSubject } from 'rxjs';
 import { Notification, CreateNotificationDto } from '../models/notification';
 import { AuthService } from './auth';
+import { environment } from '../../environments/environment';
 
 @Injectable({
   providedIn: 'root'
 })
 export class NotificationService {
-  private apiUrl = 'http://localhost:5000/api/notification';
+  private apiUrl = `${environment.apiUrl}/notification`;
   
   // BehaviorSubject để theo dõi số lượng thông báo chưa đọc
   private unreadCountSubject = new BehaviorSubject<number>(0);
@@ -48,7 +49,22 @@ export class NotificationService {
     // Lấy tất cả thông báo
     this.http.get<any>(this.apiUrl).subscribe({
       next: (response) => {
-        const notifications = response.data || response;
+        const rawNotifications = response.data || response;
+        
+        // Map dữ liệu từ backend sang frontend model
+        // Backend trả về trangThai (0 = chưa đọc, 1 = đã đọc)
+        // Frontend cần daDoc (boolean)
+        const notifications: Notification[] = rawNotifications.map((n: any) => ({
+          maThongBao: n.maThongBao,
+          maNguoiTao: n.maNguoiTao,
+          tenNguoiTao: n.tenNguoiTao,
+          phanLoai: n.phanLoai,
+          phanLoaiText: n.phanLoaiText,
+          noiDung: n.noiDung,
+          ngayGui: new Date(n.ngayGui),
+          daDoc: n.trangThai === 1 || n.daDoc === true // Map trangThai sang daDoc
+        }));
+        
         this.notificationsSubject.next(notifications);
         
         // Đếm số thông báo chưa đọc
@@ -77,29 +93,22 @@ export class NotificationService {
   
   // Đánh dấu thông báo đã đọc
   markAsRead(id: number): Observable<any> {
-    return this.http.put<any>(`${this.apiUrl}/${id}/mark-as-read`, {});
+    return this.http.put<any>(`${this.apiUrl}/status`, {
+      MaThongBao: id,
+      TrangThai: 1 // 1 = đã đọc
+    });
   }
   
   // Đánh dấu tất cả thông báo đã đọc
   markAllAsRead(): void {
-    const notifications = this.notificationsSubject.getValue();
-    const unreadNotifications = notifications.filter(n => !n.daDoc);
-    
-    // Đánh dấu từng thông báo là đã đọc
-    unreadNotifications.forEach(notification => {
-      this.markAsRead(notification.maThongBao).subscribe({
-        next: () => {
-          // Cập nhật trạng thái trong danh sách cục bộ
-          notification.daDoc = true;
-          
-          // Cập nhật danh sách và số lượng chưa đọc
-          this.notificationsSubject.next([...notifications]);
-          this.unreadCountSubject.next(0);
-        },
-        error: (err) => {
-          console.error(`Lỗi đánh dấu đã đọc thông báo ${notification.maThongBao}:`, err);
-        }
-      });
+    this.http.put<any>(`${this.apiUrl}/read-all`, {}).subscribe({
+      next: () => {
+        // Reload lại danh sách thông báo sau khi đánh dấu tất cả đã đọc
+        this.loadNotifications();
+      },
+      error: (err) => {
+        console.error('Lỗi đánh dấu tất cả thông báo đã đọc:', err);
+      }
     });
   }
   

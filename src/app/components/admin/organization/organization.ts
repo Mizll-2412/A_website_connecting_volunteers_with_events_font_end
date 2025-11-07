@@ -2,7 +2,9 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ToChucService } from '../../../services/organization';
+import { EventService } from '../../../services/event';
 import { HttpErrorResponse } from '@angular/common/http';
+import { getImageUrl } from '../../../utils/image-url.util';
 
 enum TrangThaiXacMinh {
   ChoDuyet = 0,
@@ -28,7 +30,10 @@ export class ToChucComponent implements OnInit {
   isLoading: boolean = false;
   errorMessage: string = '';
 
-  constructor(private toChucService: ToChucService) {}
+  constructor(
+    private toChucService: ToChucService,
+    private eventService: EventService
+  ) {}
 
   ngOnInit() {
     this.taiLaiDuLieu();
@@ -132,11 +137,19 @@ export class ToChucComponent implements OnInit {
     return this.danhSachToChuc.filter(tc => tc.trangThaiXacMinh === trangThai).length;
   }
 
-  formatNgayTao(date: string): string {
-    return new Date(date).toLocaleDateString('vi-VN');
+  formatNgayTao(date: string | Date | null | undefined): string {
+    if (!date) return 'Chưa có';
+    try {
+      const dateObj = date instanceof Date ? date : new Date(date);
+      if (isNaN(dateObj.getTime())) return 'Chưa có';
+      return dateObj.toLocaleDateString('vi-VN');
+    } catch {
+      return 'Chưa có';
+    }
   }
 
-  getTrangThaiClass(trangThai: TrangThaiXacMinh): string {
+  getTrangThaiClass(trangThai: TrangThaiXacMinh | null): string {
+    if (trangThai === null) return 'badge-pending';
     return {
       0: 'badge-pending',
       1: 'badge-success',
@@ -144,7 +157,8 @@ export class ToChucComponent implements OnInit {
     }[trangThai]!;
   }
 
-  getTrangThaiText(trangThai: TrangThaiXacMinh): string {
+  getTrangThaiText(trangThai: TrangThaiXacMinh | null): string {
+    if (trangThai === null) return 'Chưa duyệt';
     return {
       0: 'Chờ duyệt',
       1: 'Đã duyệt',
@@ -178,11 +192,6 @@ export class ToChucComponent implements OnInit {
           this.hoSoDangXem = response;
         }
         
-        // Nếu không có dữ liệu sự kiện, thêm mảng rỗng
-        if (!this.hoSoDangXem.suKiens) {
-          this.hoSoDangXem.suKiens = [];
-        }
-
         // Tải giấy tờ pháp lý
         this.toChucService.getLegalDocuments(toChuc.maToChuc).subscribe({
           next: (res: any) => {
@@ -194,14 +203,35 @@ export class ToChucComponent implements OnInit {
             this.hoSoDangXem.giayTos = [];
           }
         });
+
+        // Tải sự kiện của tổ chức từ API
+        this.eventService.getEventsByOrganization(toChuc.maToChuc).subscribe({
+          next: (eventsResponse: any) => {
+            const eventsData = eventsResponse.data || eventsResponse || [];
+            this.hoSoDangXem.suKiens = eventsData;
+          },
+          error: (err: HttpErrorResponse) => {
+            console.error('Lỗi khi tải sự kiện của tổ chức:', err);
+            this.hoSoDangXem.suKiens = [];
+          }
+        });
       },
       error: (error) => {
         console.error('Lỗi khi lấy chi tiết tổ chức:', error);
         // Sử dụng dữ liệu đã có
         this.hoSoDangXem = {...toChuc};
-        if (!this.hoSoDangXem.suKiens) {
-          this.hoSoDangXem.suKiens = [];
-        }
+        
+        // Vẫn thử load sự kiện từ API
+        this.eventService.getEventsByOrganization(toChuc.maToChuc).subscribe({
+          next: (eventsResponse: any) => {
+            const eventsData = eventsResponse.data || eventsResponse || [];
+            this.hoSoDangXem.suKiens = eventsData;
+          },
+          error: (err: HttpErrorResponse) => {
+            console.error('Lỗi khi tải sự kiện của tổ chức:', err);
+            this.hoSoDangXem.suKiens = [];
+          }
+        });
       }
     });
   }
@@ -304,5 +334,9 @@ export class ToChucComponent implements OnInit {
         }
       });
     }
+  }
+
+  getImageUrl(path: string | null | undefined): string {
+    return getImageUrl(path);
   }
 }

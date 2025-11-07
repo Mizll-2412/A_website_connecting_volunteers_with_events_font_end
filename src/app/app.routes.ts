@@ -33,6 +33,7 @@ import { ExploreComponent } from './components/explore/explore';
 import { EventsOrganizationsComponent } from './components/events-organizations/events-organizations';
 import { Layout } from './components/layout/layout';
 import { AccountSettingsComponent } from './components/account-settings/account-settings';
+import { OrganizationDetailComponent } from './components/organization-detail/organization-detail';
 
 export const routes: Routes = [
   { path: 'login', component: LoginComponent },
@@ -57,6 +58,7 @@ export const routes: Routes = [
       { path: 'manage-org', component: EventManagementComponent },
       { path: 'verify-org', component: OrganizationVerification },
       { path: 'su-kien/:id', component: EventDetailComponent },
+      { path: 'to-chuc/:id', component: OrganizationDetailComponent },
       { path: 'dang-ky', component: RegistrationListComponent },
       { path: 'list-user', component: FeaturedProfilesComponent },
       

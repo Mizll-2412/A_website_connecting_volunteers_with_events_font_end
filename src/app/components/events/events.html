@@ -75,7 +75,7 @@
         <div class="d-flex flex-column gap-3 mt-3">
           <div class="organization-card p-3" *ngFor="let org of mockOrganizations">
             <div class="d-flex align-items-center">
-              <img [src]="'http://localhost:5000' + org.anhDaiDien || 'user.png'" alt="{{ org.tenToChuc }}" class="org-logo me-3">
+              <img [src]="getImageUrl(org.anhDaiDien) || 'user.png'" alt="{{ org.tenToChuc }}" class="org-logo me-3">
               <div>
                 <h6 class="mb-1">{{ org.tenToChuc }}</h6>
                 <p class="small text-muted mb-1">{{ org.gioiThieu }}</p>
@@ -121,7 +121,7 @@
             </div>
             
             <!-- Event Image -->
-            <img [src]="'http://localhost:5000' + event.hinhAnh || 'tinhnguyen.png'" 
+            <img [src]="getImageUrl(event.hinhAnh) || 'tinhnguyen.png'" 
                  class="card-img-top" alt="{{ event.tenSuKien }}">
             
             <!-- Event Content -->

@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { environment } from '../../environments/environment';
 
 export interface CreateEvaluationDto {
   maNguoiDanhGia: number;
@@ -27,7 +28,7 @@ export interface EvaluationResponseDto {
   providedIn: 'root'
 })
 export class EvaluationService {
-  private apiUrl = 'http://localhost:5000/api/danhgia';
+  private apiUrl = `${environment.apiUrl}/danhgia`;
 
   constructor(private http: HttpClient) {}
 

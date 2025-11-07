@@ -4,6 +4,8 @@ import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
 import { AuthService } from '../../services/auth';
 import { Router } from '@angular/router';
+import { environment } from '../../../environments/environment';
+import { getImageUrl } from '../../utils/image-url.util';
 
 @Component({
   selector: 'app-account-settings',
@@ -39,7 +41,7 @@ export class AccountSettingsComponent implements OnInit {
   previewUrl: string | null = null;
   currentAvatar: string = '';
   
-  private apiUrl = 'http://localhost:5000/api';
+  private apiUrl = environment.apiUrl;
   
   constructor(
     private http: HttpClient,
@@ -70,9 +72,9 @@ export class AccountSettingsComponent implements OnInit {
         
         // Get avatar from nested volunteer or organization object
         if (this.user.volunteer?.anhDaiDien) {
-          this.currentAvatar = 'http://localhost:5000' + this.user.volunteer.anhDaiDien;
+          this.currentAvatar = getImageUrl(this.user.volunteer.anhDaiDien);
         } else if (this.user.organization?.anhDaiDien) {
-          this.currentAvatar = 'http://localhost:5000' + this.user.organization.anhDaiDien;
+          this.currentAvatar = getImageUrl(this.user.organization.anhDaiDien);
         }
         
         this.isLoading = false;

@@ -96,7 +96,7 @@
                     {{ getEventStatusText(event) }}
                   </div>
                   
-                  <img [src]="event.hinhAnh ? 'http://localhost:5000' + event.hinhAnh : 'assets/event-default.jpg'" 
+                  <img [src]="event.hinhAnh ? getImageUrl(event.hinhAnh) : 'assets/event-default.jpg'" 
                        class="card-img-top" alt="Event Image" style="height: 160px; object-fit: cover;">
                   
                   <div class="card-body">
@@ -201,12 +201,12 @@
         <div *ngIf="certificate">
           <!-- Hiển thị hình ảnh hoặc PDF -->
           <img *ngIf="isImageFile(certificate.filePath || certificate.file)" 
-               [src]="'http://localhost:5000' + (certificate.filePath || certificate.file)" 
+               [src]="getImageUrl(certificate.filePath || certificate.file)" 
                class="img-fluid" 
                alt="Certificate">
                
           <iframe *ngIf="isPdfFile(certificate.filePath || certificate.file)" 
-                  [src]="getSafeUrl('http://localhost:5000' + (certificate.filePath || certificate.file))" 
+                  [src]="getSafeUrl(getImageUrl(certificate.filePath || certificate.file))" 
                   width="100%" 
                   height="500px" 
                   frameborder="0"></iframe>
@@ -215,7 +215,7 @@
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
         <a *ngIf="certificate" 
-           [href]="'http://localhost:5000' + (certificate.filePath || certificate.file)" 
+           [href]="getImageUrl(certificate.filePath || certificate.file)" 
            target="_blank" 
            download
            class="btn btn-primary">

@@ -28,28 +28,6 @@
       </div>
     </div>
     
-    <!-- Notification for unverified organization -->
-    <div *ngIf="!isVerified" class="alert" [ngClass]="{
-      'alert-warning': !isRejected,
-      'alert-danger': isRejected
-    }">
-      <div class="d-flex align-items-center">
-        <i class="bi" [ngClass]="{
-          'bi-exclamation-triangle-fill': !isRejected,
-          'bi-x-circle-fill': isRejected
-        }"></i>
-        <div class="ms-2">
-          <strong>{{ isRejected ? 'Tổ chức đã bị từ chối xác minh!' : 'Tổ chức đang chờ xác minh!' }}</strong>
-          <p class="mb-0">{{ errorMessage }}</p>
-          <p class="mb-0 mt-2">
-            <small>Tổ chức cần được xác minh để có thể tạo và quản lý sự kiện. 
-              <a routerLink="/verify-org">Yêu cầu xác minh tổ chức</a> hoặc 
-              <a routerLink="/org-profile">cập nhật thông tin tổ chức</a> để tăng khả năng được xác minh.</small>
-          </p>
-        </div>
-      </div>
-    </div>
-
     <!-- Page Content based on selected tab -->
     <div [ngSwitch]="selectedTab">
       <!-- Events List Tab -->
@@ -58,8 +36,6 @@
           <div class="card-header d-flex justify-content-between align-items-center">
             <h5 class="mb-0">Danh sách sự kiện</h5>
             <button class="btn btn-primary" 
-                    [disabled]="!isVerified"
-                    [title]="!isVerified ? 'Tổ chức cần được xác minh để tạo sự kiện' : ''"
                     (click)="createEvent()">
               <i class="bi bi-plus"></i> Tạo sự kiện mới
             </button>
@@ -84,12 +60,8 @@
                     <td>{{ formatDate(event.ngayBatDau) }}</td>
                     <td>{{ formatDate(event.ngayKetThuc) }}</td>
                     <td>
-                      <span class="badge" [ngClass]="{
-                        'bg-success': event.trangThai === 'Đã duyệt',
-                        'bg-warning': event.trangThai === 'Đang tuyển',
-                        'bg-danger': event.trangThai === 'Đã hủy'
-                      }">
-                        {{ event.trangThai || 'Đang tuyển' }}
+                      <span class="badge" [ngClass]="getEventStatusClass(event.trangThai)">
+                        {{ getEventStatusText(event.trangThai) }}
                       </span>
                     </td>
                     <td>
@@ -97,7 +69,10 @@
                         <button class="btn btn-outline-primary" (click)="selectEvent(event)">
                           <i class="bi bi-eye"></i> Chi tiết
                         </button>
-                        <button class="btn btn-outline-secondary" (click)="editEvent(event)">
+                        <button class="btn btn-outline-secondary" 
+                                (click)="editEvent(event)"
+                                [disabled]="!canEditEvent(event)"
+                                [title]="!canEditEvent(event) ? 'Không thể sửa sự kiện đã có người đăng ký' : 'Sửa sự kiện'">
                           <i class="bi bi-pencil"></i> Sửa
                         </button>
                         <button *ngIf="canCompleteEvent(event)" 
@@ -146,7 +121,7 @@
               </div>
             </div>
             <div class="card-body" *ngIf="selectedEvent">
-              <img [src]="selectedEvent.hinhAnh ? 'http://localhost:5000' + selectedEvent.hinhAnh : 'assets/event-default.jpg'" 
+              <img [src]="selectedEvent.hinhAnh ? getImageUrl(selectedEvent.hinhAnh) : 'assets/event-default.jpg'" 
                    class="img-fluid rounded mb-3" alt="Event Image">
               <h4>{{ selectedEvent.tenSuKien }}</h4>
               <p class="text-muted">{{ selectedEvent.noiDung }}</p>
@@ -160,6 +135,12 @@
                 
                 <dt class="col-sm-5">Ngày kết thúc</dt>
                 <dd class="col-sm-7">{{ formatDate(selectedEvent.ngayKetThuc) }}</dd>
+                
+                <dt class="col-sm-5">Ngày bắt đầu tuyển</dt>
+                <dd class="col-sm-7">{{ selectedEvent.tuyenBatDau ? formatDate(selectedEvent.tuyenBatDau) : 'Chưa cập nhật' }}</dd>
+                
+                <dt class="col-sm-5">Ngày kết thúc tuyển</dt>
+                <dd class="col-sm-7">{{ selectedEvent.tuyenKetThuc ? formatDate(selectedEvent.tuyenKetThuc) : 'Chưa cập nhật' }}</dd>
                 
                 <dt class="col-sm-5">Số lượng TNV</dt>
                 <dd class="col-sm-7">{{ selectedEvent.soLuongTNV || 0 }}</dd>
@@ -231,6 +212,12 @@
                                     class="btn btn-outline-danger"
                                     (click)="rejectVolunteer(volunteer)">
                               <i class="bi bi-x"></i> Từ chối
+                            </button>
+                            <button *ngIf="volunteer.trangThai === 2" 
+                                    class="btn btn-outline-success"
+                                    (click)="inviteVolunteer(volunteer)"
+                                    title="Mời lại tình nguyện viên">
+                              <i class="bi bi-envelope"></i> Mời lại
                             </button>
                             <button class="btn btn-outline-info" (click)="viewVolunteerProfile(volunteer)">
                               <i class="bi bi-person"></i> Xem hồ sơ
@@ -315,10 +302,9 @@
             <div class="mb-3">
               <label class="form-label">Lĩnh vực liên quan</label>
               <div *ngFor="let _ of selectedLinhVucs; let lvIdx = index" class="mb-2">
-                <div class="input-group">
+                <div class="input-group mb-2">
                   <select class="form-select" 
-                          (change)="onLinhVucChange(lvIdx, $event)" 
-                          [ngModel]="selectedLinhVucs[lvIdx]" 
+                          [(ngModel)]="selectedLinhVucs[lvIdx]" 
                           [ngModelOptions]="{standalone: true}">
                     <option [ngValue]="null">-- Chọn lĩnh vực {{lvIdx + 1}} --</option>
                     <option *ngFor="let lv of getAvailableLinhVucs(lvIdx)" 
@@ -331,6 +317,19 @@
                           (click)="removeLinhVuc(lvIdx)"
                           [disabled]="selectedLinhVucs.length === 1">
                     <i class="bi bi-x"></i>
+                  </button>
+                </div>
+                <div class="input-group">
+                  <input type="text" 
+                         class="form-control" 
+                         placeholder="Hoặc nhập lĩnh vực mới..." 
+                         [(ngModel)]="newLinhVucText[lvIdx]"
+                         [ngModelOptions]="{standalone: true}">
+                  <button type="button" 
+                          class="btn btn-outline-success" 
+                          (click)="createNewLinhVuc(lvIdx)"
+                          [disabled]="!newLinhVucText[lvIdx]?.trim()">
+                    <i class="bi bi-plus-circle"></i> Tạo mới
                   </button>
                 </div>
               </div>
@@ -348,10 +347,9 @@
             <div class="mb-3">
               <label class="form-label">Kỹ năng cần thiết</label>
               <div *ngFor="let _ of selectedKyNangs; let knIdx = index" class="mb-2">
-                <div class="input-group">
+                <div class="input-group mb-2">
                   <select class="form-select" 
-                          (change)="onKyNangChange(knIdx, $event)" 
-                          [ngModel]="selectedKyNangs[knIdx]" 
+                          [(ngModel)]="selectedKyNangs[knIdx]" 
                           [ngModelOptions]="{standalone: true}">
                     <option [ngValue]="null">-- Chọn kỹ năng {{knIdx + 1}} --</option>
                     <option *ngFor="let kn of getAvailableKyNangs(knIdx)" 
@@ -364,6 +362,19 @@
                           (click)="removeKyNang(knIdx)"
                           [disabled]="selectedKyNangs.length === 1">
                     <i class="bi bi-x"></i>
+                  </button>
+                </div>
+                <div class="input-group">
+                  <input type="text" 
+                         class="form-control" 
+                         placeholder="Hoặc nhập kỹ năng mới..." 
+                         [(ngModel)]="newKyNangText[knIdx]"
+                         [ngModelOptions]="{standalone: true}">
+                  <button type="button" 
+                          class="btn btn-outline-success" 
+                          (click)="createNewKyNang(knIdx)"
+                          [disabled]="!newKyNangText[knIdx]?.trim()">
+                    <i class="bi bi-plus-circle"></i> Tạo mới
                   </button>
                 </div>
               </div>
