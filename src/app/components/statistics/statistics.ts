@@ -1,7 +1,9 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
+import { Router } from '@angular/router';
 import { AuthService } from '../../services/auth';
+import { EvaluationService, EvaluationResponseDto } from '../../services/evaluation.service';
 import { environment } from '../../../environments/environment';
 
 interface EventStats {
@@ -9,22 +11,40 @@ interface EventStats {
   completedEvents: number;
   ongoingEvents: number;
   cancelledEvents: number;
-  eventsByCategory: { [key: string]: number };
-  eventsByMonth: { [key: string]: number };
+  pendingEvents: number;
+  eventsByField: Record<string, number>;
+  eventsByMonth: Record<string, number>;
+  averageVolunteersPerEvent: number;
+  averageRating: number;
+  eventsByMonthDetailed: Record<string, EventMonthlyBreakdown>;
+}
+
+interface EventMonthlyBreakdown {
+  total: number;
+  pending: number;
+  active: number;
+  completed: number;
+  cancelled: number;
 }
 
 interface OrganizationStats {
   totalOrganizations: number;
   verifiedOrganizations: number;
   pendingVerificationOrganizations: number;
-  organizationsByField: { [key: string]: number };
+  organizationsByField: Record<string, number>;
+  averageRating?: number;
+  averageEventsPerOrganization?: number;
 }
 
 interface VolunteerStats {
   totalVolunteers: number;
-  volunteersByRank: { [key: string]: number };
-  volunteersByGender: { [key: string]: number };
-  volunteersByAgeGroup: { [key: number]: number };
+  activeVolunteers?: number;
+  volunteersByRank: Record<string, number>;
+  volunteersByGender: Record<string, number>;
+  volunteersByField: Record<string, number>;
+  volunteersByAge: Record<string, number>;
+  averageRating?: number;
+  averageEventsPerVolunteer?: number;
 }
 
 interface OverallStats {
@@ -33,14 +53,14 @@ interface OverallStats {
   totalVolunteers: number;
   totalOrganizations: number;
   totalRegistrations: number;
-  registrationsByStatus: { [key: string]: number };
+  registrationsByStatus: Record<string, number>;
 }
 
 interface RatingStats {
   averageVolunteerRating: number;
   averageOrganizationRating: number;
-  volunteerRatingsDistribution: { [key: number]: number };
-  organizationRatingsDistribution: { [key: number]: number };
+  volunteerRatingsDistribution: Record<number, number>;
+  organizationRatingsDistribution: Record<number, number>;
 }
 
 interface RankInfo {
@@ -48,6 +68,18 @@ interface RankInfo {
   count: number;
   percentage: number;
   color: string;
+}
+
+interface AdminEvaluationPreview {
+  id: number;
+  scorerName: string;
+  scorerRole: string;
+  targetName: string;
+  targetRole: string;
+  eventName: string;
+  score: number;
+  content: string;
+  createdAt: Date;
 }
 
 @Component({
@@ -65,12 +97,18 @@ export class Statistics implements OnInit {
   volunteerStats: VolunteerStats | null = null;
   overallStats: OverallStats | null = null;
   ratingStats: RatingStats | null = null;
+  latestEvaluations: AdminEvaluationPreview[] = [];
+  totalEvaluations = 0;
+  evaluationsError: string | null = null;
+  isLoadingEvaluations = false;
   
   private apiUrl = `${environment.apiUrl}/statistics`;
   
   constructor(
     private http: HttpClient,
-    private authService: AuthService
+    private authService: AuthService,
+    private evaluationService: EvaluationService,
+    private router: Router
   ) {}
   
   ngOnInit(): void {
@@ -80,42 +118,51 @@ export class Statistics implements OnInit {
   
   loadStatistics(): void {
     // Lấy thống kê sự kiện (hiển thị cho mọi vai trò)
-    this.http.get<EventStats>(`${this.apiUrl}/events`).subscribe({
+    this.http.get<any>(`${this.apiUrl}/events`).subscribe({
       next: (response) => {
-        this.eventStats = response;
+        this.eventStats = this.mapEventStats(response);
+        if (this.role !== 'admin') {
+          this.isLoading = false;
+        }
       },
       error: (err) => {
         console.error('Lỗi tải thống kê sự kiện:', err);
+        if (this.role !== 'admin') {
+          this.isLoading = false;
+        }
       }
     });
     
     // Chỉ Admin mới lấy các thống kê tổng quan/toàn hệ thống
     if (this.role === 'admin') {
-      this.http.get<OrganizationStats>(`${this.apiUrl}/organizations`).subscribe({
-        next: (response) => { this.organizationStats = response; },
+      this.http.get<any>(`${this.apiUrl}/organizations`).subscribe({
+        next: (response) => { this.organizationStats = this.mapOrganizationStats(response); },
         error: (err) => { console.error('Lỗi tải thống kê tổ chức:', err); }
       });
-      this.http.get<VolunteerStats>(`${this.apiUrl}/volunteers`).subscribe({
-        next: (response) => { this.volunteerStats = response; },
+      this.http.get<any>(`${this.apiUrl}/volunteers`).subscribe({
+        next: (response) => { this.volunteerStats = this.mapVolunteerStats(response); },
         error: (err) => { console.error('Lỗi tải thống kê tình nguyện viên:', err); }
       });
       this.http.get<any>(`${this.apiUrl}/overall`).subscribe({
         next: (response) => { 
-          this.overallStats = response.data || response; 
+          this.overallStats = this.mapOverallStats(response); 
         },
         error: (err) => { console.error('Lỗi tải thống kê tổng quan:', err); }
       });
       this.http.get<any>(`${this.apiUrl}/ratings`).subscribe({
         next: (response) => { 
-          this.ratingStats = response.data || response; 
+          this.ratingStats = this.mapRatingStats(response); 
           this.isLoading = false; 
         },
         error: (err) => { console.error('Lỗi tải thống kê đánh giá:', err); this.isLoading = false; }
       });
-    } else {
-      // Với Organization/User: chỉ hiển thị eventStats; đánh dấu tải xong
-      this.isLoading = false;
+
+      this.loadLatestEvaluations();
     }
+  }
+
+  navigateToEvaluations(): void {
+    this.router.navigate(['/admin/evaluations']);
   }
   
   getMonthsArray(): number[] {
@@ -240,5 +287,397 @@ export class Statistics implements OnInit {
     const total = this.overallStats.totalRegistrations || 1;
     
     return (count / total) * 100;
+  }
+
+  private loadLatestEvaluations(): void {
+    this.isLoadingEvaluations = true;
+    this.evaluationsError = null;
+
+    this.evaluationService.getAllEvaluations().subscribe({
+      next: (response) => {
+        const evaluations = this.normalizeEvaluations(response);
+        this.totalEvaluations = evaluations.length;
+        this.latestEvaluations = evaluations.slice(0, 5);
+        this.isLoadingEvaluations = false;
+      },
+      error: (err) => {
+        console.error('Lỗi tải đánh giá gần đây:', err);
+        this.evaluationsError = err?.error?.message || 'Không thể tải danh sách đánh giá gần đây.';
+        this.isLoadingEvaluations = false;
+      }
+    });
+  }
+
+  private normalizeEvaluations(response: any): AdminEvaluationPreview[] {
+    const data = (response?.data ?? response ?? []) as (EvaluationResponseDto & {
+      vaiTroNguoiDanhGia?: string;
+      vaiTroNguoiDuocDanhGia?: string;
+    })[];
+
+    return data
+      .map((item) => ({
+        id: item.maDanhGia,
+        scorerName: item.tenNguoiDanhGia || 'Không rõ',
+        scorerRole: item.vaiTroNguoiDanhGia || '',
+        targetName: item.tenNguoiDuocDanhGia || 'Không rõ',
+        targetRole: item.vaiTroNguoiDuocDanhGia || '',
+        eventName: item.tenSuKien || 'Không rõ sự kiện',
+        score: item.diemSo,
+        content: (item.noiDung || '').trim(),
+        createdAt: new Date(item.ngayTao)
+      }))
+      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+  }
+
+  trackByEvaluationId(_: number, evaluation: AdminEvaluationPreview): number {
+    return evaluation.id;
+  }
+
+  getEventCountForMonth(month: number): number {
+    if (!this.eventStats || !this.eventStats.eventsByMonth) return 0;
+    return this.eventStats.eventsByMonth[month.toString()] || 0;
+  }
+
+  getEventMonthStats(): { month: number; data: EventMonthlyBreakdown }[] {
+    if (!this.eventStats || !this.eventStats.eventsByMonthDetailed) return [];
+
+    const result: { month: number; data: EventMonthlyBreakdown }[] = [];
+
+    for (let month = 1; month <= 12; month++) {
+      const key = month.toString();
+      const data = this.eventStats.eventsByMonthDetailed[key];
+      if (data && data.total > 0) {
+        result.push({ month, data });
+      }
+    }
+
+    return result;
+  }
+
+  getMonthLabel(month: number): string {
+    return `T${month}`;
+  }
+
+  getRecordEntries(record: Record<string, number> | null | undefined): { key: string; value: number }[] {
+    if (!record) {
+      return [];
+    }
+
+    return Object.entries(record).map(([key, value]) => ({ key, value }));
+  }
+
+  getEntriesWithPercentage(record: Record<string, number> | null | undefined, total: number): { key: string; value: number; percentage: number }[] {
+    if (!record || !total) {
+      return [];
+    }
+
+    return Object.entries(record).map(([key, value]) => ({
+      key,
+      value,
+      percentage: this.calculatePercentage(value, total)
+    }));
+  }
+
+  calculatePercentage(value: number, total: number): number {
+    if (!total) {
+      return 0;
+    }
+
+    return Math.round((value / total) * 1000) / 10; // 1 chữ số thập phân
+  }
+
+  formatAverage(value: number | undefined | null, digits = 2): string {
+    if (value === null || value === undefined || Number.isNaN(value)) {
+      return '0';
+    }
+
+    return Number(value).toFixed(digits);
+  }
+
+  getGenderPieStyle(): Record<string, string> {
+    if (!this.volunteerStats) {
+      return { background: '#f1f3f5' };
+    }
+
+    return this.buildPieStyle(
+      this.volunteerStats.volunteersByGender,
+      ['Nam', 'Nữ', 'Khác'],
+      ['#0d6efd', '#d63384', '#6c757d'],
+      this.volunteerStats.totalVolunteers
+    );
+  }
+
+  getOrganizationPieStyle(): Record<string, string> {
+    if (!this.organizationStats) {
+      return { background: '#f1f3f5' };
+    }
+
+    return this.buildPieStyle(
+      {
+        'Đã xác minh': this.organizationStats.verifiedOrganizations,
+        'Đang chờ': this.organizationStats.pendingVerificationOrganizations,
+        'Chưa xác minh': this.getUnverifiedOrganizations()
+      },
+      ['Đã xác minh', 'Đang chờ', 'Chưa xác minh'],
+      ['#28a745', '#ffc107', '#6c757d'],
+      this.organizationStats.totalOrganizations
+    );
+  }
+
+  getRegistrationPieStyle(): Record<string, string> {
+    if (!this.overallStats) {
+      return { background: '#f1f3f5' };
+    }
+
+    return this.buildPieStyle(
+      this.overallStats.registrationsByStatus,
+      ['approved', 'pending', 'rejected'],
+      ['#28a745', '#ffc107', '#dc3545'],
+      this.overallStats.totalRegistrations
+    );
+  }
+
+  private mapEventStats(response: any): EventStats {
+    const data = this.extractData(response);
+    const eventsByMonth = this.normalizeMonthMap(data.eventsByMonth || data.EventsByMonth);
+    const eventsByField = this.normalizeRecord(data.eventsByField || data.EventsByField);
+    const eventsByMonthDetailed = this.normalizeMonthlyBreakdown(data.eventsByMonthDetailed || data.EventsByMonthDetailed);
+
+    return {
+      totalEvents: this.normalizeNumber(data.totalEvents ?? data.TotalEvents),
+      completedEvents: this.normalizeNumber(data.completedEvents ?? data.CompletedEvents),
+      ongoingEvents: this.normalizeNumber(data.ongoingEvents ?? data.activeEvents ?? data.ActiveEvents),
+      cancelledEvents: this.normalizeNumber(data.cancelledEvents ?? data.CancelledEvents),
+      pendingEvents: this.normalizeNumber(data.pendingEvents ?? data.PendingEvents),
+      eventsByField,
+      eventsByMonth,
+      averageVolunteersPerEvent: this.normalizeNumber(data.averageVolunteersPerEvent ?? data.AverageVolunteersPerEvent),
+      averageRating: this.normalizeNumber(data.averageRating ?? data.AverageRating),
+      eventsByMonthDetailed
+    };
+  }
+
+  private mapOrganizationStats(response: any): OrganizationStats {
+    const data = this.extractData(response);
+
+    return {
+      totalOrganizations: this.normalizeNumber(data.totalOrganizations ?? data.TotalOrganizations),
+      verifiedOrganizations: this.normalizeNumber(data.verifiedOrganizations ?? data.VerifiedOrganizations),
+      pendingVerificationOrganizations: this.normalizeNumber(data.pendingVerificationOrganizations ?? data.PendingVerificationOrganizations),
+      organizationsByField: this.normalizeRecord(data.organizationsByField ?? data.OrganizationsByField),
+      averageRating: this.normalizeNumber(data.averageRating ?? data.AverageRating),
+      averageEventsPerOrganization: this.normalizeNumber(data.averageEventsPerOrganization ?? data.AverageEventsPerOrganization)
+    };
+  }
+
+  private mapVolunteerStats(response: any): VolunteerStats {
+    const data = this.extractData(response);
+
+    return {
+      totalVolunteers: this.normalizeNumber(data.totalVolunteers ?? data.TotalVolunteers),
+      activeVolunteers: this.normalizeNumber(data.activeVolunteers ?? data.ActiveVolunteers),
+      volunteersByRank: this.normalizeRecord(data.volunteersByRank ?? data.VolunteersByRank),
+      volunteersByGender: this.normalizeRecord(data.volunteersByGender ?? data.VolunteersByGender),
+      volunteersByField: this.normalizeRecord(data.volunteersByField ?? data.VolunteersByField),
+      volunteersByAge: this.normalizeRecord(data.volunteersByAge ?? data.VolunteersByAge),
+      averageRating: this.normalizeNumber(data.averageRating ?? data.AverageRating),
+      averageEventsPerVolunteer: this.normalizeNumber(data.averageEventsPerVolunteer ?? data.AverageEventsPerVolunteer)
+    };
+  }
+
+  private mapOverallStats(response: any): OverallStats {
+    const data = this.extractData(response);
+    const registrations = this.normalizeRecord(data.registrationsByStatus ?? data.RegistrationsByStatus);
+
+    return {
+      totalUsers: this.normalizeNumber(data.totalUsers ?? data.TotalUsers),
+      totalEvents: this.normalizeNumber(data.totalEvents ?? data.TotalEvents),
+      totalVolunteers: this.normalizeNumber(data.totalVolunteers ?? data.TotalVolunteers),
+      totalOrganizations: this.normalizeNumber(data.totalOrganizations ?? data.TotalOrganizations),
+      totalRegistrations: this.normalizeNumber(data.totalRegistrations ?? data.TotalRegistrations),
+      registrationsByStatus: registrations
+    };
+  }
+
+  private mapRatingStats(response: any): RatingStats {
+    const data = this.extractData(response);
+
+    return {
+      averageVolunteerRating: this.normalizeNumber(data.averageVolunteerRating ?? data.AverageVolunteerRating),
+      averageOrganizationRating: this.normalizeNumber(data.averageOrganizationRating ?? data.AverageOrganizationRating),
+      volunteerRatingsDistribution: this.normalizeNumberRecordWithNumericKeys(data.volunteerRatingsDistribution ?? data.VolunteerRatingsDistribution),
+      organizationRatingsDistribution: this.normalizeNumberRecordWithNumericKeys(data.organizationRatingsDistribution ?? data.OrganizationRatingsDistribution)
+    };
+  }
+
+  private extractData(response: any): any {
+    return response?.data ?? response ?? {};
+  }
+
+  private normalizeNumber(value: any, fallback = 0): number {
+    const num = Number(value);
+    return Number.isFinite(num) ? num : fallback;
+  }
+
+  private normalizeRecord(record: any): Record<string, number> {
+    const result: Record<string, number> = {};
+    if (!record || typeof record !== 'object') {
+      return result;
+    }
+
+    Object.entries(record).forEach(([key, value]) => {
+      result[key] = this.normalizeNumber(value);
+    });
+
+    return result;
+  }
+
+  private normalizeNumberRecordWithNumericKeys(record: any): Record<number, number> {
+    const result: Record<number, number> = {};
+    if (!record || typeof record !== 'object') {
+      return result;
+    }
+
+    Object.entries(record).forEach(([key, value]) => {
+      const numericKey = Number(key);
+      if (Number.isFinite(numericKey)) {
+        result[numericKey] = this.normalizeNumber(value);
+      }
+    });
+
+    return result;
+  }
+
+  private normalizeMonthMap(record: any): Record<string, number> {
+    const result: Record<string, number> = {};
+
+    for (let month = 1; month <= 12; month++) {
+      result[month.toString()] = 0;
+    }
+
+    if (!record || typeof record !== 'object') {
+      return result;
+    }
+
+    Object.entries(record).forEach(([key, value]) => {
+      const month = this.extractMonthFromKey(key);
+      if (month) {
+        const monthKey = month.toString();
+        result[monthKey] = (result[monthKey] || 0) + this.normalizeNumber(value);
+      }
+    });
+
+    return result;
+  }
+
+  private normalizeMonthlyBreakdown(record: any): Record<string, EventMonthlyBreakdown> {
+    const result: Record<string, EventMonthlyBreakdown> = {};
+
+    for (let month = 1; month <= 12; month++) {
+      result[month.toString()] = this.createEmptyMonthlyBreakdown();
+    }
+
+    if (!record || typeof record !== 'object') {
+      return result;
+    }
+
+    Object.entries(record).forEach(([key, value]) => {
+      const month = this.extractMonthFromKey(key);
+      if (!month) {
+        return;
+      }
+
+      const monthKey = month.toString();
+      const data: any = value ?? {};
+      result[monthKey] = {
+        total: this.normalizeNumber(data.total ?? data.Total),
+        pending: this.normalizeNumber(data.pending ?? data.Pending),
+        active: this.normalizeNumber(data.active ?? data.Active),
+        completed: this.normalizeNumber(data.completed ?? data.Completed),
+        cancelled: this.normalizeNumber(data.cancelled ?? data.Cancelled)
+      };
+    });
+
+    return result;
+  }
+
+  private createEmptyMonthlyBreakdown(): EventMonthlyBreakdown {
+    return {
+      total: 0,
+      pending: 0,
+      active: 0,
+      completed: 0,
+      cancelled: 0
+    };
+  }
+
+  private buildPieStyle(
+    record: Record<string, number> | null | undefined,
+    keyOrder: string[],
+    colors: string[],
+    total?: number
+  ): Record<string, string> {
+    if (!record || keyOrder.length === 0) {
+      return { background: '#f1f3f5' };
+    }
+
+    const segments = keyOrder.map((key, index) => ({
+      key,
+      value: record[key] || 0,
+      color: colors[index] || '#6c757d'
+    }));
+
+    const sum = total && total > 0
+      ? total
+      : segments.reduce((acc, segment) => acc + segment.value, 0);
+
+    if (sum <= 0) {
+      return { background: '#f1f3f5' };
+    }
+
+    let cumulative = 0;
+    const gradientSegments: string[] = [];
+
+    segments.forEach(segment => {
+      const start = (cumulative / sum) * 100;
+      cumulative += segment.value;
+      const end = (cumulative / sum) * 100;
+
+      if (end > start) {
+        gradientSegments.push(`${segment.color} ${start}% ${end}%`);
+      }
+    });
+
+    if (gradientSegments.length === 0) {
+      return { background: '#f1f3f5' };
+    }
+
+    return {
+      background: `conic-gradient(${gradientSegments.join(', ')})`
+    };
+  }
+
+  private extractMonthFromKey(key: string): number | null {
+    if (!key) {
+      return null;
+    }
+
+    // Nếu key chỉ là số tháng
+    const direct = Number(key);
+    if (Number.isFinite(direct) && direct >= 1 && direct <= 12) {
+      return direct;
+    }
+
+    // Thử tách dạng yyyy-mm hoặc các định dạng tương tự
+    const parts = key.split(/[-/]/);
+    const monthPart = parts.pop();
+    if (monthPart) {
+      const parsed = Number(monthPart);
+      if (Number.isFinite(parsed) && parsed >= 1 && parsed <= 12) {
+        return parsed;
+      }
+    }
+
+    return null;
   }
 }

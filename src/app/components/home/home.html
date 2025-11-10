@@ -128,7 +128,7 @@
             <p class="small text-muted mb-1">
               Đã tham gia {{ volunteer.tongSuKienThamGia || volunteer.suKienDaThamGia || 0 }} sự kiện
             </p>
-            <p class="small text-info mb-2" *ngIf="volunteer.dangThamGia && volunteer.dangThamGia > 0">
+            <p class="small text-info mb-2" *ngIf="(volunteer.dangThamGia !== undefined && volunteer.dangThamGia !== null) && volunteer.dangThamGia > 0">
               <i class="bi bi-clock-history me-1"></i>Đang tham gia {{ volunteer.dangThamGia }} sự kiện
             </p>
             <button (click)="viewVolunteerProfile(volunteer)" class="btn btn-sm btn-outline-primary mt-2">Xem hồ sơ</button>
@@ -148,5 +148,4 @@
 
 <!-- Volunteer Profile Viewer Component -->
 <app-volunteer-profile-viewer></app-volunteer-profile-viewer>
-
 

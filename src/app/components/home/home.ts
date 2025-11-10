@@ -244,13 +244,56 @@ export class Home implements OnInit, OnDestroy {
     this.Volunteer.getAllVolunteers().subscribe({
       next: (data: any) => {
         const volunteers = Array.isArray(data) ? data : (data?.data || data?.items || []);
-        this.randomVolunteers = this.shuffleArray(volunteers).slice(0, 5);
+        const shuffledVolunteers = this.shuffleArray(volunteers);
         
-        // Load số sự kiện đã tham gia cho mỗi volunteer
-        this.randomVolunteers.forEach((volunteer: any) => {
-          if (volunteer.maTNV) {
-            this.loadVolunteerEventCount(volunteer);
+        // Khởi tạo giá trị mặc định cho tất cả volunteers
+        shuffledVolunteers.forEach((volunteer: any) => {
+          volunteer.dangThamGia = 0;
+          volunteer.tongSuKienThamGia = volunteer.tongSuKienThamGia || volunteer.suKienDaThamGia || 0;
+          volunteer.suKienDaThamGia = volunteer.tongSuKienThamGia || volunteer.suKienDaThamGia || 0;
+        });
+        
+        // Load số sự kiện đã tham gia cho tất cả volunteers (luôn load bất kể role)
+        const loadPromises: Promise<void>[] = [];
+        
+        shuffledVolunteers.forEach((volunteer: any) => {
+          // Khởi tạo giá trị mặc định cho tất cả volunteers
+          if (volunteer.dangThamGia === undefined) {
+            volunteer.dangThamGia = 0;
           }
+          
+          if (volunteer.maTNV) {
+            const promise = new Promise<void>((resolve) => {
+              this.loadVolunteerEventCount(volunteer, () => resolve());
+            });
+            loadPromises.push(promise);
+          } else {
+            // Nếu không có maTNV, vẫn resolve ngay để không block
+            loadPromises.push(Promise.resolve());
+          }
+        });
+        
+        // Đợi tất cả API calls hoàn thành, sau đó sắp xếp và lấy top 5
+        Promise.all(loadPromises).then(() => {
+          // Sắp xếp theo: đang tham gia (giảm dần), sau đó tổng tham gia (giảm dần)
+          const sorted = shuffledVolunteers.sort((a: any, b: any) => {
+            const dangThamGiaA = a.dangThamGia || 0;
+            const dangThamGiaB = b.dangThamGia || 0;
+            const tongThamGiaA = a.tongSuKienThamGia || a.suKienDaThamGia || 0;
+            const tongThamGiaB = b.tongSuKienThamGia || b.suKienDaThamGia || 0;
+            
+            // Ưu tiên đang tham gia trước
+            if (dangThamGiaA !== dangThamGiaB) {
+              return dangThamGiaB - dangThamGiaA;
+            }
+            // Nếu đang tham gia bằng nhau, sắp xếp theo tổng tham gia
+            return tongThamGiaB - tongThamGiaA;
+          });
+          
+          this.randomVolunteers = sorted.slice(0, 5);
+        }).catch(() => {
+          // Nếu có lỗi, vẫn hiển thị danh sách đã shuffle
+          this.randomVolunteers = shuffledVolunteers.slice(0, 5);
         });
       },
       error: (err) => {
@@ -351,8 +394,19 @@ export class Home implements OnInit, OnDestroy {
   }
 
   // Load số sự kiện đã tham gia và đang tham gia
-  loadVolunteerEventCount(volunteer: any): void {
-    if (!volunteer.maTNV) return;
+  loadVolunteerEventCount(volunteer: any, callback?: () => void): void {
+    if (!volunteer.maTNV) {
+      volunteer.dangThamGia = 0;
+      volunteer.tongSuKienThamGia = volunteer.tongSuKienThamGia || volunteer.suKienDaThamGia || 0;
+      volunteer.suKienDaThamGia = volunteer.tongSuKienThamGia || volunteer.suKienDaThamGia || 0;
+      if (callback) callback();
+      return;
+    }
+
+    // Đảm bảo giá trị mặc định được set trước khi gọi API
+    if (volunteer.dangThamGia === undefined) {
+      volunteer.dangThamGia = 0;
+    }
 
     this.registrationService.getRegistrationsByVolunteer(volunteer.maTNV).subscribe({
       next: (response: any) => {
@@ -372,12 +426,17 @@ export class Home implements OnInit, OnDestroy {
         volunteer.dangThamGia = dangThamGia;
         volunteer.tongSuKienThamGia = tongSuKien;
         volunteer.suKienDaThamGia = tongSuKien;
+        
+        if (callback) callback();
       },
       error: (err) => {
-        console.error('Lỗi tải số sự kiện đã tham gia:', err);
-        volunteer.dangThamGia = 0;
-        volunteer.tongSuKienThamGia = 0;
-        volunteer.suKienDaThamGia = 0;
+        // Không log lỗi để tránh spam console khi không phải TNV
+        // Chỉ set giá trị mặc định
+        volunteer.dangThamGia = volunteer.dangThamGia || 0;
+        volunteer.tongSuKienThamGia = volunteer.tongSuKienThamGia || volunteer.suKienDaThamGia || 0;
+        volunteer.suKienDaThamGia = volunteer.tongSuKienThamGia || volunteer.suKienDaThamGia || 0;
+        
+        if (callback) callback();
       }
     });
   }

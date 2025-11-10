@@ -67,6 +67,7 @@ export interface SuKienResponseDto {
   matchRate?: number;
   isFeatured?: boolean;
   isOngoing?: boolean;
+  soLuongDaDangKy?: number; // Số lượng đã đăng ký (đã duyệt)
 }
 
 // Enum cho trạng thái sự kiện

@@ -15,8 +15,10 @@ export interface EvaluationResponseDto {
   maDanhGia: number;
   maNguoiDanhGia: number;
   tenNguoiDanhGia: string;
+  vaiTroNguoiDanhGia?: string;
   maNguoiDuocDanhGia: number;
   tenNguoiDuocDanhGia: string;
+  vaiTroNguoiDuocDanhGia?: string;
   maSuKien: number;
   tenSuKien: string;
   diemSo: number;
@@ -52,14 +54,28 @@ export class EvaluationService {
     return this.http.get<any>(`${this.apiUrl}/event/${eventId}`);
   }
 
-  // Kiểm tra đã đánh giá chưa
+  // Kiểm tra đã đánh giá chưa - sử dụng getGivenEvaluations thay vì endpoint /check
   checkEvaluationExists(evaluatorId: number, evaluatedId: number, eventId: number): Observable<any> {
-    return this.http.get<any>(`${this.apiUrl}/check`, {
-      params: {
-        evaluatorId: evaluatorId.toString(),
-        evaluatedId: evaluatedId.toString(),
-        eventId: eventId.toString()
-      }
+    // Lấy tất cả đánh giá đã tạo, rồi filter
+    return new Observable(observer => {
+      this.getGivenEvaluations(evaluatorId).subscribe({
+        next: (response: any) => {
+          const evaluations = response?.data || response || [];
+          const evaluation = evaluations.find((e: any) => 
+            e.maNguoiDuocDanhGia === evaluatedId && e.maSuKien === eventId
+          );
+          
+          if (evaluation) {
+            observer.next({ exists: true, data: evaluation });
+          } else {
+            observer.next({ exists: false, data: null });
+          }
+          observer.complete();
+        },
+        error: (err) => {
+          observer.error(err);
+        }
+      });
     });
   }
 
@@ -76,6 +92,21 @@ export class EvaluationService {
   // Lấy thống kê đánh giá
   getEvaluationStatistics(userId: number): Observable<any> {
     return this.http.get<any>(`${this.apiUrl}/statistics/${userId}`);
+  }
+
+  // Lấy đánh giá mà user nhận được (người khác đánh giá mình)
+  getReceivedEvaluations(userId: number): Observable<any> {
+    return this.http.get<any>(`${this.apiUrl}/received/${userId}`);
+  }
+
+  // Lấy đánh giá mà user đã đưa ra (đánh giá người khác)
+  getGivenEvaluations(userId: number): Observable<any> {
+    return this.http.get<any>(`${this.apiUrl}/given/${userId}`);
+  }
+
+  // Lấy toàn bộ đánh giá (Admin)
+  getAllEvaluations(): Observable<any> {
+    return this.http.get<any>(`${this.apiUrl}/all`);
   }
 }
 

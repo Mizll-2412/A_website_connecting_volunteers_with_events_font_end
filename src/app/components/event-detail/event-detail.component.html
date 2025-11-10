@@ -1,0 +1,338 @@
+<main class="container py-4">
+  <!-- Loading State -->
+  <div *ngIf="isLoading" class="text-center my-5">
+    <div class="spinner-border text-primary" role="status">
+      <span class="visually-hidden">Đang tải...</span>
+    </div>
+    <p class="mt-2">Đang tải thông tin sự kiện...</p>
+  </div>
+
+  <!-- Error State -->
+  <div *ngIf="errorMessage && !isLoading" class="alert alert-danger">
+    {{ errorMessage }}
+    <button class="btn btn-primary mt-3" (click)="backToList()">
+      <i class="bi bi-arrow-left"></i> Quay lại danh sách
+    </button>
+  </div>
+
+  <!-- Event Detail Content -->
+  <div *ngIf="!isLoading && event">
+    <!-- Back Button -->
+    <button class="btn btn-outline-secondary mb-3" (click)="backToList()">
+      <i class="bi bi-arrow-left"></i> Quay lại danh sách
+    </button>
+
+    <!-- Event Header -->
+    <div class="event-header">
+      <div class="d-flex justify-content-between align-items-start">
+        <div>
+          <h1 class="mb-2">{{ event.tenSuKien }}</h1>
+          <span class="badge" [ngClass]="getEventStatusClass()">
+            {{ getEventStatusText() }}
+          </span>
+        </div>
+        <div class="action-buttons" *ngIf="canEditOrDelete()">
+          <button class="btn btn-light" (click)="editEvent()">
+            <i class="bi bi-pencil"></i> Sửa
+          </button>
+          <button class="btn btn-warning" (click)="finishEvent()" *ngIf="canFinishEvent()">
+            <i class="bi bi-flag"></i> Kết thúc
+          </button>
+          <button class="btn btn-danger" (click)="deleteEvent()">
+            <i class="bi bi-trash"></i> Xóa
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Event Image -->
+    <img [src]="event.hinhAnh ? getImageUrl(event.hinhAnh) : 'assets/event-default.jpg'" 
+         class="event-image" 
+         alt="{{ event.tenSuKien }}">
+
+    <!-- Event Information -->
+    <div class="row mb-4">
+      <div class="col-md-8">
+        <div class="card mb-3">
+          <div class="card-header">
+            <h5 class="mb-0"><i class="bi bi-info-circle"></i> Thông tin chi tiết</h5>
+          </div>
+          <div class="card-body">
+            <h6>Mô tả</h6>
+            <p class="text-muted">{{ event.noiDung || 'Chưa có mô tả' }}</p>
+            
+            <hr>
+            
+            <dl class="row mb-0">
+              <dt class="col-sm-4"><i class="bi bi-geo-alt"></i> Địa điểm</dt>
+              <dd class="col-sm-8">{{ event.diaChi }}</dd>
+              
+              <dt class="col-sm-4"><i class="bi bi-calendar-event"></i> Ngày bắt đầu</dt>
+              <dd class="col-sm-8">{{ formatDate(event.ngayBatDau) }}</dd>
+              
+              <dt class="col-sm-4"><i class="bi bi-calendar-check"></i> Ngày kết thúc</dt>
+              <dd class="col-sm-8">{{ formatDate(event.ngayKetThuc) }}</dd>
+              
+              <dt class="col-sm-4"><i class="bi bi-calendar-plus"></i> Bắt đầu tuyển</dt>
+              <dd class="col-sm-8">{{ event.tuyenBatDau ? formatDate(event.tuyenBatDau) : 'Chưa cập nhật' }}</dd>
+              
+              <dt class="col-sm-4"><i class="bi bi-calendar-x"></i> Kết thúc tuyển</dt>
+              <dd class="col-sm-8">{{ event.tuyenKetThuc ? formatDate(event.tuyenKetThuc) : 'Chưa cập nhật' }}</dd>
+            </dl>
+          </div>
+        </div>
+
+        <!-- Volunteers List -->
+        <div class="card">
+          <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0"><i class="bi bi-people"></i> Danh sách tình nguyện viên</h5>
+            <button class="btn btn-sm btn-success" 
+                    (click)="openCertificateModal()"
+                    *ngIf="getEventStatusText() === 'Đã kết thúc' && eventVolunteers.length > 0">
+              <i class="bi bi-award"></i> Cấp chứng nhận
+            </button>
+          </div>
+          <div class="card-body">
+            <div *ngIf="isLoadingVolunteers" class="text-center py-3">
+              <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
+              <span class="ms-2">Đang tải danh sách...</span>
+            </div>
+
+            <div *ngIf="!isLoadingVolunteers && eventVolunteers.length === 0" class="alert alert-info">
+              <i class="bi bi-info-circle"></i> Chưa có tình nguyện viên nào đăng ký
+            </div>
+
+            <div *ngIf="!isLoadingVolunteers && eventVolunteers.length > 0" class="table-responsive">
+              <table class="table table-hover">
+                <thead>
+                  <tr>
+                    <th>#</th>
+                    <th>Họ tên</th>
+                    <th>Số điện thoại</th>
+                    <th>Email</th>
+                    <th>Địa chỉ</th>
+                    <th>Trạng thái</th>
+                    <th>Hành động</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let volunteer of eventVolunteers; let i = index">
+                    <td>{{ i + 1 }}</td>
+                    <td>{{ volunteer.hoTen }}</td>
+                    <td>{{ volunteer.soDienThoai }}</td>
+                    <td>{{ volunteer.email }}</td>
+                    <td>{{ volunteer.diaChi }}</td>
+                    <td>
+                      <span class="badge" [ngClass]="{
+                        'bg-success': volunteer.trangThai === 1,
+                        'bg-warning': volunteer.trangThai === 0,
+                        'bg-danger': volunteer.trangThai === 2
+                      }">
+                        {{ volunteer.trangThai === 1 ? 'Đã duyệt' : (volunteer.trangThai === 0 ? 'Chờ duyệt' : 'Từ chối') }}
+                      </span>
+                    </td>
+                    <td>
+                      <button *ngIf="canEvaluateVolunteer(volunteer)" 
+                              class="btn btn-sm btn-outline-primary" 
+                              (click)="openEvaluateVolunteer(volunteer)">
+                        <i class="bi bi-star"></i> Đánh giá
+                      </button>
+                      <span *ngIf="evaluatedVolunteerIds.has(volunteer.maTNV)" 
+                            class="badge bg-success">
+                        <i class="bi bi-check-circle"></i> Đã đánh giá
+                      </span>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Sidebar -->
+      <div class="col-md-4">
+        <!-- Statistics -->
+        <div class="card mb-3">
+          <div class="card-header">
+            <h5 class="mb-0"><i class="bi bi-bar-chart"></i> Thống kê</h5>
+          </div>
+          <div class="card-body">
+            <div class="stat-box mb-3">
+              <h3>{{ getRequiredSlots() }}</h3>
+              <p>Số lượng cần tuyển</p>
+            </div>
+            <div class="stat-box">
+              <h3>{{ getRegisteredSlots() }}</h3>
+              <p>Đã đăng ký</p>
+            </div>
+            <div class="stat-box mt-3">
+              <h3>{{ getRemainingSlots() }}</h3>
+              <p>Còn lại</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Organization Info -->
+        <div class="card" *ngIf="event.tenToChuc">
+          <div class="card-header">
+            <h5 class="mb-0"><i class="bi bi-building"></i> Tổ chức</h5>
+          </div>
+          <div class="card-body">
+            <p class="mb-1"><strong>{{ event.tenToChuc }}</strong></p>
+            <p class="text-muted mb-0" *ngIf="event.diaChiToChuc">
+              <i class="bi bi-geo-alt"></i> {{ event.diaChiToChuc }}
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<!-- Modal đánh giá tình nguyện viên -->
+<div class="modal fade" id="evaluateModal" tabindex="-1" aria-labelledby="evaluateModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="evaluateModalLabel">
+          <i class="bi bi-star-fill text-warning"></i> Đánh giá tình nguyện viên
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body" *ngIf="evaluatingVolunteer">
+        <div class="alert alert-info">
+          <strong>Tình nguyện viên:</strong> {{ evaluatingVolunteer.hoTen }}
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label">Điểm đánh giá</label>
+          <app-star-rating 
+            [(rating)]="evalScore"
+            [size]="'lg'"
+            [showLabel]="true">
+          </app-star-rating>
+        </div>
+
+        <div class="mb-3">
+          <label for="evalComment" class="form-label">Nhận xét</label>
+          <textarea class="form-control" 
+                    id="evalComment" 
+                    rows="4" 
+                    [(ngModel)]="evalComment"
+                    placeholder="Nhập nhận xét của bạn về tình nguyện viên..."></textarea>
+        </div>
+
+        <div class="alert alert-warning">
+          <i class="bi bi-info-circle me-2"></i>
+          <small>Đánh giá của bạn sẽ giúp tình nguyện viên cải thiện trong tương lai.</small>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+        <button type="button" 
+                class="btn btn-primary" 
+                (click)="submitEvaluation()"
+                [disabled]="evalSubmitting">
+          <span *ngIf="evalSubmitting" class="spinner-border spinner-border-sm me-2"></span>
+          <i *ngIf="!evalSubmitting" class="bi bi-send me-2"></i>
+          Gửi đánh giá
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal cấp chứng nhận -->
+<div class="modal fade" id="certificateModal" tabindex="-1" aria-labelledby="certificateModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="certificateModalLabel">
+          <i class="bi bi-award"></i> Cấp chứng nhận cho tình nguyện viên
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <!-- Chọn mẫu chứng nhận -->
+        <div class="mb-3">
+          <label class="form-label">Chọn mẫu chứng nhận</label>
+          <select class="form-select" [(ngModel)]="selectedCertificateSample">
+            <option [value]="null">-- Chọn mẫu --</option>
+            <option *ngFor="let sample of certificateSamples" [value]="sample.maMau">
+              {{ sample.tenMau }} {{ sample.isDefault ? '(Mặc định)' : '' }}
+            </option>
+          </select>
+        </div>
+
+        <!-- Danh sách tình nguyện viên -->
+        <div class="mb-3">
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <label class="form-label mb-0">Chọn tình nguyện viên</label>
+            <button class="btn btn-sm btn-outline-primary" (click)="toggleAllVolunteers()">
+              <i class="bi bi-check-all"></i> Chọn tất cả
+            </button>
+          </div>
+
+          <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
+            <table class="table table-sm">
+              <thead class="sticky-top bg-white">
+                <tr>
+                  <th style="width: 50px;">
+                    <input type="checkbox" 
+                           class="form-check-input"
+                           [checked]="selectedVolunteersForCert.size === eventVolunteers.length"
+                           (change)="toggleAllVolunteers()">
+                  </th>
+                  <th>Họ tên</th>
+                  <th>Email</th>
+                  <th>Trạng thái</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let volunteer of eventVolunteers">
+                  <td>
+                    <input type="checkbox" 
+                           class="form-check-input"
+                           [checked]="selectedVolunteersForCert.has(volunteer.maTNV)"
+                           (change)="toggleVolunteerForCert(volunteer.maTNV)"
+                           [disabled]="issuedCertificates.has(volunteer.maTNV)">
+                  </td>
+                  <td>{{ volunteer.hoTen }}</td>
+                  <td>{{ volunteer.email }}</td>
+                  <td>
+                    <span *ngIf="issuedCertificates.has(volunteer.maTNV)" class="badge bg-success">
+                      <i class="bi bi-check-circle"></i> Đã cấp
+                    </span>
+                    <span *ngIf="!issuedCertificates.has(volunteer.maTNV)" class="badge bg-secondary">
+                      Chưa cấp
+                    </span>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="alert alert-info">
+          <i class="bi bi-info-circle me-2"></i>
+          <small>Đã chọn: {{ selectedVolunteersForCert.size }} tình nguyện viên</small>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+          Đóng
+        </button>
+        <button type="button" 
+                class="btn btn-primary" 
+                [disabled]="!selectedCertificateSample || selectedVolunteersForCert.size === 0 || isIssuingCertificates"
+                (click)="issueCertificatesBulk()">
+          <span *ngIf="isIssuingCertificates" class="spinner-border spinner-border-sm me-2"></span>
+          <i *ngIf="!isIssuingCertificates" class="bi bi-send me-2"></i>
+          Cấp chứng nhận ({{ selectedVolunteersForCert.size }})
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+

@@ -162,6 +162,16 @@ export class Notifications implements OnInit, OnDestroy {
       });
     }
   }
+
+  deleteAllNotifications(): void {
+    if (confirm('Bạn có chắc chắn muốn xóa TẤT CẢ thông báo không? Hành động này không thể hoàn tác!')) {
+      this.notificationService.deleteAllNotifications();
+      // Clear local data
+      this.notifications = [];
+      this.filteredNotifications = [];
+      this.unreadCount = 0;
+    }
+  }
   
   getNotificationCategoryText(notification: Notification): string {
     if (notification.phanLoaiText) {

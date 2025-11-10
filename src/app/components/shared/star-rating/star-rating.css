@@ -1,0 +1,112 @@
+.star-rating-container {
+  user-select: none;
+}
+
+.rating-stars {
+  position: relative;
+}
+
+.rating-stars .bi {
+  transition: all 0.2s ease;
+}
+
+.rating-stars .bi:hover:not(.readonly) {
+  transform: scale(1.1);
+}
+
+.t1-star {
+  color: #FFD700 !important;
+  filter: drop-shadow(0 0 10px rgba(255, 215, 0, 0.8));
+}
+
+/* Màu T1 đỏ (#e2012d) khi giữ sao thứ 6 */
+.t1-red-star {
+  color: #e2012d !important;
+  filter: drop-shadow(0 0 10px rgba(226, 1, 45, 0.6));
+}
+
+/* Style khi sao thứ 6 đang lock */
+.t1-locked {
+  animation: t1LockPulse 1.5s ease-in-out infinite;
+  position: relative;
+}
+
+.t1-locked::after {
+  content: '🔒';
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  font-size: 0.7em;
+  animation: t1LockPulse 1.5s ease-in-out infinite;
+}
+
+@keyframes t1LockPulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.7;
+    transform: scale(1.05);
+  }
+}
+
+.t1-label {
+  font-weight: bold;
+  color: #FFD700;
+  text-shadow: 0 0 5px rgba(255, 215, 0, 0.5);
+  animation: t1TextGlow 1s ease-in-out infinite alternate;
+}
+
+/* Container cho ảnh T1 */
+.t1-image-container {
+  animation: t1ImageFadeIn 0.5s ease-in-out;
+}
+
+.t1-image {
+  max-width: 310px;
+  max-height: 200px;
+  width: auto;
+  height: auto;
+  border-radius: 10px;
+}
+
+@keyframes t1ImageFadeIn {
+  0% {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes t1ImageGlow {
+  0% {
+    box-shadow: 0 4px 15px rgba(255, 215, 0, 0.3);
+    filter: brightness(1);
+  }
+  100% {
+    box-shadow: 0 4px 25px rgba(255, 215, 0, 0.6);
+    filter: brightness(1.1);
+  }
+}
+
+@keyframes t1TextGlow {
+  0% {
+    text-shadow: 0 0 5px rgba(255, 215, 0, 0.5);
+  }
+  100% {
+    text-shadow: 0 0 15px rgba(255, 215, 0, 1);
+  }
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .t1-image {
+    max-width: 150px;
+    max-height: 150px;
+  }
+}
+

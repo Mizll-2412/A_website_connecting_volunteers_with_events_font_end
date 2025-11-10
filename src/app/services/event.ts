@@ -164,6 +164,10 @@ export class EventService {
   deleteSuKien(id: number): Observable<any> {
     return this.http.delete(`${this.apiUrl}/${id}`);
   }
+
+  finishEvent(id: number): Observable<any> {
+    return this.http.put(`${this.apiUrl}/${id}/finish`, {});
+  }
   
   // Thêm phương thức lấy sự kiện theo tổ chức
   getEventsByOrganization(organizationId: number): Observable<SuKienResponseDto[]> {

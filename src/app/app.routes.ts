@@ -11,6 +11,8 @@ import { Notifications } from './components/notifications/notifications';
 import { Reputation } from './components/reputation/reputation';
 import { EventRecommendations } from './components/event-recommendations/event-recommendations';
 import { Statistics } from './components/statistics/statistics';
+import { OrganizationStatistics } from './components/organization-statistics/organization-statistics';
+import { OrganizationEvaluations } from './components/organization-evaluations/organization-evaluations';
 import { CertificateComponent } from './components/certificate/certificate';
 import { AdvancedSearchComponent } from './components/advanced-search/advanced-search';
 import { AdminComponent } from './components/admin/admin';
@@ -24,6 +26,7 @@ import { SuKienComponent } from './components/admin/event/event';
 import { TinhNguyenVienComponent } from './components/admin/volunteer/volunteer';
 import { SkillManagement } from './components/admin/skill-management/skill-management';
 import { FieldManagement } from './components/admin/field-management/field-management';
+import { AdminEvaluationsComponent } from './components/admin/evaluations/admin-evaluations';
 import { EventRegisteredComponent } from './components/events/events';
 import { EventDetailComponent } from './components/event-detail/event-detail';
 import { RegistrationListComponent } from './components/registration-list/registration-list';
@@ -34,6 +37,9 @@ import { EventsOrganizationsComponent } from './components/events-organizations/
 import { Layout } from './components/layout/layout';
 import { AccountSettingsComponent } from './components/account-settings/account-settings';
 import { OrganizationDetailComponent } from './components/organization-detail/organization-detail';
+import { OrganizationEventDetailComponent } from './components/organization-event-detail/organization-event-detail';
+import { CertificateTemplateEditorComponent } from './components/certificate-template-editor/certificate-template-editor';
+import { CertificateViewerComponent } from './components/certificate-viewer/certificate-viewer';
 
 export const routes: Routes = [
   { path: 'login', component: LoginComponent },
@@ -52,10 +58,15 @@ export const routes: Routes = [
       { path: 'reputation', component: Reputation },
       { path: 'recommendations', component: EventRecommendations },
       { path: 'statistics', component: Statistics },
+      { path: 'org-statistics', component: OrganizationStatistics },
+      { path: 'org-evaluations', component: OrganizationEvaluations },
       { path: 'certificates', component: CertificateComponent },
       { path: 'explore', component: EventsOrganizationsComponent }, // Trang mới gộp
       { path: 'org-profile', component: OrganizationProfileComponent },
       { path: 'manage-org', component: EventManagementComponent },
+      { path: 'manage-org/:id', component: OrganizationEventDetailComponent },
+      { path: 'certificate-editor/:id', component: CertificateTemplateEditorComponent },
+      { path: 'certificate-view/:id', component: CertificateViewerComponent },
       { path: 'verify-org', component: OrganizationVerification },
       { path: 'su-kien/:id', component: EventDetailComponent },
       { path: 'to-chuc/:id', component: OrganizationDetailComponent },
@@ -74,6 +85,7 @@ export const routes: Routes = [
           { path: 'dashboard', component: Statistics },
           { path: 'users', component: UserManagement },
           { path: 'verify-organizations', component: AdminOrganizationVerification },
+          { path: 'evaluations', component: AdminEvaluationsComponent },
           { path: 'tochuc', component: ToChucComponent },
           { path: 'sukien', component: SuKienComponent },
           { path: 'tinhnguyenvien', component: TinhNguyenVienComponent },

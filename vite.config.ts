@@ -4,9 +4,9 @@ export default defineConfig({
   server: {
     host: true, // Cho phép truy cập từ bên ngoài
     allowedHosts: [
-      'tinhnguyenvien.buituantu.com',
-      'api.buituantu.com',
-      '.buituantu.com' // Cho phép tất cả subdomain của buituantu.com
+      'tinhnguyenvien.io.vn',
+      'api.tinhnguyenvien.io.vn',
+      '.tinhnguyenvien.io.vn' // Cho phép tất cả subdomain của tinhnguyenvien.io.vn
     ]
   }
 });

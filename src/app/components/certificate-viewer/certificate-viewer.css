@@ -1,0 +1,57 @@
+.certificate-viewer-container {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+.certificate-preview {
+  background: #f8f9fa;
+  padding: 20px;
+  border-radius: 8px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.certificate-image {
+  max-width: 100%;
+  height: auto;
+  border: 2px solid #dee2e6;
+  border-radius: 4px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.certificate-canvas {
+  max-width: 100%;
+  height: auto;
+  border: 2px solid #dee2e6;
+  border-radius: 4px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  display: block;
+  margin: 0 auto;
+}
+
+.action-buttons {
+  border-top: 1px solid #dee2e6;
+  padding-top: 20px;
+}
+
+.action-buttons .btn {
+  font-weight: 500;
+  padding: 12px;
+}
+
+.action-buttons .btn i {
+  font-size: 1.1rem;
+}
+
+@media (max-width: 768px) {
+  .certificate-viewer-container {
+    padding: 10px;
+  }
+  
+  .certificate-preview {
+    padding: 10px;
+  }
+}
+

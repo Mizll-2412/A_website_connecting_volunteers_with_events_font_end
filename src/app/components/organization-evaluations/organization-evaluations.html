@@ -1,0 +1,124 @@
+<div class="evaluations-page">
+  <div class="page-container py-4">
+    <div class="page-header d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+      <div>
+        <h2 class="page-title mb-1">Đánh giá tổ chức</h2>
+        <p class="page-subtitle mb-0">Theo dõi đánh giá từ tình nguyện viên và các đánh giá bạn đã gửi</p>
+      </div>
+      <div class="d-flex gap-2">
+        <button class="btn btn-outline-secondary" type="button" (click)="goBack()">
+          <i class="bi bi-arrow-left-short me-1"></i>
+          Quay về thống kê
+        </button>
+      </div>
+    </div>
+
+    <div class="card">
+    <div class="card-body">
+      <ul class="nav nav-pills evaluation-tabs mb-4">
+        <li class="nav-item">
+          <button 
+            class="nav-link" 
+            type="button" 
+            [class.active]="activeTab === 'received'"
+            (click)="switchTab('received')">
+            Đánh giá nhận được
+            <span class="badge bg-light text-dark ms-2">{{ receivedEvaluations.length }}</span>
+          </button>
+        </li>
+        <li class="nav-item">
+          <button 
+            class="nav-link" 
+            type="button" 
+            [class.active]="activeTab === 'given'"
+            (click)="switchTab('given')">
+            Đánh giá đã gửi
+            <span class="badge bg-light text-dark ms-2">{{ givenEvaluations.length }}</span>
+          </button>
+        </li>
+      </ul>
+
+      <div *ngIf="activeTab === 'received'">
+        <div *ngIf="isLoadingReceived" class="text-center text-muted py-5">
+          <div class="spinner-border text-primary mb-3" role="status">
+            <span class="visually-hidden">Đang tải...</span>
+          </div>
+          <p class="mb-0">Đang tải các đánh giá tổ chức nhận được...</p>
+        </div>
+        <div *ngIf="!isLoadingReceived && receivedError" class="alert alert-warning">
+          {{ receivedError }}
+        </div>
+        <div *ngIf="!isLoadingReceived && !receivedError">
+          <div *ngIf="receivedEvaluations.length === 0" class="empty-state">
+            <i class="bi bi-emoji-smile mb-3"></i>
+            <h5 class="mb-2">Chưa có đánh giá nào</h5>
+            <p class="text-muted mb-0">
+              Khi tình nguyện viên hoàn thành sự kiện và gửi đánh giá, chúng sẽ xuất hiện tại đây.
+            </p>
+          </div>
+          <div *ngFor="let evaluation of receivedEvaluations; trackBy: trackByEvaluationId" class="evaluation-card">
+            <div class="evaluation-header">
+              <div>
+                <h5 class="mb-1">{{ evaluation.scorerName || 'Tình nguyện viên' }}</h5>
+                <div class="text-muted small">
+                  <i class="bi bi-calendar-event me-1"></i>{{ evaluation.eventName || 'Không rõ sự kiện' }}
+                  <span class="mx-1">•</span>
+                  {{ evaluation.createdAt | date:'dd/MM/yyyy HH:mm' }}
+                </div>
+              </div>
+              <app-star-rating 
+                [rating]="evaluation.score" 
+                [readonly]="true" 
+                size="sm" 
+                [showLabel]="false">
+              </app-star-rating>
+            </div>
+            <p class="mb-0">{{ evaluation.content || 'Tình nguyện viên không để lại nhận xét chi tiết.' }}</p>
+          </div>
+        </div>
+      </div>
+
+      <div *ngIf="activeTab === 'given'">
+        <div *ngIf="isLoadingGiven" class="text-center text-muted py-5">
+          <div class="spinner-border text-primary mb-3" role="status">
+            <span class="visually-hidden">Đang tải...</span>
+          </div>
+          <p class="mb-0">Đang tải các đánh giá tổ chức đã gửi...</p>
+        </div>
+        <div *ngIf="!isLoadingGiven && givenError" class="alert alert-warning">
+          {{ givenError }}
+        </div>
+        <div *ngIf="!isLoadingGiven && !givenError">
+          <div *ngIf="givenEvaluations.length === 0" class="empty-state">
+            <i class="bi bi-people mb-3"></i>
+            <h5 class="mb-2">Bạn chưa đánh giá tình nguyện viên nào</h5>
+            <p class="text-muted mb-0">
+              Sau khi sự kiện kết thúc, hãy đánh giá tình nguyện viên của mình để khuyến khích và ghi nhận nỗ lực của họ.
+            </p>
+          </div>
+          <div *ngFor="let evaluation of givenEvaluations; trackBy: trackByEvaluationId" class="evaluation-card">
+            <div class="evaluation-header">
+              <div>
+                <h5 class="mb-1">{{ evaluation.targetName || 'Tình nguyện viên' }}</h5>
+                <div class="text-muted small">
+                  <i class="bi bi-calendar-event me-1"></i>{{ evaluation.eventName || 'Không rõ sự kiện' }}
+                  <span class="mx-1">•</span>
+                  {{ evaluation.createdAt | date:'dd/MM/yyyy HH:mm' }}
+                </div>
+              </div>
+              <app-star-rating 
+                [rating]="evaluation.score" 
+                [readonly]="true" 
+                size="sm" 
+                [showLabel]="false">
+              </app-star-rating>
+            </div>
+            <p class="mb-0">{{ evaluation.content || 'Bạn không để lại nhận xét chi tiết cho tình nguyện viên.' }}</p>
+          </div>
+        </div>
+      </div>
+    </div>
+    </div>
+  </div>
+</div>
+

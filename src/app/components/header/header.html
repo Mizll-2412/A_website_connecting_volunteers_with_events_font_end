@@ -18,6 +18,7 @@
       <a *ngIf="role === 'User'" routerLink="/dang-ky" routerLinkActive="active">Đăng ký của tôi</a>
       <a *ngIf="role === 'Organization'" routerLink="/manage-org" routerLinkActive="active">Quản lý sự kiện</a>
       <a *ngIf="role === 'Organization'" routerLink="/list-user" routerLinkActive="active">Hồ sơ nổi bật</a>
+      <a *ngIf="role === 'Organization'" routerLink="/org-statistics" routerLinkActive="active">Thống kê</a>
       <a *ngIf="role === 'Admin'" routerLink="/admin" routerLinkActive="active">Quản trị</a>
     </nav>
 
@@ -127,10 +128,13 @@
     <a *ngIf="role === 'Organization'" routerLink="/list-user" routerLinkActive="active" (click)="closeMobileMenu()">
       <i class="fas fa-users mr-2"></i> Hồ sơ nổi bật
     </a>
+    <a *ngIf="role === 'Organization'" routerLink="/org-statistics" routerLinkActive="active" (click)="closeMobileMenu()">
+      <i class="fas fa-chart-bar mr-2"></i> Thống kê
+    </a>
     <a *ngIf="role === 'Admin'" routerLink="/admin" routerLinkActive="active" (click)="closeMobileMenu()">
       <i class="fas fa-user-shield mr-2"></i> Quản trị
     </a>
-    <a *ngIf="isLoggedIn" routerLink="/statistics" routerLinkActive="active" (click)="closeMobileMenu()">
+    <a *ngIf="role === 'Admin'" routerLink="/statistics" routerLinkActive="active" (click)="closeMobileMenu()">
       <i class="fas fa-chart-bar mr-2"></i> Thống kê
     </a>
     <!-- Thêm các mục từ dropdown của avatar vào mobile menu -->

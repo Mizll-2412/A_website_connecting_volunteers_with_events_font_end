@@ -16,6 +16,7 @@ import { HttpErrorResponse, HttpClient } from '@angular/common/http';
 import { VolunteerProfileViewerComponent } from '../volunteer-profile-viewer/volunteer-profile-viewer';
 import { environment } from '../../../environments/environment';
 import { getImageUrl } from '../../utils/image-url.util';
+import { StarRatingComponent } from '../shared/star-rating/star-rating';
 
 interface Volunteer {
   maTNV: number;
@@ -65,7 +66,7 @@ interface EventData {
 @Component({
   selector: 'app-event-management',
   standalone: true,
-  imports: [CommonModule, RouterModule, FormsModule, VolunteerProfileViewerComponent],
+  imports: [CommonModule, RouterModule, FormsModule, VolunteerProfileViewerComponent, StarRatingComponent],
   templateUrl: './event-management.html',
   styleUrls: ['./event-management.css']
 })
@@ -90,8 +91,22 @@ export class EventManagementComponent implements OnInit {
   newEvent: EventData = this.createEmptyEvent();
   isCreatingEvent = false;
   isEditingEvent = false;
+  isSavingEvent = false;
   selectedFile: File | null = null;
   previewUrl: string | null = null;
+  
+  // Computed properties cho danh sách sự kiện
+  get activeEvents(): EventData[] {
+    return this.events
+      .filter(e => this.getEventStatusText(e) !== 'Đã kết thúc')
+      .sort((a, b) => (b.maSuKien || 0) - (a.maSuKien || 0)); // Sắp xếp mới nhất trước (theo ID giảm dần)
+  }
+  
+  get finishedEvents(): EventData[] {
+    return this.events
+      .filter(e => this.getEventStatusText(e) === 'Đã kết thúc')
+      .sort((a, b) => (b.maSuKien || 0) - (a.maSuKien || 0)); // Sắp xếp mới nhất trước (theo ID giảm dần)
+  }
   
   // Cho phần cài đặt tổ chức
   orgSelectedFile: File | null = null;
@@ -136,6 +151,16 @@ export class EventManagementComponent implements OnInit {
   issuedCertificates: Set<number> = new Set();
   isIssuingCertificates: boolean = false;
   confirmComplete: boolean = false;
+  
+  // Quản lý mẫu chứng nhận
+  allCertificateSamples: any[] = [];
+  newSample = {
+    tenMau: '',
+    moTa: '',
+    isDefault: false
+  };
+  selectedSampleFile: File | null = null;
+  isLoadingSamples: boolean = false;
 
   @ViewChild(VolunteerProfileViewerComponent) volunteerProfileViewer?: VolunteerProfileViewerComponent;
 
@@ -155,6 +180,13 @@ export class EventManagementComponent implements OnInit {
 
   ngOnInit(): void {
     this.isLoggedIn = this.auth.isAuthenticated();
+    
+    // Đọc tab đã lưu từ localStorage (không đọc tab động như 'event-detail')
+    const savedTab = localStorage.getItem('eventManagementActiveTab');
+    if (savedTab && ['events', 'finished-events', 'certificate-samples', 'create-event'].includes(savedTab)) {
+      this.selectedTab = savedTab;
+    }
+    
     if (this.isLoggedIn) {
       this.username = this.auth.getUsername();
       this.role = this.auth.getRole();
@@ -172,6 +204,7 @@ export class EventManagementComponent implements OnInit {
       this.loadOrganizationInfo();
       this.loadSkills();
       this.loadFields();
+      this.loadCertificateSamples();
     } else {
       this.router.navigate(['/login']);
     }
@@ -240,6 +273,9 @@ export class EventManagementComponent implements OnInit {
           this.events = this.getMockEvents();
         }
         
+        // Load dữ liệu cho tab đã lưu (nếu có)
+        this.loadDataForSavedTab();
+        
         this.isLoading = false;
       },
       error: (err: HttpErrorResponse) => {
@@ -301,13 +337,15 @@ export class EventManagementComponent implements OnInit {
           return;
         }
         
-        // Map dữ liệu từ backend sang frontend format
-        this.events = eventsData.map((event: any) => ({
-          ...event,
-          soLuongTNV: event.soLuong || event.soLuongTNV || 1, // Map soLuong -> soLuongTNV
-          diaChi: event.diaChi || '',
-          maToChuc: event.maToChuc || this.organization?.maToChuc || 0
-        }));
+        // Map dữ liệu từ backend sang frontend format và sắp xếp mới nhất trước
+        this.events = eventsData
+          .map((event: any) => ({
+            ...event,
+            soLuongTNV: event.soLuong || event.soLuongTNV || 1, // Map soLuong -> soLuongTNV
+            diaChi: event.diaChi || '',
+            maToChuc: event.maToChuc || this.organization?.maToChuc || 0
+          }))
+          .sort((a, b) => (b.maSuKien || 0) - (a.maSuKien || 0)); // Sắp xếp mới nhất trước
         
         this.isLoading = false;
       },
@@ -437,6 +475,7 @@ export class EventManagementComponent implements OnInit {
     if (this.organization?.maToChuc) {
       this.newEvent.maToChuc = this.organization.maToChuc;
     }
+    this.isSavingEvent = false;
     this.isCreatingEvent = true;
     this.selectedTab = 'create-event';
     this.selectedFile = null;
@@ -751,11 +790,16 @@ export class EventManagementComponent implements OnInit {
   cancelEdit() {
     this.isCreatingEvent = false;
     this.isEditingEvent = false;
+    this.isSavingEvent = false;
     this.newEvent = this.createEmptyEvent();
     this.selectedTab = 'events';
   }
 
   saveEvent() {
+    if (this.isSavingEvent) {
+      return;
+    }
+
     // Thêm lĩnh vực và kỹ năng vào dữ liệu (filter null, undefined, và NaN values)
     const linhVucIds = this.selectedLinhVucs
       .filter(id => id !== null && id !== undefined && !isNaN(Number(id)))
@@ -835,6 +879,7 @@ export class EventManagementComponent implements OnInit {
     }
     
     if (this.isEditingEvent) {
+      this.isSavingEvent = true;
       // Cập nhật sự kiện
       this.eventService.updateSuKien(this.newEvent.maSuKien, eventDataToSend, this.selectedFile || undefined).subscribe({
         next: (response) => {
@@ -846,23 +891,27 @@ export class EventManagementComponent implements OnInit {
             this.events[index] = resultData;
           }
           this.isEditingEvent = false;
+          this.isSavingEvent = false;
           this.selectedTab = 'events';
           alert('Cập nhật sự kiện thành công!');
         },
         error: (err: HttpErrorResponse) => {
           console.error('Lỗi khi cập nhật sự kiện:', err);
           alert(err.error?.message || 'Không thể cập nhật sự kiện. Vui lòng thử lại sau.');
-          this.isEditingEvent = false;
+          this.isSavingEvent = false;
+          // Không reset isEditingEvent khi có lỗi để giữ nguyên trạng thái form
         }
       });
     } else {
+      this.isSavingEvent = true;
       // Tạo sự kiện mới
       this.eventService.createSuKien(eventDataToSend, this.selectedFile || undefined).subscribe({
         next: (response) => {
           console.log('Tạo sự kiện thành công:', response);
-          // Thêm sự kiện mới vào danh sách
+          // Thêm sự kiện mới vào đầu danh sách (mới nhất lên đầu)
           const resultData = response.data || response;
-          this.events.push(resultData);
+          this.events.unshift(resultData);
+          this.isSavingEvent = false;
           this.isCreatingEvent = false;
           this.selectedTab = 'events';
           alert('Tạo sự kiện thành công!');
@@ -870,6 +919,7 @@ export class EventManagementComponent implements OnInit {
         error: (err: HttpErrorResponse) => {
           console.error('Lỗi khi tạo sự kiện:', err);
           alert(err.error?.message || 'Không thể tạo sự kiện. Vui lòng thử lại sau.');
+          this.isSavingEvent = false;
           this.isCreatingEvent = false;
         }
       });
@@ -1178,35 +1228,81 @@ export class EventManagementComponent implements OnInit {
 
   selectTab(tab: string) {
     this.selectedTab = tab;
+    
+    // Lưu tab vào localStorage (không lưu tab động như 'event-detail')
+    if (tab !== 'event-detail') {
+      localStorage.setItem('eventManagementActiveTab', tab);
+    }
+    
+    // Load dữ liệu cho tab tương ứng
+    this.loadDataForTab(tab);
+  }
+  
+  // Load dữ liệu cho tab đã lưu từ localStorage
+  loadDataForSavedTab(): void {
+    const savedTab = localStorage.getItem('eventManagementActiveTab');
+    // Không load tab động như 'event-detail'
+    if (savedTab && ['events', 'finished-events', 'certificate-samples', 'create-event'].includes(savedTab)) {
+      this.loadDataForTab(savedTab);
+    }
+  }
+  
+  // Load dữ liệu cho tab cụ thể (không thay đổi selectedTab)
+  loadDataForTab(tab: string): void {
+    if (tab === 'certificate-samples') {
+      this.loadCertificateSamples();
+    }
+    // Tab 'events' và 'finished-events' đã được load trong loadOrganizationInfo -> loadOrganizationEvents()
+    // (Dữ liệu được filter qua getter activeEvents và finishedEvents)
+    // Tab 'create-event' không cần load dữ liệu (form tạo mới)
+    // Tab 'event-detail' được set khi xem chi tiết sự kiện
   }
 
-  getEventStatusText(status: number | string | undefined): string {
-    if (typeof status === 'string') {
-      return status;
+  getEventStatusText(event: any): string {
+    // Ưu tiên sử dụng trangThaiHienThi từ backend nếu có
+    if (event?.trangThaiHienThi) {
+      return event.trangThaiHienThi;
     }
-    if (typeof status === 'number') {
-      // Map number sang string
-      switch (status) {
-        case 0: return 'Đang tuyển';
-        case 1: return 'Đã duyệt';
-        case 2: return 'Đã hủy';
-        case 3: return 'Đã kết thúc';
-        default: return 'Đang tuyển';
-      }
+    
+    // Fallback: tính toán dựa trên ngày và trạng thái trong DB
+    if (event?.trangThai === 'Đã kết thúc') {
+      return 'Đã kết thúc';
     }
+    
+    // Tính toán dựa trên ngày
+    if (event?.ngayBatDau && event?.ngayKetThuc) {
+      const now = new Date();
+      const start = new Date(event.ngayBatDau);
+      const end = new Date(event.ngayKetThuc);
+      
+      if (end < now) return 'Đã kết thúc';
+      if (start > now) return 'Sắp diễn ra';
+      if (start <= now && now <= end) return 'Đang diễn ra';
+    }
+    
     return 'Đang tuyển';
   }
   
   getEventStatusClass(status: number | string | undefined): string {
     if (typeof status === 'string') {
-      if (status === 'Đã duyệt' || status === 'Kết thúc' || status === 'Đã kết thúc') {
-        return 'bg-success';
-      } else if (status === 'Đang tuyển' || status === 'Sắp diễn ra') {
-        return 'bg-warning';
-      } else if (status === 'Đã hủy' || status === 'Hủy bỏ') {
-        return 'bg-danger';
+      switch (status) {
+        case 'Đã kết thúc':
+        case 'Kết thúc':
+          return 'bg-secondary';
+        case 'Đang diễn ra':
+          return 'bg-success'; // Màu xanh lá cho sự kiện đang diễn ra
+        case 'Sắp diễn ra':
+          return 'bg-info';
+        case 'Đang tuyển':
+          return 'bg-warning';
+        case 'Đã hủy':
+        case 'Hủy bỏ':
+          return 'bg-danger';
+        case 'Đã duyệt':
+          return 'bg-success';
+        default:
+          return 'bg-secondary';
       }
-      return 'bg-secondary';
     }
     if (typeof status === 'number') {
       switch (status) {
@@ -1282,19 +1378,26 @@ export class EventManagementComponent implements OnInit {
   }
 
   loadCertificateSamples(): void {
+    this.isLoadingSamples = true;
     this.certificateService.getCertificateSamples().subscribe({
       next: (response) => {
-        this.certificateSamples = response.data || response || [];
+        const data = response.data || response || [];
+        this.certificateSamples = data;
+        this.allCertificateSamples = data;
+        
         // Chọn mẫu mặc định nếu có
-        const defaultSample = this.certificateSamples.find(s => s.isDefault);
+        const defaultSample = data.find((s: any) => s.isDefault);
         if (defaultSample) {
           this.selectedCertificateSample = defaultSample.maMau;
-        } else if (this.certificateSamples.length > 0) {
-          this.selectedCertificateSample = this.certificateSamples[0].maMau;
+        } else if (data.length > 0) {
+          this.selectedCertificateSample = data[0].maMau;
         }
+        
+        this.isLoadingSamples = false;
       },
       error: (err) => {
         console.error('Lỗi tải mẫu chứng nhận:', err);
+        this.isLoadingSamples = false;
       }
     });
   }
@@ -1405,11 +1508,11 @@ export class EventManagementComponent implements OnInit {
     
     if (this.selectedVolunteersForCert.size === approvedCount) {
       // Cấp hàng loạt
-      this.certificateService.issueCertificatesBulk(
+      this.certificateService.issueAllCertificates(
         this.selectedEvent.maSuKien,
         this.selectedCertificateSample
       ).subscribe({
-        next: (response) => {
+        next: (response: any) => {
           alert(`Đã cấp thành công ${response.data?.length || 0} chứng nhận!`);
           this.isIssuingCertificates = false;
           
@@ -1423,7 +1526,7 @@ export class EventManagementComponent implements OnInit {
           // Reload danh sách
           this.loadOrganizationEvents();
         },
-        error: (err) => {
+        error: (err: any) => {
           console.error('Lỗi cấp chứng nhận:', err);
           this.isIssuingCertificates = false;
           alert(err.normalizedMessage || 'Không thể cấp chứng nhận');
@@ -1436,13 +1539,12 @@ export class EventManagementComponent implements OnInit {
       const total = this.selectedVolunteersForCert.size;
       
       this.selectedVolunteersForCert.forEach(maTNV => {
-        const certData: IssueCertificateDto = {
-          maTNV: maTNV,
-          maSuKien: this.selectedEvent!.maSuKien,
-          maMau: this.selectedCertificateSample!
-        };
+        const formData = new FormData();
+        formData.append('MaMau', this.selectedCertificateSample!.toString());
+        formData.append('MaTNV', maTNV.toString());
+        formData.append('MaSuKien', this.selectedEvent!.maSuKien.toString());
         
-        this.certificateService.issueCertificate(certData).subscribe({
+        this.certificateService.issueCertificate(formData).subscribe({
           next: () => {
             successCount++;
             this.issuedCertificates.add(maTNV);
@@ -1533,5 +1635,96 @@ export class EventManagementComponent implements OnInit {
 
   getImageUrl(path: string | null | undefined): string {
     return getImageUrl(path);
+  }
+
+  // ================= QUẢN LÝ MẪU CHỨNG NHẬN =================
+
+  onSampleFileSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    if (input.files && input.files[0]) {
+      this.selectedSampleFile = input.files[0];
+    }
+  }
+
+  createCertificateSample(): void {
+    if (!this.newSample.tenMau) {
+      alert('Vui lòng nhập tên mẫu!');
+      return;
+    }
+
+    const doCreate = (bgFileName?: string) => {
+      const formData = new FormData();
+      // Input này là Ảnh nền, không phải file chứng nhận tĩnh
+      if (bgFileName) {
+        formData.append('backgroundImage', bgFileName);
+      }
+      formData.append('tenMau', this.newSample.tenMau);
+      formData.append('moTa', this.newSample.moTa || '');
+      formData.append('isDefault', this.newSample.isDefault.toString());
+
+      this.certificateService.createCertificateSample(formData).subscribe({
+        next: () => {
+          alert('Tạo mẫu chứng nhận thành công! Hãy click "Chỉnh sửa" để thiết kế template.');
+          this.loadCertificateSamples();
+          this.resetSampleForm();
+        },
+        error: (err) => {
+          console.error('Lỗi tạo mẫu:', err);
+          alert(err.error?.message || 'Lỗi tạo mẫu chứng nhận');
+        }
+      });
+    };
+
+    if (this.selectedSampleFile) {
+      const uploadData = new FormData();
+      uploadData.append('file', this.selectedSampleFile);
+      this.certificateService.uploadBackgroundImage(uploadData).subscribe({
+        next: (res) => {
+          const name = res?.fileName || res?.filePath || '';
+          const bgFileName = typeof name === 'string' && name.includes('/uploads/')
+            ? name.split('/').pop()
+            : (res?.fileName || '');
+          doCreate(bgFileName || undefined);
+        },
+        error: (err) => {
+          console.error('Lỗi upload ảnh nền:', err);
+          alert(err.error?.message || 'Không thể upload ảnh nền');
+        }
+      });
+    } else {
+      doCreate();
+    }
+  }
+
+  resetSampleForm(): void {
+    this.newSample = {
+      tenMau: '',
+      moTa: '',
+      isDefault: false
+    };
+    this.selectedSampleFile = null;
+    
+    // Reset file input
+    const fileInput = document.getElementById('sampleFileInput') as HTMLInputElement;
+    if (fileInput) {
+      fileInput.value = '';
+    }
+  }
+
+  deleteSample(maMau: number): void {
+    if (!confirm('Bạn có chắc chắn muốn xóa mẫu này?')) {
+      return;
+    }
+
+    this.certificateService.deleteCertificateSample(maMau).subscribe({
+      next: () => {
+        alert('Xóa mẫu thành công!');
+        this.loadCertificateSamples();
+      },
+      error: (err) => {
+        console.error('Lỗi xóa mẫu:', err);
+        alert(err.error?.message || 'Lỗi xóa mẫu chứng nhận');
+      }
+    });
   }
 }

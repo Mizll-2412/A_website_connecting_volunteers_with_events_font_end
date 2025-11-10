@@ -18,6 +18,20 @@
     {{ errorMessage }}
   </div>
 
+  <!-- Tabs Navigation -->
+  <ul class="nav nav-tabs mb-3" *ngIf="!isLoading && !errorMessage">
+    <li class="nav-item">
+      <a class="nav-link" [class.active]="selectedTab === 'active'" (click)="selectTab('active')" style="cursor: pointer;">
+        <i class="bi bi-calendar-event"></i> Sự kiện đang hoạt động ({{ activeRegistrations.length }})
+      </a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link" [class.active]="selectedTab === 'finished'" (click)="selectTab('finished')" style="cursor: pointer;">
+        <i class="bi bi-calendar-check"></i> Sự kiện đã kết thúc ({{ finishedRegistrations.length }})
+      </a>
+    </li>
+  </ul>
+
   <!-- Bộ lọc -->
   <div class="row mb-4" *ngIf="!isLoading && !errorMessage">
     <div class="col-md-4 mb-3 mb-md-0">
@@ -56,11 +70,12 @@
                 <th>Ngày đăng ký</th>
                 <th>Ghi chú</th>
                 <th>Trạng thái</th>
-                <th>Thao tác</th>
+                <th>Đánh giá</th>
+                <th>Chứng nhận</th>
               </tr>
             </thead>
             <tbody>
-              <tr *ngFor="let reg of filteredRegistrations">
+              <tr *ngFor="let reg of (selectedTab === 'active' ? activeRegistrations : finishedRegistrations)">
                 <td>
                   <a [routerLink]="['/su-kien', reg.maSuKien]" class="text-decoration-none">
                     {{ reg.event?.tenSuKien || 'Đang tải...' }}
@@ -85,39 +100,106 @@
                   </span>
                 </td>
                 <td>
-                  <div class="btn-group" role="group">
-                    <button *ngIf="canCancelRegistration(reg)" 
-                            class="btn btn-sm btn-outline-danger"
-                            (click)="cancelRegistration(reg)"
-                            [title]="getCancelButtonText(reg)">
-                      <i class="bi" [ngClass]="{
-                        'bi-x-circle': reg.trangThai === 0,
-                        'bi-trash': reg.trangThai === 1
-                      }"></i>
-                      {{ getCancelButtonText(reg) }}
+                  <div class="d-flex flex-column gap-2" *ngIf="reg.trangThai === 1 && isEventFinished(reg)">
+                    <!-- Đánh giá của bạn cho tổ chức -->
+                    <div>
+                      <div *ngIf="getEvaluationForEvent(reg.maSuKien).fromMe" class="d-flex align-items-center gap-1 mb-1">
+                        <small class="text-muted">Bạn:</small>
+                        <span class="badge bg-warning text-dark" 
+                              style="cursor: pointer;"
+                              (click)="viewEvaluation(reg)"
+                              title="Click để xem chi tiết đánh giá của bạn">
+                          <i class="bi bi-star-fill me-1"></i>
+                          {{ getEvaluationForEvent(reg.maSuKien).fromMe?.diemSo || 0 }}/5
+                        </span>
+                        <button class="btn btn-sm btn-link p-0 text-primary"
+                                (click)="viewEvaluation(reg)"
+                                title="Xem chi tiết đánh giá">
+                          <i class="bi bi-eye"></i>
+                        </button>
+                      </div>
+                      <div *ngIf="!getEvaluationForEvent(reg.maSuKien).fromMe" class="d-flex align-items-center gap-1">
+                        <small class="text-muted">Bạn:</small>
+                        <button class="btn btn-sm btn-warning"
+                                (click)="openEvaluationModal(reg)"
+                                title="Đánh giá tổ chức">
+                          <i class="bi bi-star"></i> Đánh giá
+                        </button>
+                      </div>
+                    </div>
+                    
+                    <!-- Đánh giá từ tổ chức cho bạn -->
+                    <div>
+                      <div *ngIf="getEvaluationForEvent(reg.maSuKien).toMe" class="d-flex align-items-center gap-1 mb-1">
+                        <small class="text-muted">Tổ chức:</small>
+                        <span class="badge bg-success text-white" 
+                              style="cursor: pointer;"
+                              (click)="viewEvaluationFromOrganization(reg)"
+                              title="Click để xem chi tiết đánh giá từ tổ chức">
+                          <i class="bi bi-star-fill me-1"></i>
+                          {{ getEvaluationForEvent(reg.maSuKien).toMe?.diemSo || 0 }}/5
+                        </span>
+                        <button class="btn btn-sm btn-link p-0 text-primary"
+                                (click)="viewEvaluationFromOrganization(reg)"
+                                title="Xem chi tiết đánh giá">
+                          <i class="bi bi-eye"></i>
+                        </button>
+                      </div>
+                      <div *ngIf="!getEvaluationForEvent(reg.maSuKien).toMe" class="d-flex align-items-center gap-1">
+                        <small class="text-muted">Tổ chức:</small>
+                        <button *ngIf="!hasRequestedEvaluation(reg.maSuKien)" 
+                                class="btn btn-sm btn-outline-primary"
+                                (click)="requestEvaluationFromOrganization(reg)"
+                                title="Yêu cầu tổ chức đánh giá">
+                          <i class="bi bi-bell"></i> Yêu cầu
+                        </button>
+                        <button *ngIf="hasRequestedEvaluation(reg.maSuKien)" 
+                                class="btn btn-sm btn-outline-warning"
+                                (click)="requestEvaluationFromOrganization(reg)"
+                                title="Gửi lại yêu cầu đánh giá">
+                          <i class="bi bi-arrow-repeat"></i> Gửi lại
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                  <span *ngIf="!(reg.trangThai === 1 && isEventFinished(reg))" class="text-muted small">-</span>
+                </td>
+                <td>
+                  <div class="d-flex flex-column gap-1" *ngIf="reg.trangThai === 1 && isEventFinished(reg)">
+                    <!-- Xem chứng nhận -->
+                    <button *ngIf="canViewCertificate(reg)" 
+                            class="btn btn-sm btn-primary"
+                            (click)="viewCertificate(reg)"
+                            title="Xem giấy chứng nhận">
+                      <i class="bi bi-award-fill me-1"></i>Xem chứng nhận
                     </button>
-                    <button *ngIf="canReRegister(reg)" 
-                            class="btn btn-sm btn-outline-success"
-                            (click)="reRegister(reg)"
-                            title="Đăng ký lại">
-                      <i class="bi bi-arrow-clockwise"></i> Đăng ký lại
-                    </button>
-                    <button *ngIf="canEvaluate(reg)" 
+                    
+                    <!-- Yêu cầu cấp chứng nhận -->
+                    <button *ngIf="canRequestCertificate(reg) && !hasRequestedCertificate(reg.maSuKien)" 
                             class="btn btn-sm btn-outline-primary"
-                            (click)="openEvaluationModal(reg)"
-                            title="Đánh giá tổ chức">
-                      <i class="bi bi-star"></i> Đánh giá
+                            (click)="requestCertificate(reg)"
+                            title="Yêu cầu tổ chức cấp giấy chứng nhận">
+                      <i class="bi bi-file-earmark-text me-1"></i>Yêu cầu cấp
+                    </button>
+                    <button *ngIf="canRequestCertificate(reg) && hasRequestedCertificate(reg.maSuKien)" 
+                            class="btn btn-sm btn-outline-warning"
+                            (click)="requestCertificate(reg)"
+                            title="Gửi lại yêu cầu cấp giấy chứng nhận">
+                      <i class="bi bi-arrow-repeat me-1"></i>Gửi lại
                     </button>
                   </div>
-                  <span *ngIf="!canCancelRegistration(reg) && !canReRegister(reg) && !canEvaluate(reg)" class="text-muted">
-                    -
-                  </span>
+                  <span *ngIf="!(reg.trangThai === 1 && isEventFinished(reg))" class="text-muted small">-</span>
                 </td>
               </tr>
-              <tr *ngIf="filteredRegistrations.length === 0">
-                <td colspan="6" class="text-center py-4">
-                  <p class="mb-0">Bạn chưa đăng ký tham gia sự kiện nào</p>
+              <tr *ngIf="selectedTab === 'active' && activeRegistrations.length === 0">
+                <td colspan="7" class="text-center py-4">
+                  <p class="mb-0">Bạn chưa có sự kiện đang hoạt động nào</p>
                   <a [routerLink]="['/su-kien']" class="btn btn-primary mt-3">Khám phá sự kiện</a>
+                </td>
+              </tr>
+              <tr *ngIf="selectedTab === 'finished' && finishedRegistrations.length === 0">
+                <td colspan="7" class="text-center py-4">
+                  <p class="mb-0">Bạn chưa có sự kiện đã kết thúc nào</p>
                 </td>
               </tr>
             </tbody>
@@ -149,24 +231,11 @@
           <label class="form-label fw-semibold">
             Đánh giá của bạn <span class="text-danger">*</span>
           </label>
-          <div class="rating-stars d-flex gap-2 justify-content-center py-3">
-            <i *ngFor="let star of [1,2,3,4,5]" 
-               class="bi fs-1 cursor-pointer"
-               [ngClass]="{
-                 'bi-star-fill text-warning': star <= evaluationRating,
-                 'bi-star text-secondary': star > evaluationRating
-               }"
-               (click)="setRating(star)"
-               style="cursor: pointer;">
-            </i>
-          </div>
-          <p class="text-center text-muted mb-0">
-            <span *ngIf="evaluationRating === 1">Rất không hài lòng</span>
-            <span *ngIf="evaluationRating === 2">Không hài lòng</span>
-            <span *ngIf="evaluationRating === 3">Bình thường</span>
-            <span *ngIf="evaluationRating === 4">Hài lòng</span>
-            <span *ngIf="evaluationRating === 5">Rất hài lòng</span>
-          </p>
+          <app-star-rating 
+            [(rating)]="evaluationRating"
+            [size]="'lg'"
+            [showLabel]="true">
+          </app-star-rating>
         </div>
 
         <!-- Nhận xét -->
@@ -201,3 +270,61 @@
     </div>
   </div>
 </div>
+
+<!-- Evaluation Preview Modal -->
+<div class="modal fade" id="evaluationPreviewModal" tabindex="-1" aria-labelledby="evaluationPreviewModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="evaluationPreviewModalLabel">
+          <i class="bi bi-star-fill text-warning me-2"></i>Chi tiết đánh giá
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" (click)="closeEvaluationPreviewModal()"></button>
+      </div>
+      <div class="modal-body" *ngIf="selectedEvaluationForPreview">
+        <div class="card">
+          <div class="card-body">
+            <div class="mb-3">
+              <h6 class="text-muted mb-2">Điểm đánh giá</h6>
+              <div class="d-flex align-items-center">
+                <div class="rating-stars me-3">
+                  <i *ngFor="let star of [1,2,3,4,5]" 
+                     class="bi fs-3" 
+                     [ngClass]="star <= selectedEvaluationForPreview.diemSo ? 'bi-star-fill text-warning' : 'bi-star text-muted'">
+                  </i>
+                </div>
+                <span class="badge bg-warning text-dark fs-5">
+                  {{ selectedEvaluationForPreview.diemSo }}/5
+                </span>
+              </div>
+            </div>
+            
+            <div class="mb-3" *ngIf="selectedEvaluationForPreview.noiDung">
+              <h6 class="text-muted mb-2">Nhận xét</h6>
+              <p class="p-3 bg-light rounded">{{ selectedEvaluationForPreview.noiDung }}</p>
+            </div>
+            
+            <div class="mb-0">
+              <small class="text-muted">
+                <i class="bi bi-clock me-1"></i>
+                Ngày đánh giá: {{ selectedEvaluationForPreview.ngayTao | date:'dd/MM/yyyy HH:mm' }}
+              </small>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" (click)="closeEvaluationPreviewModal()">
+          Đóng
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Certificate Viewer Modal -->
+<app-certificate-viewer-modal 
+  [certificateId]="selectedCertificateId"
+  [show]="showCertificateModal"
+  (close)="closeCertificateModal()">
+</app-certificate-viewer-modal>

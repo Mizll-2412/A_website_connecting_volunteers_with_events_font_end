@@ -1,0 +1,41 @@
+<div class="star-rating-container">
+  <div class="rating-stars d-flex gap-2 justify-content-center align-items-center pt-3">
+    <!-- 5 sao bình thường (có thể click) -->
+    <i *ngFor="let star of [1,2,3,4,5]" 
+       class="bi cursor-pointer"
+       [ngClass]="[getStarClass(star), getSizeClass()]"
+       (click)="setRating(star)"
+       (mouseenter)="onMouseEnter(star)"
+       (mouseleave)="onMouseLeave()"
+       [style.cursor]="readonly ? 'default' : 'pointer'"
+       [title]="readonly ? '' : 'Click để đánh giá ' + star + ' sao'">
+    </i>
+    
+    <!-- Sao thứ 6 - T1 (chỉ có thể giữ, không click) -->
+    <i class="bi cursor-pointer"
+       [ngClass]="[getStarClass(6), getSizeClass(), isT1Locked() ? 't1-locked' : '']"
+       (mousedown)="onMouseDownSixthStar($event)"
+       (mouseup)="onMouseUpSixthStar()"
+       (dblclick)="onDoubleClickSixthStar($event)"
+       [style.cursor]="readonly ? 'default' : 'pointer'"
+       [title]="readonly ? '' : (isT1Locked() ? '🔒 Đã lock - Double click để unlock' : 'Giữ để xem T1 logo 🏆 (Double click để lock)')">
+    </i>
+  </div>
+  
+  <!-- Label hiển thị mô tả (ẩn khi đang giữ sao thứ 6) -->
+  <p *ngIf="showLabel && !shouldHideLabel()" class="text-center text-muted mb-2">
+    <span *ngIf="rating > 0 && rating <= 5">{{ rating }}/5 - {{ getRatingLabel() }}</span>
+    <span *ngIf="rating === 0" class="text-muted">Chọn số sao để đánh giá</span>
+  </p>
+  
+  <!-- Hiển thị ảnh T1 khi giữ sao thứ 6 -->
+  <div *ngIf="showT1Image()" class="t1-image-container text-center mt-2">
+    <div *ngIf="isT1Locked()" class="alert alert-info alert-sm mb-2" style="font-size: 0.875rem; padding: 0.5rem;">
+      <i class="bi bi-lock-fill me-1"></i>Đã lock - Bạn có thể mở DevTools (F12) để inspect ảnh
+    </div>
+    <img [src]="t1ImagePath" 
+         alt="T1 Logo - Vô địch CKTG 2025" 
+         class="t1-image"
+         onerror="this.style.display='none';">
+  </div>
+</div>

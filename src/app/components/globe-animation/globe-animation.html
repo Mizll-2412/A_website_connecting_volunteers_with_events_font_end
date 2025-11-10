@@ -1,0 +1,23 @@
+<div class="globe-animation-container">
+  <!-- Small button Rive -->
+  <div
+    *ngIf="showSmallGlobe"
+    class="small-globe-wrapper"
+    (mouseenter)="onMouseEnter()"
+    (mouseleave)="onMouseLeave()"
+    (mousedown)="onMouseDown()"
+    (mouseup)="onMouseUp()"
+  >
+    <canvas #smallGlobeCanvas width="120" height="120"></canvas>
+  </div>
+
+  <!-- Fullscreen Rive overlay -->
+  <div
+    *ngIf="showFullRive"
+    class="fullscreen-rive-overlay"
+  >
+    <div class="wDupLw"></div>
+    <canvas #fullGlobeCanvas class="full-globe-canvas"></canvas>
+  </div>
+</div>
+

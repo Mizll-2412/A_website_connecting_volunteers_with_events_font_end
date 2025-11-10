@@ -62,6 +62,7 @@
         <a routerLink="/forgot-password" class="forgot-password">Quên mật khẩu?</a>
       </div>
 
+      <div class="button-group">
       <button 
         type="submit" 
         class="btn-primary"
@@ -70,6 +71,13 @@
         <span *ngIf="!isLoading">Đăng Nhập</span>
         <span *ngIf="isLoading">Đang xử lý...</span>
       </button>
+        <div class="globe-button-wrapper">
+          <app-globe-animation 
+            (globeClick)="onGlobeClick()"
+            (animationComplete)="onAnimationComplete()">
+          </app-globe-animation>
+        </div>
+      </div>
     </form>
 
     <div class="auth-footer">

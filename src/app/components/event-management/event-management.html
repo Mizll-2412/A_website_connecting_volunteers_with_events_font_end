@@ -28,13 +28,32 @@
       </div>
     </div>
     
+    <!-- Tabs Navigation -->
+    <ul class="nav nav-tabs mb-3">
+      <li class="nav-item">
+        <a class="nav-link" [class.active]="selectedTab === 'events'" (click)="selectTab('events')" style="cursor: pointer;">
+          <i class="bi bi-calendar-event"></i> Sự kiện đang hoạt động ({{ activeEvents.length }})
+        </a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link" [class.active]="selectedTab === 'finished-events'" (click)="selectTab('finished-events')" style="cursor: pointer;">
+          <i class="bi bi-calendar-check"></i> Sự kiện đã kết thúc ({{ finishedEvents.length }})
+        </a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link" [class.active]="selectedTab === 'certificate-samples'" (click)="selectTab('certificate-samples')" style="cursor: pointer;">
+          <i class="bi bi-award"></i> Mẫu chứng nhận
+        </a>
+      </li>
+    </ul>
+    
     <!-- Page Content based on selected tab -->
     <div [ngSwitch]="selectedTab">
-      <!-- Events List Tab -->
+      <!-- Active Events List Tab -->
       <div *ngSwitchCase="'events'">
         <div class="card">
           <div class="card-header d-flex justify-content-between align-items-center">
-            <h5 class="mb-0">Danh sách sự kiện</h5>
+            <h5 class="mb-0">Sự kiện đang hoạt động</h5>
             <button class="btn btn-primary" 
                     (click)="createEvent()">
               <i class="bi bi-plus"></i> Tạo sự kiện mới
@@ -54,19 +73,19 @@
                   </tr>
                 </thead>
                 <tbody>
-                  <tr *ngFor="let event of events">
+                  <tr *ngFor="let event of activeEvents">
                     <td>{{ event.tenSuKien }}</td>
                     <td>{{ event.diaChi }}</td>
                     <td>{{ formatDate(event.ngayBatDau) }}</td>
                     <td>{{ formatDate(event.ngayKetThuc) }}</td>
                     <td>
-                      <span class="badge" [ngClass]="getEventStatusClass(event.trangThai)">
-                        {{ getEventStatusText(event.trangThai) }}
+                      <span class="badge" [ngClass]="getEventStatusClass(getEventStatusText(event))">
+                        {{ getEventStatusText(event) }}
                       </span>
                     </td>
                     <td>
                       <div class="btn-group btn-group-sm">
-                        <button class="btn btn-outline-primary" (click)="selectEvent(event)">
+                        <button class="btn btn-outline-primary" [routerLink]="['/manage-org', event.maSuKien]">
                           <i class="bi bi-eye"></i> Chi tiết
                         </button>
                         <button class="btn btn-outline-secondary" 
@@ -87,9 +106,59 @@
                       </div>
                     </td>
                   </tr>
-                  <tr *ngIf="events.length === 0">
+                  <tr *ngIf="activeEvents.length === 0">
                     <td colspan="6" class="text-center py-3">
-                      <p class="mb-0">Chưa có sự kiện nào</p>
+                      <p class="mb-0">Chưa có sự kiện đang hoạt động</p>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Finished Events List Tab -->
+      <div *ngSwitchCase="'finished-events'">
+        <div class="card">
+          <div class="card-header">
+            <h5 class="mb-0">Sự kiện đã kết thúc</h5>
+          </div>
+          <div class="card-body">
+            <div class="table-responsive">
+              <table class="table table-hover">
+                <thead>
+                  <tr>
+                    <th>Tên sự kiện</th>
+                    <th>Địa điểm</th>
+                    <th>Ngày bắt đầu</th>
+                    <th>Ngày kết thúc</th>
+                    <th>Trạng thái</th>
+                    <th>Thao tác</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let event of finishedEvents">
+                    <td>{{ event.tenSuKien }}</td>
+                    <td>{{ event.diaChi }}</td>
+                    <td>{{ formatDate(event.ngayBatDau) }}</td>
+                    <td>{{ formatDate(event.ngayKetThuc) }}</td>
+                    <td>
+                      <span class="badge bg-secondary">
+                        {{ getEventStatusText(event) }}
+                      </span>
+                    </td>
+                    <td>
+                      <div class="btn-group btn-group-sm">
+                        <button class="btn btn-outline-primary" [routerLink]="['/manage-org', event.maSuKien]">
+                          <i class="bi bi-eye"></i> Chi tiết
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                  <tr *ngIf="finishedEvents.length === 0">
+                    <td colspan="6" class="text-center py-3">
+                      <p class="mb-0">Chưa có sự kiện đã kết thúc</p>
                     </td>
                   </tr>
                 </tbody>
@@ -391,11 +460,144 @@
             
             <div class="d-flex justify-content-end gap-2">
               <button type="button" class="btn btn-outline-secondary" (click)="cancelEdit()">Hủy</button>
-              <button type="submit" class="btn btn-primary">
-                {{ isEditingEvent ? 'Cập nhật sự kiện' : 'Tạo sự kiện' }}
+              <button type="submit" class="btn btn-primary" [disabled]="isSavingEvent">
+                <span *ngIf="isSavingEvent" class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                {{ isSavingEvent ? (isEditingEvent ? 'Đang cập nhật...' : 'Đang tạo...') : (isEditingEvent ? 'Cập nhật sự kiện' : 'Tạo sự kiện') }}
               </button>
             </div>
           </form>
+        </div>
+      </div>
+
+      <!-- Certificate Samples Management Tab -->
+      <div *ngSwitchCase="'certificate-samples'">
+        <div class="card">
+          <div class="card-header">
+            <h5 class="mb-0">Quản lý mẫu chứng nhận</h5>
+          </div>
+          <div class="card-body">
+            <!-- Form tạo mẫu mới -->
+            <div class="alert alert-info">
+              <i class="bi bi-info-circle me-2"></i>
+              <strong>Hướng dẫn:</strong> Tạo mẫu mới, sau đó click nút <strong>"Chỉnh sửa"</strong> để thiết kế template với trình soạn thảo kéo thả.
+            </div>
+            
+            <h6 class="mb-3">Tạo mẫu chứng nhận mới</h6>
+            <form (ngSubmit)="createCertificateSample()">
+              <div class="row">
+                <div class="col-md-6 mb-3">
+                  <label class="form-label">Tên mẫu <span class="text-danger">*</span></label>
+                  <input type="text" 
+                         class="form-control" 
+                         [(ngModel)]="newSample.tenMau" 
+                         name="tenMau" 
+                         placeholder="VD: Mẫu chứng nhận tình nguyện viên xuất sắc"
+                         required>
+                </div>
+                <div class="col-md-6 mb-3">
+                  <label class="form-label">Ảnh nền (tùy chọn)</label>
+                  <input type="file" 
+                         id="sampleFileInput"
+                         class="form-control" 
+                         (change)="onSampleFileSelected($event)" 
+                         accept="image/*">
+                  <small class="text-muted">Khuyến nghị: 1200x800px, định dạng JPG/PNG</small>
+                </div>
+              </div>
+              <div class="mb-3">
+                <label class="form-label">Mô tả</label>
+                <textarea class="form-control" 
+                          [(ngModel)]="newSample.moTa" 
+                          name="moTa" 
+                          rows="2"
+                          placeholder="Mô tả về mẫu chứng nhận này..."></textarea>
+              </div>
+              <div class="form-check mb-3">
+                <input type="checkbox" 
+                       class="form-check-input" 
+                       id="isDefaultCheck"
+                       [(ngModel)]="newSample.isDefault" 
+                       name="isDefault">
+                <label class="form-check-label" for="isDefaultCheck">
+                  Đặt làm mẫu mặc định
+                </label>
+              </div>
+              <button type="submit" class="btn btn-primary">
+                <i class="bi bi-plus-circle me-2"></i>Tạo mẫu trống
+              </button>
+              <small class="text-muted ms-2">Sau khi tạo, click "Chỉnh sửa" để thiết kế template</small>
+            </form>
+            
+            <hr class="my-4">
+            
+            <!-- Danh sách mẫu -->
+            <h6 class="mb-3">Danh sách mẫu hiện có</h6>
+            
+            <div *ngIf="isLoadingSamples" class="text-center py-3">
+              <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Đang tải...</span>
+              </div>
+              <p class="mt-2">Đang tải danh sách mẫu...</p>
+            </div>
+            
+            <div *ngIf="!isLoadingSamples && allCertificateSamples.length === 0" class="alert alert-info">
+              <i class="bi bi-info-circle me-2"></i>
+              Chưa có mẫu chứng nhận nào. Hãy tạo mẫu đầu tiên!
+            </div>
+            
+            <div *ngIf="!isLoadingSamples && allCertificateSamples.length > 0" class="table-responsive">
+              <table class="table table-hover">
+                <thead>
+                  <tr>
+                    <th style="width: 5%">#</th>
+                    <th style="width: 25%">Tên mẫu</th>
+                    <th style="width: 35%">Mô tả</th>
+                    <th style="width: 15%">Trạng thái</th>
+                    <th style="width: 15%">Ngày tạo</th>
+                    <th style="width: 10%">Thao tác</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let sample of allCertificateSamples; let i = index">
+                    <td>{{ i + 1 }}</td>
+                    <td>
+                      <strong>{{ sample.tenMau }}</strong>
+                      <br>
+                      <small class="text-muted" *ngIf="sample.filePath">
+                        <i class="bi bi-file-earmark-pdf"></i> {{ sample.filePath }}
+                      </small>
+                    </td>
+                    <td>{{ sample.moTa || '-' }}</td>
+                    <td>
+                      <span class="badge" 
+                            [class.bg-success]="sample.isDefault" 
+                            [class.bg-secondary]="!sample.isDefault">
+                        <i [class.bi-check-circle]="sample.isDefault" 
+                           [class.bi-file-earmark]="!sample.isDefault"
+                           class="bi"></i>
+                        {{ sample.isDefault ? 'Mặc định' : 'Thường' }}
+                      </span>
+                    </td>
+                    <td>{{ sample.ngayGui | date:'dd/MM/yyyy HH:mm' }}</td>
+                    <td>
+                      <div class="btn-group" role="group">
+                        <button class="btn btn-sm btn-outline-primary" 
+                                [routerLink]="['/certificate-editor', sample.maMau]"
+                                title="Chỉnh sửa template">
+                          <i class="bi bi-pencil-square"></i>
+                        </button>
+                        <button class="btn btn-sm btn-outline-danger" 
+                                (click)="deleteSample(sample.maMau)"
+                                title="Xóa mẫu">
+                          <i class="bi bi-trash"></i>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -415,8 +617,12 @@
         </div>
         <div class="modal-body">
           <div class="mb-3">
-            <label class="form-label">Điểm (1-5)</label>
-            <input type="number" class="form-control" min="1" max="5" [(ngModel)]="evalScore" [ngModelOptions]="{standalone: true}">
+            <label class="form-label">Điểm đánh giá <span class="text-danger">*</span></label>
+            <app-star-rating 
+              [(rating)]="evalScore"
+              [size]="'lg'"
+              [showLabel]="true">
+            </app-star-rating>
           </div>
           <div class="mb-3">
             <label class="form-label">Nhận xét</label>

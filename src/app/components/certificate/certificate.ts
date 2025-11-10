@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
 import { AuthService } from '../../services/auth';
 import { Certificate } from '../../models/certificate';
+import { CertificateService } from '../../services/certificate.service';
 import { environment } from '../../../environments/environment';
 // import { saveAs } from 'file-saver';
 
@@ -30,7 +31,8 @@ export class CertificateComponent implements OnInit {
   
   constructor(
     private http: HttpClient,
-    private authService: AuthService
+    private authService: AuthService,
+    private certificateService: CertificateService
   ) {}
   
   ngOnInit(): void {
@@ -116,15 +118,26 @@ export class CertificateComponent implements OnInit {
     this.selectedCertificate = certificate;
     
     // Nếu chưa có URL xem trước, tải từ server
-    if (certificate.trangThai === 1 && !certificate.previewUrl) {
-      this.http.get(`${this.apiUrl}/${certificate.maChungNhan}/preview`, { responseType: 'blob' }).subscribe({
-        next: (blob) => {
-          certificate.previewUrl = URL.createObjectURL(blob);
+    if (!certificate.previewUrl) {
+      // Gọi API preview để lấy data URL
+      this.http.get<any>(`${this.apiUrl}/${certificate.maChungNhan}/preview`).subscribe({
+        next: (response) => {
+          // Backend trả về { data: "data:image/png;base64,..." } - đã có prefix
+          const dataUrl = response.data || response;
+          if (typeof dataUrl === 'string' && dataUrl.startsWith('data:')) {
+            certificate.previewUrl = dataUrl;
+          } else if (typeof dataUrl === 'string') {
+            // Nếu chỉ là base64, thêm prefix
+            certificate.previewUrl = `data:image/png;base64,${dataUrl}`;
+          } else {
+            alert('Format dữ liệu không hợp lệ');
+            return;
+          }
           this.certificateModal.show();
         },
         error: (err) => {
           console.error('Error loading certificate preview:', err);
-          alert('Không thể tải xem trước giấy chứng nhận.');
+          alert('Không thể tải xem trước giấy chứng nhận: ' + (err.error?.message || 'Đã xảy ra lỗi'));
         }
       });
     } else {
@@ -132,29 +145,13 @@ export class CertificateComponent implements OnInit {
     }
   }
   
-  downloadCertificate(certificate: Certificate): void {
-    if (certificate.trangThai !== 1) {
-      alert('Chỉ có thể tải xuống giấy chứng nhận đã được phê duyệt.');
-      return;
+  async downloadCertificate(certificate: Certificate): Promise<void> {
+    try {
+      // Dùng Canvas để generate PDF (giống preview)
+      await this.certificateService.generatePdfFromCertificateData(certificate.maChungNhan);
+    } catch (error: any) {
+      console.error('Error downloading certificate:', error);
+      alert('Không thể tải xuống giấy chứng nhận: ' + (error?.message || 'Đã xảy ra lỗi'));
     }
-    
-    this.http.get(`${this.apiUrl}/${certificate.maChungNhan}/download`, { responseType: 'blob' }).subscribe({
-      next: (blob) => {
-        const fileName = `Certificate_${certificate.tenSuKien.replace(/\s+/g, '_')}.pdf`;
-        // Thay thế saveAs bằng cách tạo URL và tải xuống thủ công
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = fileName;
-        document.body.appendChild(a);
-        a.click();
-        window.URL.revokeObjectURL(url);
-        document.body.removeChild(a);
-      },
-      error: (err) => {
-        console.error('Error downloading certificate:', err);
-        alert('Không thể tải xuống giấy chứng nhận.');
-      }
-    });
   }
 }

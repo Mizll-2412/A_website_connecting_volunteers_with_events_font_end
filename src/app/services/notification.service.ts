@@ -121,6 +121,21 @@ export class NotificationService {
   deleteNotification(id: number): Observable<any> {
     return this.http.delete<any>(`${this.apiUrl}/${id}`);
   }
+
+  // Xóa tất cả thông báo
+  deleteAllNotifications(): void {
+    this.http.delete<any>(`${this.apiUrl}/delete-all`).subscribe({
+      next: () => {
+        // Clear danh sách thông báo
+        this.notificationsSubject.next([]);
+        // Reset số lượng chưa đọc về 0
+        this.unreadCountSubject.next(0);
+      },
+      error: (err) => {
+        console.error('Lỗi xóa tất cả thông báo:', err);
+      }
+    });
+  }
   
   // Cập nhật số lượng thông báo chưa đọc
   updateUnreadCount(count: number): void {

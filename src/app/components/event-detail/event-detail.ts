@@ -1,6 +1,6 @@
 import { Component, OnInit, AfterViewInit } from '@angular/core';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
-import { CommonModule } from '@angular/common';
+import { CommonModule, Location } from '@angular/common';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
 
@@ -8,15 +8,17 @@ import { AuthService } from '../../services/auth';
 import { EventService } from '../../services/event';
 import { ToChucService } from '../../services/organization';
 import { RegistrationService } from '../../services/registration';
+import { EvaluationService, EvaluationResponseDto } from '../../services/evaluation.service';
 import { environment } from '../../../environments/environment';
 import { getImageUrl, getOrgDefaultImage as getOrgDefaultImageUtil } from '../../utils/image-url.util';
+import { StarRatingComponent } from '../shared/star-rating/star-rating';
 
 declare var bootstrap: any;
 
 @Component({
   selector: 'app-event-detail',
   standalone: true,
-  imports: [CommonModule, RouterModule, FormsModule],
+  imports: [CommonModule, RouterModule, FormsModule, StarRatingComponent],
   templateUrl: './event-detail.html',
   styleUrls: ['./event-detail.css']
 })
@@ -40,6 +42,12 @@ export class EventDetailComponent implements OnInit, AfterViewInit {
   role = '';
   volunteer: any = null;
   user: any = null;
+  soLuongDaDangKy: number = 0; // Số người đã đăng ký (đã duyệt)
+  
+  // Evaluations
+  evaluations: EvaluationResponseDto[] = [];
+  isLoadingEvaluations = false;
+  averageRating: number = 0;
   
   // Skills and Fields
   allSkills: any[] = [];
@@ -80,10 +88,12 @@ export class EventDetailComponent implements OnInit, AfterViewInit {
   constructor(
     private route: ActivatedRoute,
     private router: Router,
+    private location: Location,
     private auth: AuthService,
     private eventService: EventService,
     private orgService: ToChucService,
     private registrationService: RegistrationService,
+    private evaluationService: EvaluationService,
     private http: HttpClient
   ) { }
 
@@ -196,14 +206,35 @@ export class EventDetailComponent implements OnInit, AfterViewInit {
         console.log('Chi tiết sự kiện từ API:', response);
         
         // Xử lý nhiều định dạng dữ liệu có thể có
+        let eventData: any;
         if (response && response.data) {
-          this.event = response.data;
+          eventData = response.data;
         } else if (response && !Array.isArray(response)) {
-          this.event = response;
+          eventData = response;
         } else {
           console.log('Không tìm thấy sự kiện từ API, sử dụng dữ liệu mẫu');
           this.event = this.mockEvent;
+          this.isLoading = false;
+          return;
         }
+        
+        // Chuẩn hóa số lượng cần tuyển - thử nhiều trường có thể có
+        const slots = eventData.soLuong ?? eventData.soLuongCanTuyen ?? eventData.soLuongTNV ?? eventData.soLuongTnv ?? 0;
+        eventData.soLuong = slots;
+        eventData.soLuongTNV = slots;
+        if (eventData.soLuongCanTuyen == null) {
+          eventData.soLuongCanTuyen = slots;
+        }
+        
+        // Khởi tạo soLuongDaDangKy nếu chưa có (từ API response)
+        if (eventData.soLuongDaDangKy == null || eventData.soLuongDaDangKy === undefined) {
+          eventData.soLuongDaDangKy = 0;
+        }
+        
+        // Cập nhật biến soLuongDaDangKy từ API response
+        this.soLuongDaDangKy = eventData.soLuongDaDangKy;
+        
+        this.event = eventData;
         
         // Load thông tin tổ chức
         if (this.event.maToChuc) {
@@ -212,6 +243,11 @@ export class EventDetailComponent implements OnInit, AfterViewInit {
         
         // Load sự kiện tương tự
         this.loadSimilarEvents();
+        
+        // Load đánh giá nếu sự kiện đã kết thúc
+        if (this.isEventEnded()) {
+          this.loadEvaluations();
+        }
         
         // Nếu đã đăng nhập, kiểm tra xem đã đăng ký chưa
         if (this.isLoggedIn && this.volunteer) {
@@ -240,6 +276,26 @@ export class EventDetailComponent implements OnInit, AfterViewInit {
         this.event = this.mockEvent;
         this.organization = this.mockOrganization;
         this.isLoading = false;
+      }
+    });
+  }
+
+  loadRegisteredCount(eventId: number): void {
+    this.registrationService.getRegistrationsByEvent(eventId).subscribe({
+      next: (response: any) => {
+        const data = response.data || response || [];
+        // Đếm số đăng ký đã được duyệt (trangThai === 1)
+        const approvedCount = data.filter((reg: any) => reg.trangThai === 1).length;
+        if (this.event) {
+          this.event.soLuongDaDangKy = approvedCount;
+        }
+      },
+      error: (err: any) => {
+        console.error('Lỗi tải số lượng đăng ký:', err);
+        // Giữ nguyên giá trị hiện tại hoặc set về 0
+        if (this.event && this.event.soLuongDaDangKy == null) {
+          this.event.soLuongDaDangKy = 0;
+        }
       }
     });
   }
@@ -330,6 +386,13 @@ export class EventDetailComponent implements OnInit, AfterViewInit {
       return;
     }
 
+    // Kiểm tra số lượng slot còn lại
+    const remainingSlots = this.getRemainingSlots();
+    if (remainingSlots <= 0) {
+      alert('Sự kiện đã đủ số lượng tình nguyện viên. Không thể đăng ký thêm.');
+      return;
+    }
+
     this.isRegistering = true;
     
     const registerData = {
@@ -347,6 +410,10 @@ export class EventDetailComponent implements OnInit, AfterViewInit {
         this.registrationStatus = 0; // Chờ duyệt
         this.isRegistering = false;
         alert('Đăng ký tham gia sự kiện thành công!');
+        // Reload event details để cập nhật số lượng từ backend
+        if (this.eventId) {
+          this.loadEventDetails(this.eventId);
+        }
       },
       error: (err: HttpErrorResponse) => {
         console.error('Lỗi khi đăng ký sự kiện:', err);
@@ -376,6 +443,10 @@ export class EventDetailComponent implements OnInit, AfterViewInit {
         this.isRegistered = false;
         this.registrationStatus = null;
         alert('Hủy đăng ký tham gia sự kiện thành công!');
+        // Reload event details để cập nhật số lượng từ backend
+        if (this.eventId) {
+          this.loadEventDetails(this.eventId);
+        }
       },
       error: (err: HttpErrorResponse) => {
         console.error('Lỗi khi hủy đăng ký:', err);
@@ -389,6 +460,50 @@ export class EventDetailComponent implements OnInit, AfterViewInit {
     const now = new Date();
     const eventStart = new Date(this.event.ngayBatDau);
     return now >= eventStart;
+  }
+
+  isEventEnded(): boolean {
+    if (!this.event?.ngayKetThuc) return false;
+    const now = new Date();
+    const eventEnd = new Date(this.event.ngayKetThuc);
+    return now > eventEnd;
+  }
+
+  goBack(): void {
+    this.location.back();
+  }
+
+  loadEvaluations(): void {
+    if (!this.eventId) return;
+    
+    this.isLoadingEvaluations = true;
+    this.evaluationService.getEvaluationsByEvent(this.eventId).subscribe({
+      next: (response: any) => {
+        const data = response?.data || response || [];
+        const allEvaluations = Array.isArray(data) ? data : [];
+        
+        // Lọc chỉ lấy đánh giá từ User (tình nguyện viên) đến Organization (tổ chức)
+        this.evaluations = allEvaluations.filter((evaluation: EvaluationResponseDto) => {
+          return evaluation.vaiTroNguoiDanhGia === 'User' && 
+                 evaluation.vaiTroNguoiDuocDanhGia === 'Organization';
+        });
+        
+        // Tính điểm trung bình
+        if (this.evaluations.length > 0) {
+          const total = this.evaluations.reduce((sum, evaluation) => sum + (evaluation.diemSo || 0), 0);
+          this.averageRating = total / this.evaluations.length;
+        } else {
+          this.averageRating = 0;
+        }
+        
+        this.isLoadingEvaluations = false;
+      },
+      error: (err: HttpErrorResponse) => {
+        console.error('Lỗi khi lấy đánh giá:', err);
+        this.evaluations = [];
+        this.isLoadingEvaluations = false;
+      }
+    });
   }
 
   loadSimilarEvents(): void {
@@ -491,5 +606,26 @@ export class EventDetailComponent implements OnInit, AfterViewInit {
 
   getOrgDefaultImage(): string {
     return getOrgDefaultImageUtil();
+  }
+
+  // Phương thức helper để lấy số lượng cần tuyển
+  getRequiredSlots(): number {
+    if (!this.event) return 0;
+    return this.event.soLuong ?? this.event.soLuongCanTuyen ?? this.event.soLuongTNV ?? this.event.soLuongTnv ?? 0;
+  }
+
+  // Phương thức helper để lấy số lượng đã đăng ký (đã duyệt)
+  getRegisteredSlots(): number {
+    if (!this.event) return 0;
+    // Sử dụng dữ liệu từ API response (backend đã tính sẵn)
+    return this.event.soLuongDaDangKy ?? this.soLuongDaDangKy ?? 0;
+  }
+
+  // Phương thức helper để tính số slot còn lại
+  getRemainingSlots(): number {
+    const required = this.getRequiredSlots();
+    const registered = this.getRegisteredSlots();
+    const remaining = required - registered;
+    return remaining > 0 ? remaining : 0;
   }
 }

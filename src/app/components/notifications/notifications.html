@@ -4,12 +4,15 @@
       <div class="card border-0 shadow-sm">
         <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
           <h4 class="mb-0">Thông báo</h4>
-          <div class="d-flex align-items-center">
-            <button class="btn btn-outline-primary me-2" (click)="loadNotifications()">
+          <div class="d-flex align-items-center gap-2">
+            <button class="btn btn-outline-primary" (click)="loadNotifications()">
               <i class="bi bi-arrow-clockwise"></i> Làm mới
             </button>
             <button class="btn btn-outline-success" (click)="markAllAsRead()" [disabled]="unreadCount === 0">
-              <i class="bi bi-check-all"></i> Đánh dấu tất cả đã đọc
+              <i class="bi bi-check-all"></i> Đánh dấu đã đọc
+            </button>
+            <button class="btn btn-outline-danger" (click)="deleteAllNotifications()" [disabled]="filteredNotifications.length === 0">
+              <i class="bi bi-trash"></i> Xóa tất cả
             </button>
           </div>
         </div>

@@ -7,6 +7,7 @@ import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { AuthService } from '../../services/auth';
 import { environment } from '../../../environments/environment';
 import { getImageUrl as getImageUrlUtil } from '../../utils/image-url.util';
+import { StarRatingComponent } from '../shared/star-rating/star-rating';
 
 interface EventHistoryFilter {
   nam?: number;
@@ -53,7 +54,7 @@ interface Certificate {
 @Component({
   selector: 'app-event-history',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule],
+  imports: [CommonModule, FormsModule, RouterModule, StarRatingComponent],
   templateUrl: './event-history.html',
   styleUrls: ['./event-history.css']
 })
@@ -261,16 +262,15 @@ export class EventHistory implements OnInit {
     if (!this.volunteer?.maTNV) return;
     
     // Lấy thông tin giấy chứng nhận
-    this.http.get<any>(`${this.apiUrl}/certificate/volunteer/${this.volunteer.maTNV}`).subscribe({
+    this.http.get<any>(`${this.apiUrl}/certificate/volunteers/${this.volunteer.maTNV}`).subscribe({
       next: (response) => {
         const certificates = response.data || response;
         // Tìm giấy chứng nhận cho sự kiện này
         const eventCertificate = certificates.find((cert: any) => cert.maSuKien === eventId);
         
         if (eventCertificate) {
-          this.certificate = eventCertificate;
-          // Mở modal xem giấy chứng nhận
-          // $('#certificateModal').modal('show');
+          // Navigate to certificate viewer
+          this.router.navigate(['/certificate-view', eventCertificate.maGiayChungNhan]);
         } else {
           alert('Không tìm thấy giấy chứng nhận cho sự kiện này');
         }

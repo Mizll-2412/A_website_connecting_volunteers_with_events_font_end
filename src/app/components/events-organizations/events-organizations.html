@@ -65,41 +65,174 @@
           <div class="row g-3">
             <!-- Event Filters -->
             <div class="col-md-3" *ngIf="activeTab === 'events'">
-              <label class="form-label small fw-semibold">Kỹ năng</label>
-              <select class="form-select" [(ngModel)]="selectedSkill" (change)="search()">
-                <option [ngValue]="null">Tất cả</option>
-                <option *ngFor="let skill of skills" [ngValue]="skill.maKyNang">
-                  {{ skill.tenKyNang }}
-                </option>
-              </select>
+              <label class="form-label small fw-semibold mb-2">Kỹ năng</label>
+              <div class="custom-multiselect" [class.open]="skillsDropdownOpen">
+                <div class="multiselect-input" (click)="toggleSkillsDropdown()">
+                  <div class="multiselect-tags" *ngIf="selectedSkills.length > 0">
+                    <span class="multiselect-tag" *ngFor="let skillId of selectedSkills.slice(0, 2)">
+                      {{ getSkillName(skillId) }}
+                      <i class="bi bi-x" (click)="removeSkill(skillId, $event)"></i>
+                    </span>
+                    <span class="multiselect-tag-more" *ngIf="selectedSkills.length > 2">
+                      +{{ selectedSkills.length - 2 }}
+                    </span>
+                  </div>
+                  <span class="multiselect-placeholder" *ngIf="selectedSkills.length === 0">
+                    Chọn kỹ năng
+                  </span>
+                  <i class="bi bi-chevron-down multiselect-arrow" [class.rotated]="skillsDropdownOpen"></i>
+                </div>
+                <div class="multiselect-dropdown" *ngIf="skillsDropdownOpen">
+                  <div class="multiselect-option" 
+                       *ngFor="let skill of skills"
+                       [class.selected]="isSkillSelected(skill.maKyNang)"
+                       (click)="toggleSkill(skill.maKyNang)">
+                    <i class="bi bi-check" *ngIf="isSkillSelected(skill.maKyNang)"></i>
+                    <span>{{ skill.tenKyNang }}</span>
+                  </div>
+                </div>
+              </div>
+              <div class="mt-2" *ngIf="selectedSkills.length > 0">
+                <small class="text-muted">Đã chọn: {{ selectedSkills.length }}</small>
+                <button class="btn btn-sm btn-link p-0 ms-2" (click)="selectedSkills = []; search()">
+                  <small>Xóa tất cả</small>
+                </button>
+              </div>
             </div>
 
             <div class="col-md-3" *ngIf="activeTab === 'events'">
-              <label class="form-label small fw-semibold">Lĩnh vực</label>
-              <select class="form-select" [(ngModel)]="selectedField" (change)="search()">
-                <option [ngValue]="null">Tất cả</option>
-                <option *ngFor="let field of fields" [ngValue]="field.maLinhVuc">
-                  {{ field.tenLinhVuc }}
-                </option>
-              </select>
+              <label class="form-label small fw-semibold mb-2">Lĩnh vực</label>
+              <div class="custom-multiselect" [class.open]="fieldsDropdownOpen">
+                <div class="multiselect-input" (click)="toggleFieldsDropdown()">
+                  <div class="multiselect-tags" *ngIf="selectedFields.length > 0">
+                    <span class="multiselect-tag" *ngFor="let fieldId of selectedFields.slice(0, 2)">
+                      {{ getFieldName(fieldId) }}
+                      <i class="bi bi-x" (click)="removeField(fieldId, $event)"></i>
+                    </span>
+                    <span class="multiselect-tag-more" *ngIf="selectedFields.length > 2">
+                      +{{ selectedFields.length - 2 }}
+                    </span>
+                  </div>
+                  <span class="multiselect-placeholder" *ngIf="selectedFields.length === 0">
+                    Chọn lĩnh vực
+                  </span>
+                  <i class="bi bi-chevron-down multiselect-arrow" [class.rotated]="fieldsDropdownOpen"></i>
+                </div>
+                <div class="multiselect-dropdown" *ngIf="fieldsDropdownOpen">
+                  <div class="multiselect-option" 
+                       *ngFor="let field of fields"
+                       [class.selected]="isFieldSelected(field.maLinhVuc)"
+                       (click)="toggleField(field.maLinhVuc)">
+                    <i class="bi bi-check" *ngIf="isFieldSelected(field.maLinhVuc)"></i>
+                    <span>{{ field.tenLinhVuc }}</span>
+                  </div>
+                </div>
+              </div>
+              <div class="mt-2" *ngIf="selectedFields.length > 0">
+                <small class="text-muted">Đã chọn: {{ selectedFields.length }}</small>
+                <button class="btn btn-sm btn-link p-0 ms-2" (click)="selectedFields = []; search()">
+                  <small>Xóa tất cả</small>
+                </button>
+              </div>
             </div>
 
             <div class="col-md-3" *ngIf="activeTab === 'events'">
-              <label class="form-label small fw-semibold">Từ ngày</label>
-              <input 
-                type="date" 
-                class="form-control" 
-                [(ngModel)]="startDate"
-                (change)="search()">
+              <label class="form-label small fw-semibold mb-2">Trạng thái</label>
+              <div class="custom-multiselect" [class.open]="statusDropdownOpen">
+                <div class="multiselect-input" (click)="toggleStatusDropdown()">
+                  <div class="multiselect-tags" *ngIf="selectedEventStatuses.length > 0">
+                    <span class="multiselect-tag" *ngFor="let status of selectedEventStatuses.slice(0, 2)">
+                      {{ getStatusName(status) }}
+                      <i class="bi bi-x" (click)="removeStatus(status, $event)"></i>
+                    </span>
+                    <span class="multiselect-tag-more" *ngIf="selectedEventStatuses.length > 2">
+                      +{{ selectedEventStatuses.length - 2 }}
+                    </span>
+                  </div>
+                  <span class="multiselect-placeholder" *ngIf="selectedEventStatuses.length === 0">
+                    Chọn trạng thái
+                  </span>
+                  <i class="bi bi-chevron-down multiselect-arrow" [class.rotated]="statusDropdownOpen"></i>
+                </div>
+                <div class="multiselect-dropdown" *ngIf="statusDropdownOpen">
+                  <div class="multiselect-option" 
+                       *ngFor="let option of [
+                         { value: 'recruiting', label: 'Đang tuyển' },
+                         { value: 'upcoming', label: 'Sắp diễn ra' },
+                         { value: 'ongoing', label: 'Đang diễn ra' },
+                         { value: 'finished', label: 'Đã kết thúc' }
+                       ]"
+                       [class.selected]="isStatusSelected(option.value)"
+                       (click)="toggleStatus(option.value)">
+                    <i class="bi bi-check" *ngIf="isStatusSelected(option.value)"></i>
+                    <span>{{ option.label }}</span>
+                  </div>
+                </div>
+              </div>
+              <div class="mt-2" *ngIf="selectedEventStatuses.length > 0">
+                <small class="text-muted">Đã chọn: {{ selectedEventStatuses.length }}</small>
+                <button class="btn btn-sm btn-link p-0 ms-2" (click)="selectedEventStatuses = []; search()">
+                  <small>Xóa tất cả</small>
+                </button>
+              </div>
             </div>
 
             <div class="col-md-3" *ngIf="activeTab === 'events'">
-              <label class="form-label small fw-semibold">Đến ngày</label>
-              <input 
-                type="date" 
-                class="form-control" 
-                [(ngModel)]="endDate"
-                (change)="search()">
+              <label class="form-label small fw-semibold mb-2">Tổ chức</label>
+              <div class="custom-multiselect" [class.open]="organizationDropdownOpen">
+                <div class="multiselect-input" (click)="toggleOrganizationDropdown()">
+                  <div class="multiselect-tags" *ngIf="selectedOrganizationIds.length > 0">
+                    <span class="multiselect-tag" *ngFor="let orgId of selectedOrganizationIds.slice(0, 2)">
+                      {{ getOrganizationName(orgId) }}
+                      <i class="bi bi-x" (click)="removeOrganization(orgId, $event)"></i>
+                    </span>
+                    <span class="multiselect-tag-more" *ngIf="selectedOrganizationIds.length > 2">
+                      +{{ selectedOrganizationIds.length - 2 }}
+                    </span>
+                  </div>
+                  <span class="multiselect-placeholder" *ngIf="selectedOrganizationIds.length === 0">
+                    Chọn tổ chức
+                  </span>
+                  <i class="bi bi-chevron-down multiselect-arrow" [class.rotated]="organizationDropdownOpen"></i>
+                </div>
+                <div class="multiselect-dropdown" *ngIf="organizationDropdownOpen">
+                  <div class="multiselect-option" 
+                       *ngFor="let org of allOrganizations"
+                       [class.selected]="isOrganizationSelected(org.maToChuc)"
+                       (click)="toggleOrganization(org.maToChuc)">
+                    <i class="bi bi-check" *ngIf="isOrganizationSelected(org.maToChuc)"></i>
+                    <span>{{ org.tenToChuc }}</span>
+                  </div>
+                </div>
+              </div>
+              <div class="mt-2" *ngIf="selectedOrganizationIds.length > 0">
+                <small class="text-muted">Đã chọn: {{ selectedOrganizationIds.length }}</small>
+                <button class="btn btn-sm btn-link p-0 ms-2" (click)="selectedOrganizationIds = []; search()">
+                  <small>Xóa tất cả</small>
+                </button>
+              </div>
+            </div>
+
+            <div class="col-md-6" *ngIf="activeTab === 'events'">
+              <label class="form-label small fw-semibold mb-2">Khoảng thời gian</label>
+              <nz-range-picker
+                [(ngModel)]="dateRange"
+                (ngModelChange)="onDateRangeChange($event)"
+                nzFormat="dd/MM/yyyy"
+                [nzPlaceHolder]="['Từ ngày', 'Đến ngày']"
+                nzSize="default"
+                style="width: 100%;" />
+            </div>
+
+            <div class="col-md-6" *ngIf="activeTab === 'events'">
+              <label class="form-label small fw-semibold mb-2">Khoảng thời gian tuyển</label>
+              <nz-range-picker
+                [(ngModel)]="recruitmentDateRange"
+                (ngModelChange)="onRecruitmentDateRangeChange($event)"
+                nzFormat="dd/MM/yyyy"
+                [nzPlaceHolder]="['Từ ngày', 'Đến ngày']"
+                nzSize="default"
+                style="width: 100%;" />
             </div>
 
             <!-- Organization Filters -->

@@ -1,0 +1,313 @@
+<div class="template-editor-container">
+  <div class="row">
+    <!-- Left Sidebar - Tools -->
+    <div class="col-md-3">
+      <div class="card">
+        <div class="card-header bg-primary text-white">
+          <h6 class="mb-0"><i class="bi bi-tools me-2"></i>Công cụ</h6>
+        </div>
+        <div class="card-body">
+          <!-- Template status -->
+          <div class="mb-4">
+            <label class="form-label fw-semibold">Trạng thái mẫu</label>
+            <div class="d-flex align-items-center">
+              <span class="badge" [ngClass]="isDefault ? 'bg-success' : 'bg-secondary'">
+                <i class="bi" [ngClass]="isDefault ? 'bi-check-circle' : 'bi-file-earmark'"></i>
+                {{ isDefault ? 'Mẫu mặc định' : 'Mẫu thường' }}
+              </span>
+              <button 
+                class="btn btn-sm btn-outline-primary ms-3"
+                type="button"
+                (click)="setAsDefault()"
+                [disabled]="isDefault || isSettingDefault">
+                <span *ngIf="isSettingDefault" class="spinner-border spinner-border-sm me-1"></span>
+                Đặt làm mặc định
+              </button>
+            </div>
+          </div>
+
+          <!-- Add Fields -->
+          <div class="mb-4">
+            <label class="form-label fw-semibold">Thêm trường</label>
+            <div *ngIf="availableFieldsFiltered.length > 0; else noAvailableFields" class="list-group">
+              <button 
+                *ngFor="let field of availableFieldsFiltered" 
+                class="list-group-item list-group-item-action"
+                (click)="addField(field.key)">
+                <i class="bi bi-plus-circle me-2"></i>{{ field.label }}
+              </button>
+            </div>
+            <ng-template #noAvailableFields>
+              <div class="alert alert-info mb-0">
+                <i class="bi bi-check-circle me-2"></i>Tất cả các trường đã được thêm vào mẫu.
+              </div>
+            </ng-template>
+          </div>
+
+          <!-- Upload Background -->
+          <div class="mb-4">
+            <label class="form-label fw-semibold">Ảnh nền</label>
+            <input 
+              type="file" 
+              class="form-control" 
+              accept="image/*"
+              (change)="uploadBackground($event)">
+            <small class="text-muted">Khuyến nghị: 1200x800px</small>
+            <div *ngIf="backgroundImage" class="mt-2">
+              <div class="d-flex align-items-center">
+                <img 
+                  *ngIf="backgroundImagePreview" 
+                  [src]="backgroundImagePreview" 
+                  alt="Preview ảnh nền" 
+                  class="border rounded me-2"
+                  style="max-width: 100%; max-height: 120px; object-fit: cover;">
+                <div class="flex-grow-1">
+                  <small class="text-muted d-block">Đang sử dụng: {{ backgroundImage }}</small>
+                  <button type="button" class="btn btn-sm btn-outline-danger mt-1" (click)="clearBackground()">
+                    <i class="bi bi-trash me-1"></i>Xóa ảnh nền
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Canvas Size -->
+          <div class="mb-4">
+            <label class="form-label fw-semibold">Kích thước</label>
+            <div class="row g-2">
+              <div class="col-6">
+                <input 
+                  type="number" 
+                  class="form-control" 
+                  [(ngModel)]="canvasWidth"
+                  (change)="onCanvasSizeChange()"
+                  placeholder="Rộng">
+              </div>
+              <div class="col-6">
+                <input 
+                  type="number" 
+                  class="form-control" 
+                  [(ngModel)]="canvasHeight"
+                  (change)="onCanvasSizeChange()"
+                  placeholder="Cao">
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Center - Canvas -->
+    <div class="col-md-6">
+      <div class="card">
+        <div class="card-header bg-secondary text-white d-flex justify-content-between align-items-center">
+          <h6 class="mb-0"><i class="bi bi-palette me-2"></i>Preview</h6>
+          <div class="d-flex align-items-center gap-2">
+            <!-- Zoom Controls -->
+            <div class="btn-group me-2" role="group">
+              <button 
+                class="btn btn-sm btn-light" 
+                (click)="zoomOut()" 
+                [disabled]="zoomLevel <= minZoom"
+                title="Thu nhỏ">
+                <i class="bi bi-zoom-out"></i>
+              </button>
+              <button 
+                class="btn btn-sm btn-light" 
+                (click)="resetZoom()"
+                title="Reset zoom">
+                {{ getZoomPercent() }}%
+              </button>
+              <button 
+                class="btn btn-sm btn-light" 
+                (click)="zoomIn()" 
+                [disabled]="zoomLevel >= maxZoom"
+                title="Phóng to">
+                <i class="bi bi-zoom-in"></i>
+              </button>
+            </div>
+            <button class="btn btn-sm btn-light me-2" (click)="saveTemplate()" [disabled]="isLoading">
+              <i class="bi bi-save me-1"></i>Lưu
+            </button>
+            <button class="btn btn-sm btn-outline-light" (click)="cancel()">
+              <i class="bi bi-x-circle me-1"></i>Hủy
+            </button>
+          </div>
+        </div>
+        <div class="card-body p-0">
+          <!-- Messages -->
+          <div *ngIf="successMessage" class="alert alert-success m-3 mb-0">
+            <i class="bi bi-check-circle me-2"></i>{{ successMessage }}
+          </div>
+          <div *ngIf="errorMessage" class="alert alert-danger m-3 mb-0">
+            <i class="bi bi-exclamation-triangle me-2"></i>{{ errorMessage }}
+          </div>
+
+          <!-- Canvas Container -->
+          <div class="canvas-container">
+            <div class="canvas-wrapper" #canvasWrapper [style.transform]="'translate(' + panOffset.x + 'px, ' + panOffset.y + 'px) scale(' + zoomLevel + ')'" [style.transform-origin]="'top left'">
+            <canvas 
+              #canvas
+              [width]="canvasWidth"
+              [height]="canvasHeight"
+              (mousedown)="onCanvasMouseDown($event)"
+              (mousemove)="onCanvasMouseMove($event)"
+              (mouseup)="onCanvasMouseUp()"
+              (mouseleave)="onCanvasMouseUp()"
+              (wheel)="onCanvasWheel($event)"
+              (contextmenu)="$event.preventDefault()">
+            </canvas>
+            </div>
+          </div>
+
+          <!-- Instructions -->
+          <div class="p-3 bg-light border-top">
+            <small class="text-muted">
+              <i class="bi bi-info-circle me-1"></i>
+              <strong>Hướng dẫn:</strong> Click vào trường để chọn, kéo để di chuyển. Sử dụng panel bên phải để chỉnh sửa style. <strong>Chuột phải + kéo</strong> để di chuyển canvas. <strong>Ctrl + lăn chuột</strong> để phóng to/thu nhỏ.
+            </small>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Sidebar - Field Editor -->
+    <div class="col-md-3">
+      <div class="card">
+        <div class="card-header bg-info text-white">
+          <h6 class="mb-0"><i class="bi bi-sliders me-2"></i>Chỉnh sửa</h6>
+        </div>
+        <div class="card-body">
+          <!-- No Selection -->
+          <div *ngIf="!selectedField" class="text-center text-muted py-4">
+            <i class="bi bi-cursor" style="font-size: 2rem;"></i>
+            <p class="mt-2">Chọn một trường để chỉnh sửa</p>
+          </div>
+
+          <!-- Field Editor -->
+          <div *ngIf="selectedField">
+            <div class="mb-3">
+              <label class="form-label fw-semibold">{{ selectedField.label }}</label>
+              <button 
+                class="btn btn-sm btn-outline-danger float-end"
+                (click)="removeField(selectedField)">
+                <i class="bi bi-trash"></i>
+              </button>
+            </div>
+
+            <!-- Position -->
+            <div class="mb-3">
+              <label class="form-label small">Vị trí</label>
+              <div class="row g-2">
+                <div class="col-6">
+                  <input 
+                    type="number" 
+                    class="form-control form-control-sm" 
+                    [(ngModel)]="selectedField.x"
+                    (ngModelChange)="onFieldStyleChange()"
+                    placeholder="X">
+                </div>
+                <div class="col-6">
+                  <input 
+                    type="number" 
+                    class="form-control form-control-sm" 
+                    [(ngModel)]="selectedField.y"
+                    (ngModelChange)="onFieldStyleChange()"
+                    placeholder="Y">
+                </div>
+              </div>
+            </div>
+
+            <!-- Font Size -->
+            <div class="mb-3">
+              <label class="form-label small">Cỡ chữ</label>
+              <select 
+                class="form-select form-select-sm"
+                [(ngModel)]="selectedField.fontSize"
+                (ngModelChange)="onFieldStyleChange()">
+                <option *ngFor="let size of fontSizes" [value]="size">{{ size }}px</option>
+              </select>
+            </div>
+
+            <!-- Font Family -->
+            <div class="mb-3">
+              <label class="form-label small">Font chữ</label>
+              <select 
+                class="form-select form-select-sm"
+                [(ngModel)]="selectedField.fontFamily"
+                (ngModelChange)="onFieldStyleChange()">
+                <option *ngFor="let font of fontFamilies" [value]="font">{{ font }}</option>
+              </select>
+            </div>
+
+            <!-- Color -->
+            <div class="mb-3">
+              <label class="form-label small">Màu sắc</label>
+              <input 
+                type="color" 
+                class="form-control form-control-sm form-control-color w-100"
+                [(ngModel)]="selectedField.color"
+                (ngModelChange)="onFieldStyleChange()">
+            </div>
+
+            <!-- Text Align -->
+            <div class="mb-3">
+              <label class="form-label small">Căn chỉnh</label>
+              <div class="btn-group w-100" role="group">
+                <button 
+                  *ngFor="let align of alignments"
+                  type="button"
+                  class="btn btn-sm btn-outline-secondary"
+                  [class.active]="selectedField.align === align"
+                  (click)="selectedField.align = align; onFieldStyleChange()">
+                  <i class="bi" [ngClass]="{
+                    'bi-text-left': align === 'left',
+                    'bi-text-center': align === 'center',
+                    'bi-text-right': align === 'right'
+                  }"></i>
+                </button>
+              </div>
+            </div>
+
+            <!-- Font Weight -->
+            <div class="mb-3">
+              <label class="form-label small">Độ đậm</label>
+              <div class="btn-group w-100" role="group">
+                <button 
+                  type="button"
+                  class="btn btn-sm btn-outline-secondary"
+                  [class.active]="selectedField.fontWeight === 'normal'"
+                  (click)="selectedField.fontWeight = 'normal'; onFieldStyleChange()">
+                  Normal
+                </button>
+                <button 
+                  type="button"
+                  class="btn btn-sm btn-outline-secondary"
+                  [class.active]="selectedField.fontWeight === 'bold'"
+                  (click)="selectedField.fontWeight = 'bold'; onFieldStyleChange()">
+                  <strong>Bold</strong>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Fields List -->
+          <div class="mt-4" *ngIf="config.fields.length > 0">
+            <label class="form-label small fw-semibold">Các trường đã thêm</label>
+            <div class="list-group">
+              <button 
+                *ngFor="let field of config.fields"
+                class="list-group-item list-group-item-action d-flex justify-content-between align-items-center"
+                [class.active]="selectedField === field"
+                (click)="selectField(field)">
+                <span>{{ field.label }}</span>
+                <i class="bi bi-chevron-right"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+

@@ -1,0 +1,88 @@
+<div class="admin-evaluations py-4 px-3 px-lg-4">
+  <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+    <div>
+      <h2 class="page-title mb-1">Tổng hợp đánh giá</h2>
+      <p class="text-muted mb-0">Danh sách toàn bộ đánh giá giữa tổ chức và tình nguyện viên trên hệ thống</p>
+    </div>
+    <button class="btn btn-outline-primary" type="button" (click)="reload()" [disabled]="isLoading">
+      <i class="bi bi-arrow-repeat me-1"></i>
+      Làm mới
+    </button>
+  </div>
+
+  <div *ngIf="isLoading" class="loading-state text-center py-5">
+    <div class="spinner-border text-primary mb-3" role="status">
+      <span class="visually-hidden">Đang tải...</span>
+    </div>
+    <p class="text-muted mb-0">Đang tải dữ liệu đánh giá...</p>
+  </div>
+
+  <div *ngIf="!isLoading && errorMessage" class="alert alert-danger" role="alert">
+    {{ errorMessage }}
+  </div>
+
+  <div *ngIf="!isLoading && !errorMessage" class="row g-4">
+    <div class="col-12 col-xl-6">
+      <div class="evaluation-panel">
+        <div class="panel-header">
+          <div>
+            <h5 class="mb-0">Tình nguyện viên ➜ Tổ chức</h5>
+            <small class="text-muted">Đánh giá tổ chức do tình nguyện viên gửi</small>
+          </div>
+          <span class="badge bg-light text-dark">{{ volunteerToOrganization.length }}</span>
+        </div>
+
+        <div *ngIf="volunteerToOrganization.length === 0" class="empty-state">
+          <i class="bi bi-emoji-neutral mb-2"></i>
+          <p class="mb-0 text-muted">Chưa có đánh giá nào.</p>
+        </div>
+
+        <div *ngFor="let evaluation of volunteerToOrganization; trackBy: trackByEvaluationId" class="evaluation-card">
+          <div class="evaluation-meta">
+            <div>
+              <strong>{{ evaluation.scorerName }}</strong>
+              <div class="text-muted small">
+                {{ evaluation.eventName }} • {{ evaluation.createdAt | date:'dd/MM/yyyy HH:mm' }}
+              </div>
+            </div>
+            <app-star-rating [rating]="evaluation.score" [readonly]="true" size="sm" [showLabel]="false"></app-star-rating>
+          </div>
+          <p class="mb-1">{{ evaluation.content || 'Tình nguyện viên không để lại nhận xét chi tiết.' }}</p>
+          <div class="text-muted small">Đánh giá cho: {{ evaluation.targetName }}</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-12 col-xl-6">
+      <div class="evaluation-panel">
+        <div class="panel-header">
+          <div>
+            <h5 class="mb-0">Tổ chức ➜ Tình nguyện viên</h5>
+            <small class="text-muted">Đánh giá tình nguyện viên do tổ chức gửi</small>
+          </div>
+          <span class="badge bg-light text-dark">{{ organizationToVolunteer.length }}</span>
+        </div>
+
+        <div *ngIf="organizationToVolunteer.length === 0" class="empty-state">
+          <i class="bi bi-people mb-2"></i>
+          <p class="mb-0 text-muted">Chưa có đánh giá nào.</p>
+        </div>
+
+        <div *ngFor="let evaluation of organizationToVolunteer; trackBy: trackByEvaluationId" class="evaluation-card">
+          <div class="evaluation-meta">
+            <div>
+              <strong>{{ evaluation.scorerName }}</strong>
+              <div class="text-muted small">
+                {{ evaluation.eventName }} • {{ evaluation.createdAt | date:'dd/MM/yyyy HH:mm' }}
+              </div>
+            </div>
+            <app-star-rating [rating]="evaluation.score" [readonly]="true" size="sm" [showLabel]="false"></app-star-rating>
+          </div>
+          <p class="mb-1">{{ evaluation.content || 'Tổ chức không để lại nhận xét chi tiết.' }}</p>
+          <div class="text-muted small">Đánh giá cho: {{ evaluation.targetName }}</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+

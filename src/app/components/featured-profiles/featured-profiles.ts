@@ -277,14 +277,23 @@ export class FeaturedProfilesComponent implements OnInit {
     // Load all volunteers first, then apply filters client-side
     this.volunteerService.getAllVolunteers().subscribe({
       next: (response: any) => {
+        let volunteersData: any[] = [];
         if (response && response.data && Array.isArray(response.data)) {
-          this.volunteers = response.data;
+          volunteersData = response.data;
         } else if (Array.isArray(response)) {
-          this.volunteers = response;
+          volunteersData = response;
         } else {
           this.volunteers = [];
           this.errorMessage = 'Không thể tải danh sách tình nguyện viên';
+          this.isLoading = false;
+          return;
         }
+        
+        // Map dữ liệu và đảm bảo danhGiaTrungBinh được map đúng
+        this.volunteers = volunteersData.map((vol: any) => ({
+          ...vol,
+          danhGiaTrungBinh: vol.danhGiaTrungBinh ?? vol.diemTrungBinh ?? vol.DiemTrungBinh ?? 0
+        }));
         
         // Apply filters after loading data
         this.applyFilters();

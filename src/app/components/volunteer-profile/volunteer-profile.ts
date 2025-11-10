@@ -8,6 +8,10 @@ import { User } from '../../models/user';
 import { AuthService, ChangeEmailRequest } from '../../services/auth';
 import { FieldService } from '../../services/field';
 import { SkillService } from '../../services/skill';
+import { EvaluationService } from '../../services/evaluation.service';
+import { CertificateService } from '../../services/certificate.service';
+import { CertificateViewerModalComponent } from '../certificate-viewer-modal/certificate-viewer-modal';
+import { StarRatingComponent } from '../shared/star-rating/star-rating';
 import { environment } from '../../../environments/environment';
 import { getImageUrl } from '../../utils/image-url.util';
 
@@ -16,7 +20,7 @@ import { getImageUrl } from '../../utils/image-url.util';
 @Component({
   selector: 'app-volunteer-profile',
   standalone: true,
-  imports: [CommonModule, RouterModule, ReactiveFormsModule, FormsModule],
+  imports: [CommonModule, RouterModule, ReactiveFormsModule, FormsModule, CertificateViewerModalComponent, StarRatingComponent],
   templateUrl: './volunteer-profile.html',
   styleUrls: ['./volunteer-profile.css']
 })
@@ -52,7 +56,29 @@ export class VolunteerProfileComponent implements OnInit {
   // Data cho các tabs
   eventHistory: any[] = [];
   certificates: any[] = [];
-  evaluations: any[] = [];
+  evaluations: any[] = []; // Đánh giá nhận được
+  myEvaluations: any[] = []; // Đánh giá đã tạo
+  
+  // Đánh giá theo sự kiện (để hiển thị trong card)
+  eventEvaluationsMap: Map<number, { fromMe: any | null, toMe: any | null, hasRequestedEvaluation: boolean }> = new Map();
+  
+  // Track các sự kiện đã gửi yêu cầu đánh giá
+  requestedEvaluationEvents: Set<number> = new Set();
+  
+  // Track các sự kiện đã gửi yêu cầu cấp chứng nhận
+  requestedCertificateEvents: Set<number> = new Set();
+  
+  // Preview đánh giá
+  selectedEvaluationForPreview: any = null;
+  evaluationPreviewTitle: string = '';
+  showEvaluationPreviewModal = false;
+  
+  // Modal xem chứng nhận
+  showCertificateModal = false;
+  selectedCertificateId: number | null = null;
+  
+  // Map chứng nhận theo sự kiện
+  eventCertificatesMap: Map<number, any> = new Map();
 
   constructor(
     private fb: FormBuilder,
@@ -61,6 +87,8 @@ export class VolunteerProfileComponent implements OnInit {
     private auth: AuthService,
     private fieldService: FieldService,
     private skillService: SkillService,
+    private evaluationService: EvaluationService,
+    private certificateService: CertificateService,
     private cdr: ChangeDetectorRef
   ) {}
 
@@ -70,6 +98,13 @@ export class VolunteerProfileComponent implements OnInit {
     this.loadKyNangs();
     this.loadLinhVucs();
     this.isLoggedIn = this.auth.isAuthenticated();
+    
+    // Đọc tab đã lưu từ localStorage
+    const savedTab = localStorage.getItem('volunteerProfileActiveTab');
+    if (savedTab && ['profile', 'events', 'certificates', 'reputation'].includes(savedTab)) {
+      this.activeTab = savedTab;
+    }
+    
     if (this.isLoggedIn) {
       this.username = this.auth.getUsername();
       this.role = this.auth.getRole();
@@ -153,6 +188,9 @@ export class VolunteerProfileComponent implements OnInit {
         if (this.volunteer?.maTNV && (!this.volunteer.linhVucs || this.volunteer.linhVucs.length === 0)) {
           this.loadVolunteerFields(this.volunteer.maTNV);
         }
+        
+        // Load dữ liệu cho tab đã lưu (nếu có)
+        this.loadDataForSavedTab();
       },
       error: (err) => {
         console.error('Lỗi tải thông tin:', err);
@@ -161,6 +199,32 @@ export class VolunteerProfileComponent implements OnInit {
         }
       }
     });
+  }
+  
+  // Load dữ liệu cho tab đã lưu từ localStorage
+  loadDataForSavedTab(): void {
+    const savedTab = localStorage.getItem('volunteerProfileActiveTab');
+    if (savedTab && ['profile', 'events', 'certificates', 'reputation'].includes(savedTab)) {
+      // Gọi switchTab để load dữ liệu tương ứng
+      // Nhưng không cần set lại activeTab vì đã set trong ngOnInit
+      this.loadDataForTab(savedTab);
+    }
+  }
+  
+  // Load dữ liệu cho tab cụ thể (không thay đổi activeTab)
+  loadDataForTab(tab: string): void {
+    if (tab === 'events' && this.eventHistory.length === 0) {
+      this.loadEventHistory();
+    } else if (tab === 'certificates' && this.certificates.length === 0) {
+      this.loadCertificates();
+    } else if (tab === 'reputation') {
+      if (this.evaluations.length === 0) {
+        this.loadEvaluations();
+      }
+      if (this.myEvaluations.length === 0 && this.user?.maTaiKhoan) {
+        this.loadMyEvaluations();
+      }
+    }
   }
   
   async loadKyNangsAndLinhVucs(): Promise<void> {
@@ -651,14 +715,11 @@ export class VolunteerProfileComponent implements OnInit {
   switchTab(tab: string): void {
     this.activeTab = tab;
     
+    // Lưu tab vào localStorage
+    localStorage.setItem('volunteerProfileActiveTab', tab);
+    
     // Load dữ liệu cho tab tương ứng
-    if (tab === 'events' && this.eventHistory.length === 0) {
-      this.loadEventHistory();
-    } else if (tab === 'certificates' && this.certificates.length === 0) {
-      this.loadCertificates();
-    } else if (tab === 'reputation' && this.evaluations.length === 0) {
-      this.loadEvaluations();
-    }
+    this.loadDataForTab(tab);
   }
 
   // Load lịch sử sự kiện
@@ -667,19 +728,369 @@ export class VolunteerProfileComponent implements OnInit {
     
     this.http.get<any>(`${environment.apiUrl}/dondangky/volunteer/${this.volunteer.maTNV}`).subscribe({
       next: (response) => {
-        this.eventHistory = response.data || response || [];
+        const allEvents = response.data || response || [];
+        const now = new Date();
+        
+        console.log('Tất cả sự kiện từ API:', allEvents);
+        
+        // Lọc chỉ các sự kiện đã kết thúc và đã được duyệt
+        this.eventHistory = allEvents.filter((reg: any) => {
+          // Kiểm tra đã được duyệt
+          if (reg.trangThai !== 1) return false;
+          
+          // API trả về event object, không phải suKien
+          const eventData = reg.event || reg.suKien;
+          if (!eventData) return false;
+          
+          // Kiểm tra sự kiện đã kết thúc
+          if (eventData.ngayKetThuc) {
+            const endDate = new Date(eventData.ngayKetThuc);
+            return endDate < now;
+          }
+          
+          // Nếu không có ngayKetThuc, kiểm tra trạng thái
+          if (eventData.trangThaiHienThi === 'Đã kết thúc' || eventData.trangThai === 'Đã kết thúc') {
+            return true;
+          }
+          
+          return false;
+        });
+        
+        console.log('Sự kiện đã tham gia (đã lọc):', this.eventHistory);
+        
+        // Load danh sách đã gửi yêu cầu đánh giá
+        this.loadRequestedEvaluations();
+        
+        // Load danh sách đã gửi yêu cầu cấp chứng nhận
+        this.loadRequestedCertificates();
+        
+        // Load thông tin tổ chức và đánh giá cho từng sự kiện
+        this.loadOrganizationInfoAndEvaluations();
+        
+        // Load chứng nhận cho các sự kiện
+        this.loadEventCertificates();
       },
       error: (err) => {
         console.error('Lỗi tải lịch sử sự kiện:', err);
       }
     });
   }
+  
+  // Load thông tin tổ chức và đánh giá cho các sự kiện
+  loadOrganizationInfoAndEvaluations(): void {
+    if (!this.user?.maTaiKhoan) return;
+    
+    // Load tất cả đánh giá của user
+    this.evaluationService.getGivenEvaluations(this.user.maTaiKhoan).subscribe({
+      next: (myEvalsResponse: any) => {
+        const myEvals = myEvalsResponse?.data || myEvalsResponse || [];
+        
+        // Load đánh giá nhận được
+        this.evaluationService.getReceivedEvaluations(this.user!.maTaiKhoan).subscribe({
+          next: (receivedEvalsResponse: any) => {
+            const receivedEvals = receivedEvalsResponse?.data || receivedEvalsResponse || [];
+            
+            // Map đánh giá theo sự kiện
+            this.eventHistory.forEach(reg => {
+              const eventData = reg.event || reg.suKien;
+              if (!eventData?.maTaiKhoanToChuc) return;
+              
+              // Đánh giá của tôi cho tổ chức (tôi đánh giá sự kiện)
+              const fromMe = myEvals.find((e: any) => 
+                e.maSuKien === reg.maSuKien && 
+                e.maNguoiDuocDanhGia === eventData.maTaiKhoanToChuc
+              ) || null;
+              
+              // Đánh giá của tổ chức cho tôi (sự kiện đánh giá tôi)
+              const toMe = receivedEvals.find((e: any) => 
+                e.maSuKien === reg.maSuKien && 
+                e.maNguoiDanhGia === eventData.maTaiKhoanToChuc
+              ) || null;
+              
+              this.eventEvaluationsMap.set(reg.maSuKien, { fromMe, toMe, hasRequestedEvaluation: false });
+              
+              // Nếu tổ chức đã đánh giá, xóa khỏi danh sách đã gửi yêu cầu
+              if (toMe) {
+                this.requestedEvaluationEvents.delete(reg.maSuKien);
+                this.saveRequestedEvaluations();
+              }
+              
+              // Load thông tin tổ chức nếu chưa có
+              if (!eventData.tenToChuc && eventData.maToChuc) {
+                this.loadOrganizationInfo(reg, eventData.maToChuc);
+              }
+            });
+          },
+          error: (err) => {
+            console.error('Lỗi load đánh giá nhận được:', err);
+          }
+        });
+      },
+      error: (err) => {
+        console.error('Lỗi load đánh giá đã tạo:', err);
+      }
+    });
+  }
+  
+  // Load thông tin tổ chức
+  loadOrganizationInfo(reg: any, maToChuc: number): void {
+    this.http.get<any>(`${environment.apiUrl}/organization/${maToChuc}`).subscribe({
+      next: (response: any) => {
+        const org = response?.data || response;
+        const eventData = reg.event || reg.suKien;
+        if (eventData) {
+          eventData.tenToChuc = org?.tenToChuc || 'Tổ chức';
+        }
+      },
+      error: (err) => {
+        console.error('Lỗi load thông tin tổ chức:', err);
+      }
+    });
+  }
+  
+  // Helper để lấy đánh giá cho một sự kiện
+  getEvaluationForEvent(maSuKien: number): { fromMe: any | null, toMe: any | null } {
+    return this.eventEvaluationsMap.get(maSuKien) || { fromMe: null, toMe: null };
+  }
+  
+  // Xem preview đánh giá
+  viewEvaluationPreview(evaluation: any, eventName: string, title: string, event?: MouseEvent): void {
+    if (event) {
+      event.stopPropagation(); // Ngăn click vào card
+    }
+    
+    if (!evaluation) {
+      console.error('Không có đánh giá để hiển thị');
+      alert('Không tìm thấy đánh giá');
+      return;
+    }
+    
+    console.log('Opening evaluation preview:', evaluation);
+    this.selectedEvaluationForPreview = evaluation;
+    this.evaluationPreviewTitle = title;
+    this.showEvaluationPreviewModal = true;
+    
+    // Force change detection
+    this.cdr.detectChanges();
+    
+    // Sử dụng setTimeout để đảm bảo DOM đã render
+    setTimeout(() => {
+      const modalEl = document.getElementById('evaluationPreviewModal');
+      if (modalEl && (window as any).bootstrap) {
+        const modal = new (window as any).bootstrap.Modal(modalEl);
+            modal.show();
+      }
+    }, 0);
+  }
+  
+  closeEvaluationPreviewModal(): void {
+    const modalEl = document.getElementById('evaluationPreviewModal');
+    if (modalEl && (window as any).bootstrap) {
+        const modal = (window as any).bootstrap.Modal.getInstance(modalEl);
+        if (modal) {
+          modal.hide();
+        }
+      }
+    
+    this.showEvaluationPreviewModal = false;
+    this.selectedEvaluationForPreview = null;
+  }
+  
+  // Đánh giá tổ chức
+  selectedEventForEvaluation: any = null;
+  evaluationRating = 5;
+  evaluationComment = '';
+  showEvaluationModal = false;
+  
+  openEvaluationModal(reg: any, event?: MouseEvent): void {
+    if (event) {
+      event.stopPropagation();
+    }
+    
+    if (!reg) {
+      console.error('Không có registration data');
+      return;
+    }
+    
+    console.log('Opening evaluation modal for:', reg);
+    this.selectedEventForEvaluation = reg;
+    this.evaluationRating = 5;
+    this.evaluationComment = '';
+    this.showEvaluationModal = true;
+    
+    // Force change detection
+    this.cdr.detectChanges();
+    
+    setTimeout(() => {
+      const modalEl = document.getElementById('evaluationModal');
+      if (modalEl && (window as any).bootstrap) {
+        const modal = new (window as any).bootstrap.Modal(modalEl);
+            modal.show();
+      }
+    }, 0);
+  }
+  
+  closeEvaluationModal(): void {
+    const modalEl = document.getElementById('evaluationModal');
+    if (modalEl && (window as any).bootstrap) {
+        const modal = (window as any).bootstrap.Modal.getInstance(modalEl);
+        if (modal) {
+          modal.hide();
+        }
+      }
+    
+    this.showEvaluationModal = false;
+    this.selectedEventForEvaluation = null;
+  }
+  
+  submitEvaluation(): void {
+    if (!this.selectedEventForEvaluation || !this.user?.maTaiKhoan) {
+      alert('Không thể gửi đánh giá. Vui lòng thử lại.');
+      return;
+    }
+
+    const eventData = this.selectedEventForEvaluation.event || this.selectedEventForEvaluation.suKien;
+    if (!eventData?.maTaiKhoanToChuc) {
+      alert('Không thể lấy thông tin tổ chức. Vui lòng thử lại sau.');
+      return;
+    }
+
+    const evaluation = {
+      maNguoiDanhGia: this.user.maTaiKhoan,
+      maNguoiDuocDanhGia: eventData.maTaiKhoanToChuc,
+      maSuKien: this.selectedEventForEvaluation.maSuKien,
+      diemSo: this.evaluationRating,
+      noiDung: this.evaluationComment.trim() || undefined
+    };
+
+    this.evaluationService.createEvaluation(evaluation).subscribe({
+      next: () => {
+        alert('Đánh giá thành công! Cảm ơn bạn đã đóng góp ý kiến.');
+        this.closeEvaluationModal();
+        // Reload đánh giá
+        this.loadOrganizationInfoAndEvaluations();
+      },
+      error: (err) => {
+        console.error('Lỗi đánh giá:', err);
+        alert(err.error?.message || 'Không thể gửi đánh giá');
+      }
+    });
+  }
+  
+  // Gửi yêu cầu được đánh giá
+  requestEvaluationFromOrganization(reg: any, event?: MouseEvent): void {
+    if (event) {
+      event.stopPropagation();
+    }
+    
+    if (!this.user?.maTaiKhoan) {
+      alert('Bạn cần đăng nhập để gửi yêu cầu');
+      return;
+    }
+    
+    const eventData = reg.event || reg.suKien;
+    if (!eventData?.maTaiKhoanToChuc) {
+      alert('Không thể lấy thông tin tổ chức');
+      return;
+    }
+    
+    // Kiểm tra đã gửi yêu cầu chưa
+    if (this.requestedEvaluationEvents.has(reg.maSuKien)) {
+      if (!confirm('Bạn đã gửi yêu cầu đánh giá cho sự kiện này. Bạn có muốn gửi lại yêu cầu không?')) {
+        return;
+      }
+    } else {
+      if (!confirm('Bạn có muốn gửi yêu cầu tổ chức đánh giá bạn cho sự kiện này không?')) {
+        return;
+      }
+    }
+    
+    const volunteerName = this.volunteer?.hoTen || 'Tình nguyện viên';
+    const requestData = {
+      maTaiKhoanToChuc: eventData.maTaiKhoanToChuc,
+      noiDung: `${volunteerName} yêu cầu bạn đánh giá cho sự kiện "${eventData.tenSuKien || 'Sự kiện'}"`
+    };
+    
+    this.http.post<any>(`${environment.apiUrl}/notification/request-evaluation`, requestData).subscribe({
+      next: () => {
+        // Đánh dấu đã gửi yêu cầu
+        this.requestedEvaluationEvents.add(reg.maSuKien);
+        // Lưu vào localStorage để persist
+        this.saveRequestedEvaluations();
+        alert('Đã gửi yêu cầu đánh giá tới tổ chức thành công!');
+      },
+      error: (err) => {
+        console.error('Lỗi gửi yêu cầu:', err);
+        alert('Không thể gửi yêu cầu: ' + (err.error?.message || 'Đã xảy ra lỗi'));
+      }
+    });
+  }
+  
+  // Kiểm tra đã gửi yêu cầu đánh giá chưa
+  hasRequestedEvaluation(maSuKien: number): boolean {
+    return this.requestedEvaluationEvents.has(maSuKien);
+  }
+  
+  // Lưu danh sách đã gửi yêu cầu vào localStorage
+  saveRequestedEvaluations(): void {
+    if (this.user?.maTaiKhoan) {
+      const key = `requested_evaluations_${this.user.maTaiKhoan}`;
+      const data = Array.from(this.requestedEvaluationEvents);
+      localStorage.setItem(key, JSON.stringify(data));
+    }
+  }
+  
+  // Load danh sách đã gửi yêu cầu từ localStorage
+  loadRequestedEvaluations(): void {
+    if (this.user?.maTaiKhoan) {
+      const key = `requested_evaluations_${this.user.maTaiKhoan}`;
+      const data = localStorage.getItem(key);
+      if (data) {
+        try {
+          const array = JSON.parse(data);
+          this.requestedEvaluationEvents = new Set(array);
+        } catch (e) {
+          console.error('Lỗi load requested evaluations:', e);
+        }
+      }
+    }
+  }
+  
+  // Kiểm tra đã yêu cầu cấp chứng nhận chưa
+  hasRequestedCertificate(maSuKien: number): boolean {
+    return this.requestedCertificateEvents.has(maSuKien);
+  }
+  
+  // Lưu danh sách đã gửi yêu cầu cấp chứng nhận vào localStorage
+  saveRequestedCertificates(): void {
+    if (this.user?.maTaiKhoan) {
+      const key = `requested_certificates_${this.user.maTaiKhoan}`;
+      const data = Array.from(this.requestedCertificateEvents);
+      localStorage.setItem(key, JSON.stringify(data));
+    }
+  }
+  
+  // Load danh sách đã gửi yêu cầu cấp chứng nhận từ localStorage
+  loadRequestedCertificates(): void {
+    if (this.user?.maTaiKhoan) {
+      const key = `requested_certificates_${this.user.maTaiKhoan}`;
+      const data = localStorage.getItem(key);
+      if (data) {
+        try {
+          const array = JSON.parse(data);
+          this.requestedCertificateEvents = new Set(array);
+        } catch (e) {
+          console.error('Lỗi load requested certificates:', e);
+        }
+      }
+    }
+  }
 
   // Load giấy chứng nhận
   loadCertificates(): void {
     if (!this.volunteer?.maTNV) return;
     
-    this.http.get<any>(`${environment.apiUrl}/certificate/volunteer/${this.volunteer.maTNV}`).subscribe({
+    this.http.get<any>(`${environment.apiUrl}/certificate/volunteers/${this.volunteer.maTNV}`).subscribe({
       next: (response) => {
         this.certificates = response.data || response || [];
       },
@@ -692,37 +1103,121 @@ export class VolunteerProfileComponent implements OnInit {
 
   // Xem chứng nhận
   viewCertificate(certificate: any): void {
-    const filePath = certificate.filePath || certificate.file;
-    if (filePath) {
-      window.open(getImageUrl(filePath), '_blank');
-    } else {
-      alert('Chứng nhận không có file đính kèm');
-    }
+    if (!certificate.maGiayChungNhan) {
+      alert('Không thể xem chứng nhận này');
+      return;
   }
 
-  // Tải chứng nhận
-  downloadCertificate(certificate: any): void {
-    const filePath = certificate.filePath || certificate.file;
-    if (filePath) {
-      const link = document.createElement('a');
-      link.href = getImageUrl(filePath);
-      link.download = `Chung_nhan_${certificate.tenSuKien || 'su_kien'}.pdf`;
-      link.click();
-    } else {
-      alert('Chứng nhận không có file đính kèm');
+    // Mở modal xem chứng nhận
+    this.selectedCertificateId = certificate.maGiayChungNhan;
+    this.showCertificateModal = true;
     }
-  }
-
-  // Load đánh giá
-  loadEvaluations(): void {
-    if (!this.volunteer?.maTNV) return;
     
-    this.http.get<any>(`${environment.apiUrl}/danhgia/volunteer/${this.volunteer.maTNV}`).subscribe({
+  // Đóng modal chứng nhận
+  closeCertificateModal(): void {
+    this.showCertificateModal = false;
+    this.selectedCertificateId = null;
+  }
+
+  // Load đánh giá nhận được (người khác đánh giá mình)
+  loadEvaluations(): void {
+    if (!this.user?.maTaiKhoan) return;
+    
+    this.evaluationService.getReceivedEvaluations(this.user.maTaiKhoan).subscribe({
       next: (response) => {
         this.evaluations = response.data || response || [];
       },
       error: (err) => {
-        console.error('Lỗi tải đánh giá:', err);
+        console.error('Lỗi tải đánh giá nhận được:', err);
+      }
+    });
+  }
+
+  // Load đánh giá đã tạo (đánh giá người khác)
+  loadMyEvaluations(): void {
+    if (!this.user?.maTaiKhoan) return;
+    
+    this.evaluationService.getGivenEvaluations(this.user.maTaiKhoan).subscribe({
+      next: (response: any) => {
+        this.myEvaluations = response.data || response || [];
+      },
+      error: (err) => {
+        console.error('Lỗi tải đánh giá đã đưa ra:', err);
+      }
+    });
+  }
+  
+  // Load chứng nhận cho các sự kiện
+  loadEventCertificates(): void {
+    if (!this.volunteer?.maTNV) return;
+    
+    this.http.get<any>(`${environment.apiUrl}/certificate/volunteers/${this.volunteer.maTNV}`).subscribe({
+      next: (response: any) => {
+        const certificates = response?.data || response || [];
+        
+        // Map chứng nhận theo sự kiện
+        certificates.forEach((cert: any) => {
+          if (cert.maSuKien) {
+            this.eventCertificatesMap.set(cert.maSuKien, cert);
+          }
+        });
+      },
+      error: (err) => {
+        console.error('Lỗi load chứng nhận:', err);
+      }
+    });
+  }
+  
+  // Lấy chứng nhận cho sự kiện
+  getCertificateForEvent(maSuKien: number): any | null {
+    return this.eventCertificatesMap.get(maSuKien) || null;
+  }
+  
+  // Xem chứng nhận từ sự kiện
+  viewCertificateFromEvent(reg: any): void {
+    const cert = this.getCertificateForEvent(reg.maSuKien);
+    if (cert?.maGiayChungNhan) {
+      this.selectedCertificateId = cert.maGiayChungNhan;
+      this.showCertificateModal = true;
+    } else {
+      alert('Không tìm thấy chứng nhận cho sự kiện này');
+    }
+  }
+  
+  // Yêu cầu cấp chứng nhận từ sự kiện
+  requestCertificateFromEvent(reg: any): void {
+    if (!this.user?.maTaiKhoan) {
+      alert('Bạn cần đăng nhập để gửi yêu cầu');
+      return;
+    }
+    
+    const eventData = reg.event || reg.suKien;
+    if (!eventData?.maTaiKhoanToChuc) {
+      alert('Không thể lấy thông tin tổ chức');
+      return;
+    }
+    
+    if (!confirm('Bạn có muốn gửi yêu cầu tổ chức cấp giấy chứng nhận cho sự kiện này không?')) {
+      return;
+    }
+    
+    const volunteerName = this.volunteer?.hoTen || 'Tình nguyện viên';
+    const requestData = {
+      maTaiKhoanToChuc: eventData.maTaiKhoanToChuc,
+      noiDung: `${volunteerName} yêu cầu bạn cấp giấy chứng nhận cho sự kiện "${eventData.tenSuKien || 'Sự kiện'}"`
+    };
+    
+    // Sử dụng endpoint request-evaluation tạm thời (có thể cần tạo endpoint riêng sau)
+    this.http.post<any>(`${environment.apiUrl}/notification/request-evaluation`, requestData).subscribe({
+      next: () => {
+        // Lưu trạng thái đã gửi yêu cầu
+        this.requestedCertificateEvents.add(reg.maSuKien);
+        this.saveRequestedCertificates();
+        alert('Đã gửi yêu cầu cấp giấy chứng nhận tới tổ chức thành công!');
+      },
+      error: (err) => {
+        console.error('Lỗi gửi yêu cầu:', err);
+        alert('Không thể gửi yêu cầu: ' + (err.error?.message || 'Đã xảy ra lỗi'));
       }
     });
   }

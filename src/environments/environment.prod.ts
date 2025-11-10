@@ -1,6 +1,6 @@
 export const environment = {
   production: true,
-  apiUrl: 'http://localhost:5000/api',
-  baseUrl: 'http://localhost:5000'
+  apiUrl: 'https://api.tinhnguyenvien.io.vn/api',
+  baseUrl: 'https://api.tinhnguyenvien.io.vn'
 };
 
