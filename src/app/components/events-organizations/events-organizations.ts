@@ -9,6 +9,7 @@ import { EventService } from '../../services/event';
 import { ToChucService } from '../../services/organization';
 import { EventCardComponent } from '../shared/event-card/event-card';
 import { OrganizationCardComponent } from '../shared/organization-card/organization-card';
+import { PaginationComponent } from '../shared/pagination/pagination';
 import { environment } from '../../../environments/environment';
 import { NzFormModule } from 'ng-zorro-antd/form';
 
@@ -25,7 +26,7 @@ interface Field {
 @Component({
   selector: 'app-events-organizations',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule, NzDatePickerModule, NzFormModule, EventCardComponent, OrganizationCardComponent],
+  imports: [CommonModule, FormsModule, RouterModule, NzDatePickerModule, NzFormModule, EventCardComponent, OrganizationCardComponent, PaginationComponent],
   templateUrl: './events-organizations.html',
   styleUrls: ['./events-organizations.css']
 })
@@ -51,6 +52,16 @@ export class EventsOrganizationsComponent implements OnInit {
   allOrganizations: any[] = [];
   filteredEvents: any[] = [];
   filteredOrganizations: any[] = [];
+  
+  // Phân trang cho sự kiện
+  paginatedEvents: any[] = [];
+  eventsCurrentPage: number = 1;
+  eventsItemsPerPage: number = 6;
+  
+  // Phân trang cho tổ chức
+  paginatedOrganizations: any[] = [];
+  organizationsCurrentPage: number = 1;
+  organizationsItemsPerPage: number = 6;
   
   skills: Skill[] = [];
   fields: Field[] = [];
@@ -121,6 +132,9 @@ export class EventsOrganizationsComponent implements OnInit {
 
   switchTab(tab: string): void {
     this.activeTab = tab;
+    // Reset phân trang khi chuyển tab
+    this.eventsCurrentPage = 1;
+    this.organizationsCurrentPage = 1;
     this.clearSearch();
   }
 
@@ -155,6 +169,7 @@ export class EventsOrganizationsComponent implements OnInit {
       next: (response: any) => {
         this.allEvents = response.data || response || [];
         this.filteredEvents = [...this.allEvents];
+        this.updatePaginatedEvents();
         this.isLoading = false;
       },
       error: (err: any) => {
@@ -173,6 +188,7 @@ export class EventsOrganizationsComponent implements OnInit {
       next: (response: any) => {
         this.allOrganizations = response.data || response || [];
         this.filteredOrganizations = [...this.allOrganizations];
+        this.updatePaginatedOrganizations();
         this.isLoading = false;
       },
       error: (err) => {
@@ -346,6 +362,8 @@ export class EventsOrganizationsComponent implements OnInit {
     }
 
     this.filteredEvents = results;
+    this.eventsCurrentPage = 1; // Reset về trang 1 khi filter thay đổi
+    this.updatePaginatedEvents();
   }
 
   searchOrganizations(): void {
@@ -376,6 +394,8 @@ export class EventsOrganizationsComponent implements OnInit {
     }
 
     this.filteredOrganizations = results;
+    this.organizationsCurrentPage = 1; // Reset về trang 1 khi filter thay đổi
+    this.updatePaginatedOrganizations();
   }
 
   clearSearch(): void {
@@ -393,6 +413,8 @@ export class EventsOrganizationsComponent implements OnInit {
 
     this.filteredEvents = [...this.allEvents];
     this.filteredOrganizations = [...this.allOrganizations];
+    this.updatePaginatedEvents();
+    this.updatePaginatedOrganizations();
   }
 
   // Multi-select methods for Skills
@@ -506,7 +528,7 @@ export class EventsOrganizationsComponent implements OnInit {
       'recruiting': 'Đang tuyển',
       'upcoming': 'Sắp diễn ra',
       'ongoing': 'Đang diễn ra',
-      'finished': 'Đã kết thúc'
+      'finished': 'Sự kiện đã kết thúc'
     };
     return statusMap[status] || status;
   }
@@ -834,6 +856,46 @@ export class EventsOrganizationsComponent implements OnInit {
     if (org?.maToChuc) {
       this.router.navigate(['/to-chuc', org.maToChuc]);
     }
+  }
+
+  // Phân trang cho sự kiện
+  updatePaginatedEvents(): void {
+    const startIndex = (this.eventsCurrentPage - 1) * this.eventsItemsPerPage;
+    const endIndex = startIndex + this.eventsItemsPerPage;
+    this.paginatedEvents = this.filteredEvents.slice(startIndex, endIndex);
+  }
+
+  onEventsPageChange(page: number): void {
+    this.eventsCurrentPage = page;
+    this.updatePaginatedEvents();
+    // Scroll về đầu danh sách sự kiện
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  onEventsItemsPerPageChange(itemsPerPage: number): void {
+    this.eventsItemsPerPage = itemsPerPage;
+    this.eventsCurrentPage = 1;
+    this.updatePaginatedEvents();
+  }
+
+  // Phân trang cho tổ chức
+  updatePaginatedOrganizations(): void {
+    const startIndex = (this.organizationsCurrentPage - 1) * this.organizationsItemsPerPage;
+    const endIndex = startIndex + this.organizationsItemsPerPage;
+    this.paginatedOrganizations = this.filteredOrganizations.slice(startIndex, endIndex);
+  }
+
+  onOrganizationsPageChange(page: number): void {
+    this.organizationsCurrentPage = page;
+    this.updatePaginatedOrganizations();
+    // Scroll về đầu danh sách tổ chức
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  onOrganizationsItemsPerPageChange(itemsPerPage: number): void {
+    this.organizationsItemsPerPage = itemsPerPage;
+    this.organizationsCurrentPage = 1;
+    this.updatePaginatedOrganizations();
   }
 }
 

@@ -144,7 +144,7 @@
           </div>
 
           <!-- Canvas Container -->
-          <div class="canvas-container">
+          <div class="canvas-container" (mousedown)="onContainerMouseDown($event)" (contextmenu)="$event.preventDefault()">
             <div class="canvas-wrapper" #canvasWrapper [style.transform]="'translate(' + panOffset.x + 'px, ' + panOffset.y + 'px) scale(' + zoomLevel + ')'" [style.transform-origin]="'top left'">
             <canvas 
               #canvas

@@ -1,8 +1,11 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
+import { NzDatePickerModule } from 'ng-zorro-antd/date-picker';
 import { EvaluationService, EvaluationResponseDto } from '../../services/evaluation.service';
 import { StarRatingComponent } from '../shared/star-rating/star-rating';
+import { AuthService } from '../../services/auth';
 
 type EvaluationTab = 'received' | 'given';
 
@@ -19,7 +22,7 @@ interface EvaluationViewModel {
 @Component({
   selector: 'app-organization-evaluations',
   standalone: true,
-  imports: [CommonModule, StarRatingComponent],
+  imports: [CommonModule, FormsModule, NzDatePickerModule, StarRatingComponent],
   templateUrl: './organization-evaluations.html',
   styleUrls: ['./organization-evaluations.css']
 })
@@ -34,15 +37,40 @@ export class OrganizationEvaluations implements OnInit {
   receivedEvaluations: EvaluationViewModel[] = [];
   givenEvaluations: EvaluationViewModel[] = [];
 
+  // Time filter properties
+  timeFilterType: 'year' | 'quarter' | 'month' | 'custom' = 'year';
+  selectedYear: number = new Date().getFullYear();
+  selectedQuarter: number = 1;
+  selectedMonth: number = new Date().getMonth() + 1;
+  dateRange: [Date | null, Date | null] | null = null;
+  availableYears: number[] = [];
+  
+  // Score filter properties
+  selectedMinScore: number | null = null;
+  selectedMaxScore: number | null = null;
+
   private accountId: number | null = null;
 
   constructor(
     private evaluationService: EvaluationService,
-    private router: Router
+    private router: Router,
+    private auth: AuthService
   ) {}
 
   ngOnInit(): void {
+    this.initializeTimeFilter();
     this.resolveAccountId();
+  }
+
+  private initializeTimeFilter(): void {
+    const currentYear = new Date().getFullYear();
+    this.availableYears = [];
+    for (let i = currentYear; i >= currentYear - 10; i--) {
+      this.availableYears.push(i);
+    }
+    this.selectedYear = currentYear;
+    this.selectedMonth = new Date().getMonth() + 1;
+    this.selectedQuarter = Math.floor((this.selectedMonth - 1) / 3) + 1;
   }
 
   switchTab(tab: EvaluationTab): void {
@@ -50,6 +78,12 @@ export class OrganizationEvaluations implements OnInit {
       return;
     }
     this.activeTab = tab;
+    // Reload data khi chuyển tab với filter hiện tại
+    if (tab === 'received') {
+      this.loadReceivedEvaluations();
+    } else {
+      this.loadGivenEvaluations();
+    }
   }
 
   goBack(): void {
@@ -61,15 +95,15 @@ export class OrganizationEvaluations implements OnInit {
   }
 
   private resolveAccountId(): void {
-    const user = localStorage.getItem('user');
-    if (!user) {
+    // Sử dụng authService.getUser() để lấy user từ cả localStorage và sessionStorage
+    const userData = this.auth.getUser();
+    if (!userData) {
       this.receivedError = 'Không tìm thấy thông tin đăng nhập. Vui lòng đăng nhập lại.';
       this.givenError = this.receivedError;
       return;
     }
 
     try {
-      const userData = JSON.parse(user);
       const accountId = Number(userData?.maTaiKhoan);
 
       if (!Number.isFinite(accountId) || accountId <= 0) {
@@ -96,7 +130,34 @@ export class OrganizationEvaluations implements OnInit {
     this.isLoadingReceived = true;
     this.receivedError = null;
 
-    this.evaluationService.getReceivedEvaluations(this.accountId).subscribe({
+    // Xây dựng filter từ time filter hiện tại
+    const filter: any = {};
+    if (this.timeFilterType === 'year' && this.selectedYear) {
+      filter.Year = this.selectedYear;
+    } else if (this.timeFilterType === 'month' && this.selectedYear && this.selectedMonth) {
+      filter.Year = this.selectedYear;
+      filter.Month = this.selectedMonth;
+    } else if (this.timeFilterType === 'quarter' && this.selectedYear && this.selectedQuarter) {
+      // Tính FromDate và ToDate từ quý
+      const quarterStartMonth = (this.selectedQuarter - 1) * 3 + 1;
+      const quarterEndMonth = this.selectedQuarter * 3;
+      const lastDayOfQuarter = new Date(this.selectedYear, quarterEndMonth, 0).getDate();
+      filter.FromDate = this.formatDateForApi(new Date(this.selectedYear, quarterStartMonth - 1, 1));
+      filter.ToDate = this.formatDateForApi(new Date(this.selectedYear, quarterEndMonth - 1, lastDayOfQuarter));
+    } else if (this.timeFilterType === 'custom' && this.dateRange && this.dateRange[0] && this.dateRange[1]) {
+      filter.FromDate = this.formatDateForApi(this.dateRange[0]);
+      filter.ToDate = this.formatDateForApi(this.dateRange[1]);
+    }
+
+    // Thêm filter số sao - chỉ thêm khi có giá trị
+    if (this.selectedMinScore != null) {
+      filter.MinScore = this.selectedMinScore;
+    }
+    if (this.selectedMaxScore != null) {
+      filter.MaxScore = this.selectedMaxScore;
+    }
+
+    this.evaluationService.getReceivedEvaluations(this.accountId, filter).subscribe({
       next: (response) => {
         this.receivedEvaluations = this.normalizeEvaluations(response);
         this.isLoadingReceived = false;
@@ -117,7 +178,34 @@ export class OrganizationEvaluations implements OnInit {
     this.isLoadingGiven = true;
     this.givenError = null;
 
-    this.evaluationService.getGivenEvaluations(this.accountId).subscribe({
+    // Xây dựng filter từ time filter hiện tại
+    const filter: any = {};
+    if (this.timeFilterType === 'year' && this.selectedYear) {
+      filter.Year = this.selectedYear;
+    } else if (this.timeFilterType === 'month' && this.selectedYear && this.selectedMonth) {
+      filter.Year = this.selectedYear;
+      filter.Month = this.selectedMonth;
+    } else if (this.timeFilterType === 'quarter' && this.selectedYear && this.selectedQuarter) {
+      // Tính FromDate và ToDate từ quý
+      const quarterStartMonth = (this.selectedQuarter - 1) * 3 + 1;
+      const quarterEndMonth = this.selectedQuarter * 3;
+      const lastDayOfQuarter = new Date(this.selectedYear, quarterEndMonth, 0).getDate();
+      filter.FromDate = this.formatDateForApi(new Date(this.selectedYear, quarterStartMonth - 1, 1));
+      filter.ToDate = this.formatDateForApi(new Date(this.selectedYear, quarterEndMonth - 1, lastDayOfQuarter));
+    } else if (this.timeFilterType === 'custom' && this.dateRange && this.dateRange[0] && this.dateRange[1]) {
+      filter.FromDate = this.formatDateForApi(this.dateRange[0]);
+      filter.ToDate = this.formatDateForApi(this.dateRange[1]);
+    }
+
+    // Thêm filter số sao - chỉ thêm khi có giá trị
+    if (this.selectedMinScore != null) {
+      filter.MinScore = this.selectedMinScore;
+    }
+    if (this.selectedMaxScore != null) {
+      filter.MaxScore = this.selectedMaxScore;
+    }
+
+    this.evaluationService.getGivenEvaluations(this.accountId, filter).subscribe({
       next: (response) => {
         this.givenEvaluations = this.normalizeEvaluations(response);
         this.isLoadingGiven = false;
@@ -149,6 +237,81 @@ export class OrganizationEvaluations implements OnInit {
   private normalizeNumber(value: any, fallback = 0): number {
     const num = Number(value);
     return Number.isFinite(num) ? num : fallback;
+  }
+
+  onTimeFilterTypeChange(): void {
+    if (this.timeFilterType === 'custom') {
+      this.dateRange = null;
+      return;
+    }
+    if (this.timeFilterType === 'year' && this.selectedYear) {
+      this.applyTimeFilter();
+    } else if (this.timeFilterType === 'quarter' && this.selectedYear && this.selectedQuarter) {
+      this.applyTimeFilter();
+    } else if (this.timeFilterType === 'month' && this.selectedYear && this.selectedMonth) {
+      this.applyTimeFilter();
+    }
+  }
+
+  onDateRangeChange(dates: [Date | null, Date | null] | null): void {
+    if (dates && dates[0] && dates[1]) {
+      this.applyTimeFilter();
+    }
+  }
+
+  applyTimeFilter(): void {
+    if (this.timeFilterType === 'custom' && (!this.dateRange || !this.dateRange[0] || !this.dateRange[1])) {
+      console.warn('Chưa chọn đủ khoảng ngày');
+      return;
+    }
+    if (this.timeFilterType === 'year' && !this.selectedYear) {
+      console.warn('Chưa chọn năm');
+      return;
+    }
+    if (this.timeFilterType === 'quarter' && (!this.selectedYear || !this.selectedQuarter)) {
+      console.warn('Chưa chọn đủ năm và quý');
+      return;
+    }
+    if (this.timeFilterType === 'month' && (!this.selectedYear || !this.selectedMonth)) {
+      console.warn('Chưa chọn đủ năm và tháng');
+      return;
+    }
+
+    // Reload cả hai tab với filter mới
+    this.loadReceivedEvaluations();
+    this.loadGivenEvaluations();
+  }
+
+  clearTimeFilter(): void {
+    this.timeFilterType = 'year';
+    this.selectedYear = new Date().getFullYear();
+    this.selectedMonth = new Date().getMonth() + 1;
+    this.selectedQuarter = Math.floor((this.selectedMonth - 1) / 3) + 1;
+    this.dateRange = null;
+    this.selectedMinScore = null;
+    this.selectedMaxScore = null;
+    this.applyTimeFilter();
+  }
+
+  onScoreFilterChange(): void {
+    this.applyTimeFilter();
+  }
+
+  onMinScoreChange(value: any): void {
+    this.selectedMinScore = value === 'null' || value === null || value === undefined ? null : Number(value);
+    this.applyTimeFilter();
+  }
+
+  onMaxScoreChange(value: any): void {
+    this.selectedMaxScore = value === 'null' || value === null || value === undefined ? null : Number(value);
+    this.applyTimeFilter();
+  }
+
+  formatDateForApi(date: Date): string {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
   }
 }
 

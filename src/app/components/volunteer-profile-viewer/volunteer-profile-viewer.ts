@@ -9,6 +9,7 @@ import { RegistrationService } from '../../services/registration';
 import { CertificateService } from '../../services/certificate.service';
 import { getImageUrl } from '../../utils/image-url.util';
 import { environment } from '../../../environments/environment';
+import { ToastService } from '../../services/toast.service';
 
 interface Volunteer {
   maTNV: number;
@@ -67,7 +68,8 @@ export class VolunteerProfileViewerComponent implements OnInit {
     private evaluationService: EvaluationService,
     private registrationService: RegistrationService,
     private certificateService: CertificateService,
-    private http: HttpClient
+    private http: HttpClient,
+    private toast: ToastService
   ) {}
 
   ngOnInit(): void {
@@ -127,7 +129,7 @@ export class VolunteerProfileViewerComponent implements OnInit {
       error: (err) => {
         console.error('Lỗi tải chi tiết TNV:', err);
         this.isLoading = false;
-        alert('Không thể tải thông tin chi tiết');
+        this.toast.error('Không thể tải thông tin chi tiết');
       }
     });
   }
@@ -151,7 +153,8 @@ export class VolunteerProfileViewerComponent implements OnInit {
     if (!this.volunteerDetail?.maTaiKhoan) return;
     
     this.isLoadingEvaluations = true;
-    this.evaluationService.getEvaluationsForUser(this.volunteerDetail.maTaiKhoan).subscribe({
+    // Load đánh giá nhận được từ tổ chức (received evaluations)
+    this.evaluationService.getReceivedEvaluations(this.volunteerDetail.maTaiKhoan).subscribe({
       next: (response: any) => {
         this.evaluations = response.data || response || [];
         this.isLoadingEvaluations = false;

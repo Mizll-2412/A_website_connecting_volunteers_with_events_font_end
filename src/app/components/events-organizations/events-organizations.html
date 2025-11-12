@@ -312,10 +312,21 @@
 
       <!-- Events Grid -->
       <div class="row g-4" *ngIf="filteredEvents.length > 0">
-        <div class="col-md-6 col-lg-4" *ngFor="let event of filteredEvents">
+        <div class="col-md-6 col-lg-4" *ngFor="let event of paginatedEvents">
           <app-event-card [event]="event"></app-event-card>
         </div>
       </div>
+
+      <!-- Pagination cho sự kiện -->
+      <app-pagination
+        *ngIf="filteredEvents.length > 0"
+        [totalItems]="filteredEvents.length"
+        [itemsPerPage]="eventsItemsPerPage"
+        [currentPage]="eventsCurrentPage"
+        [maxSize]="5"
+        (pageChange)="onEventsPageChange($event)"
+        (itemsPerPageChange)="onEventsItemsPerPageChange($event)">
+      </app-pagination>
     </div>
 
     <!-- Organizations Tab Content -->
@@ -332,10 +343,21 @@
 
       <!-- Organizations Grid -->
       <div class="row g-4" *ngIf="filteredOrganizations.length > 0">
-        <div class="col-md-6 col-lg-4" *ngFor="let org of filteredOrganizations">
+        <div class="col-md-6 col-lg-4" *ngFor="let org of paginatedOrganizations">
           <app-organization-card [organization]="org"></app-organization-card>
         </div>
       </div>
+
+      <!-- Pagination cho tổ chức -->
+      <app-pagination
+        *ngIf="filteredOrganizations.length > 0"
+        [totalItems]="filteredOrganizations.length"
+        [itemsPerPage]="organizationsItemsPerPage"
+        [currentPage]="organizationsCurrentPage"
+        [maxSize]="5"
+        (pageChange)="onOrganizationsPageChange($event)"
+        (itemsPerPageChange)="onOrganizationsItemsPerPageChange($event)">
+      </app-pagination>
     </div>
   </div>
 </div>

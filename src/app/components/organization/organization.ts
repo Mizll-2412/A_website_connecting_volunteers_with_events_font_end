@@ -7,6 +7,7 @@ import { AuthService } from '../../services/auth';
 import { ToChucService } from '../../services/organization';
 import { HttpErrorResponse } from '@angular/common/http';
 import { getImageUrl } from '../../utils/image-url.util';
+import { ToastService } from '../../services/toast.service';
 
 export enum TrangThaiXacMinh {
   ChoDuyet = 0,
@@ -50,7 +51,8 @@ export class ToChucListComponent implements OnInit {
   constructor(
     private router: Router, 
     private auth: AuthService,
-    private toChucService: ToChucService
+    private toChucService: ToChucService,
+    private toast: ToastService
   ) {}
 
 
@@ -63,10 +65,9 @@ export class ToChucListComponent implements OnInit {
       this.role = this.auth.getRole();
     }
     
-    const userInfo = localStorage.getItem('user');
-    if (userInfo) {
-      this.user = JSON.parse(userInfo);
-    } else {
+    // Sử dụng authService.getUser() để lấy user từ cả localStorage và sessionStorage
+    this.user = this.auth.getUser();
+    if (!this.user) {
       this.router.navigate(['/login']);
       return;
     }
@@ -210,7 +211,7 @@ export class ToChucListComponent implements OnInit {
   // Xem chi tiết tổ chức
   viewDetails(org: ToChuc): void {
     // TODO: Implement modal or navigate to detail page
-    alert(`Chi tiết tổ chức: ${org.tenToChuc}\nEmail: ${org.email}\nĐịa chỉ: ${org.diaChi || 'Chưa cập nhật'}\nĐánh giá: ${org.diemTrungBinh || 0}/5`);
+    this.toast.info(`Chi tiết tổ chức: ${org.tenToChuc} | Email: ${org.email} | Địa chỉ: ${org.diaChi || 'Chưa cập nhật'} | Đánh giá: ${org.diemTrungBinh || 0}/5`);
   }
 
   getImageUrl(path: string | null | undefined): string {

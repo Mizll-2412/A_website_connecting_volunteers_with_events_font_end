@@ -1,246 +1,421 @@
 <!-- Modal Chi tiết TNV -->
 <div class="modal fade" [id]="modalId" tabindex="-1" aria-labelledby="volunteerProfileModalLabel" aria-hidden="true">
-  <div class="modal-dialog modal-lg">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title" id="volunteerProfileModalLabel">
-          <i class="bi bi-person-circle me-2"></i>Chi tiết Tình nguyện viên
-        </h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+  <div class="modal-dialog modal-xl modal-dialog-scrollable">
+    <div class="modal-content volunteer-profile-modal">
+      <!-- Modal Header với gradient -->
+      <div class="modal-header volunteer-profile-header">
+        <div class="d-flex align-items-center w-100">
+          <div class="profile-header-icon me-3">
+            <i class="bi bi-person-circle-fill" style="color: #ffffff;"></i>
+          </div>
+          <div class="flex-grow-1">
+            <h5 class="modal-title mb-0" id="volunteerProfileModalLabel" style="color: #ffffff;">
+              Chi tiết Tình nguyện viên
+            </h5>
+            <small class="text-white-50" *ngIf="volunteerDetail">{{ volunteerDetail.hoTen || 'Tình nguyện viên' }}</small>
+          </div>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
       </div>
-      <div class="modal-body">
+
+      <div class="modal-body p-0">
         <!-- Loading state -->
-        <div *ngIf="isLoading" class="text-center py-4">
-          <div class="spinner-border text-primary" role="status">
+        <div *ngIf="isLoading" class="text-center py-5">
+          <div class="spinner-border text-primary mb-3" role="status" style="width: 3rem; height: 3rem;">
             <span class="visually-hidden">Đang tải...</span>
           </div>
-          <p class="mt-2">Đang tải thông tin...</p>
+          <p class="text-muted">Đang tải thông tin...</p>
         </div>
 
-        <!-- Tab Navigation -->
-        <ul class="nav nav-tabs mb-3" *ngIf="!isLoading && volunteerDetail">
-          <li class="nav-item">
-            <a class="nav-link" [class.active]="activeTab === 'info'" (click)="selectTab('info')" style="cursor: pointer;">
-              <i class="bi bi-person-circle me-1"></i>Thông tin
-            </a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link" [class.active]="activeTab === 'evaluations'" (click)="selectTab('evaluations')" style="cursor: pointer;">
-              <i class="bi bi-star me-1"></i>Đánh giá
-            </a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link" [class.active]="activeTab === 'active-events'" (click)="selectTab('active-events')" style="cursor: pointer;">
-              <i class="bi bi-calendar-event me-1"></i>Đang tham gia
-            </a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link" [class.active]="activeTab === 'finished-events'" (click)="selectTab('finished-events')" style="cursor: pointer;">
-              <i class="bi bi-calendar-check me-1"></i>Đã tham gia
-            </a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link" [class.active]="activeTab === 'certificates'" (click)="selectTab('certificates')" style="cursor: pointer;">
-              <i class="bi bi-award me-1"></i>Chứng nhận
-            </a>
-          </li>
-        </ul>
-
-        <!-- Tab: Thông tin -->
-        <div *ngIf="!isLoading && volunteerDetail && activeTab === 'info'" class="row">
-          <!-- Cột trái: Avatar và thông tin cơ bản -->
-          <div class="col-md-4 text-center mb-3">
-            <img [src]="volunteerDetail.anhDaiDien ? getImageUrl(volunteerDetail.anhDaiDien) : 'user.png'" 
-                 alt="Avatar" 
-                 class="img-fluid rounded-circle mb-3" 
-                 style="max-width: 150px; max-height: 150px; object-fit: cover;">
-            <h5 class="fw-bold">{{ volunteerDetail.hoTen || 'Chưa cập nhật' }}</h5>
-            <div class="mb-2" *ngIf="volunteerDetail.danhGiaTrungBinh">
-              <span *ngFor="let type of getStarRating(volunteerDetail.danhGiaTrungBinh)" class="star">
-                <i class="fas" [ngClass]="{
-                  'fa-star text-warning': type === 'full',
-                  'fa-star-half-alt text-warning': type === 'half',
-                  'fa-star text-muted': type === 'empty'
-                }"></i>
-              </span>
-              <span class="ms-2">{{ volunteerDetail.danhGiaTrungBinh | number:'1.1-1' }}</span>
-            </div>
-          </div>
-
-          <!-- Cột phải: Thông tin chi tiết -->
-          <div class="col-md-8">
-            <h6 class="fw-semibold border-bottom pb-2 mb-3">Thông tin liên hệ</h6>
-            <div class="mb-2">
-              <i class="bi bi-envelope me-2 text-primary"></i>
-              <strong>Email:</strong> {{ volunteerDetail.email || 'Chưa cập nhật' }}
-            </div>
-            <div class="mb-2" *ngIf="volunteerDetail.soDienThoai">
-              <i class="bi bi-phone me-2 text-primary"></i>
-              <strong>Số điện thoại:</strong> {{ volunteerDetail.soDienThoai }}
-            </div>
-            <div class="mb-3" *ngIf="volunteerDetail.diaChi">
-              <i class="bi bi-geo-alt me-2 text-primary"></i>
-              <strong>Địa chỉ:</strong> {{ volunteerDetail.diaChi }}
-            </div>
-
-            <h6 class="fw-semibold border-bottom pb-2 mb-3">Thông tin cá nhân</h6>
-            <div class="mb-2" *ngIf="volunteerDetail.ngaySinh">
-              <i class="bi bi-calendar-event me-2 text-primary"></i>
-              <strong>Ngày sinh:</strong> {{ volunteerDetail.ngaySinh | date:'dd/MM/yyyy' }}
-            </div>
-            <div class="mb-3" *ngIf="volunteerDetail.gioiThieu">
-              <i class="bi bi-chat-left-text me-2 text-primary"></i>
-              <strong>Giới thiệu:</strong>
-              <p class="mt-1 text-muted">{{ volunteerDetail.gioiThieu }}</p>
-            </div>
-
-            <h6 class="fw-semibold border-bottom pb-2 mb-3">Kỹ năng & Lĩnh vực</h6>
-            <div class="mb-2">
-              <strong>Kỹ năng:</strong>
-              <div class="mt-1">
-                <span *ngFor="let skill of getDetailSkills(volunteerDetail)" class="badge bg-primary me-1 mb-1">
-                  {{ skill.tenKyNang }}
-                </span>
-                <span *ngIf="getDetailSkills(volunteerDetail).length === 0" class="text-muted">Chưa cập nhật</span>
-              </div>
-            </div>
-            <div class="mb-2">
-              <strong>Lĩnh vực:</strong>
-              <div class="mt-1">
-                <span *ngFor="let field of getDetailFields(volunteerDetail)" class="badge bg-info me-1 mb-1">
-                  {{ field.tenLinhVuc }}
-                </span>
-                <span *ngIf="getDetailFields(volunteerDetail).length === 0" class="text-muted">Chưa cập nhật</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Tab: Đánh giá -->
-        <div *ngIf="!isLoading && volunteerDetail && activeTab === 'evaluations'">
-          <div *ngIf="isLoadingEvaluations" class="text-center py-3">
-            <div class="spinner-border spinner-border-sm text-primary"></div>
-            <p class="mt-2">Đang tải đánh giá...</p>
-          </div>
-          
-          <div *ngIf="!isLoadingEvaluations && evaluations.length === 0" class="text-center py-4">
-            <i class="bi bi-star" style="font-size: 2rem; color: #ccc;"></i>
-            <p class="mt-2 text-muted">Chưa có đánh giá nào</p>
-          </div>
-          
-          <div *ngIf="!isLoadingEvaluations && evaluations.length > 0" class="list-group">
-            <div class="list-group-item" *ngFor="let eval of evaluations">
-              <div class="d-flex justify-content-between">
-                <div>
-                  <h6 class="mb-1">{{ eval.tenToChuc || eval.toChuc?.tenToChuc || 'Tổ chức' }}</h6>
-                  <p class="mb-1 text-muted">
-                    <i class="bi bi-calendar-event me-1"></i>{{ eval.tenSuKien || eval.suKien?.tenSuKien || 'Sự kiện' }}
-                  </p>
-                  <p class="mb-1" *ngIf="eval.noiDung">{{ eval.noiDung }}</p>
-                  <small class="text-muted">{{ eval.ngayTao | date:'dd/MM/yyyy' }}</small>
+        <!-- Profile Content -->
+        <div *ngIf="!isLoading && volunteerDetail" class="volunteer-profile-content">
+          <!-- Profile Header Section với Avatar -->
+          <div class="profile-header-section">
+            <div class="container-fluid px-4 py-4">
+              <div class="row align-items-center">
+                <div class="col-auto">
+                  <div class="avatar-container">
+                    <img [src]="volunteerDetail.anhDaiDien ? getImageUrl(volunteerDetail.anhDaiDien) : 'assets/default-avatar.png'" 
+                         alt="Avatar" 
+                         class="volunteer-avatar"
+                         onerror="this.src='assets/default-avatar.png'">
+                    <div class="avatar-badge">
+                      <i class="bi bi-check-circle-fill" style="color: #10b981;"></i>
+                    </div>
+                  </div>
                 </div>
-                <span class="badge bg-warning text-dark">
-                  <i class="bi bi-star-fill me-1"></i>{{ eval.diemSo || eval.diemDanhGia }}/5
-                </span>
+                <div class="col">
+                  <h4 class="volunteer-name mb-2">
+                    <i class="bi bi-person-badge-fill me-2" style="color: #3b82f6;"></i>
+                    {{ volunteerDetail.hoTen || 'Chưa cập nhật' }}
+                  </h4>
+                  <div class="volunteer-rating mb-2" *ngIf="volunteerDetail.danhGiaTrungBinh">
+                    <div class="rating-stars">
+                      <span *ngFor="let type of getStarRating(volunteerDetail.danhGiaTrungBinh)" class="star-icon">
+                        <i class="bi" [ngClass]="{
+                          'bi-star-fill': type === 'full',
+                          'bi-star-half': type === 'half',
+                          'bi-star': type === 'empty'
+                        }" [style.color]="type === 'empty' ? '#d1d5db' : '#fbbf24'"></i>
+                      </span>
+                    </div>
+                    <span class="rating-value ms-2">
+                      <strong>{{ volunteerDetail.danhGiaTrungBinh | number:'1.1-1' }}</strong>
+                      <span class="text-muted">/5.0</span>
+                    </span>
+                  </div>
+                  <div class="volunteer-meta">
+                    <span class="badge bg-primary me-2" *ngIf="volunteerDetail.email">
+                      <i class="bi bi-envelope-fill me-1"></i>{{ volunteerDetail.email }}
+                    </span>
+                    <span class="badge bg-success me-2" *ngIf="volunteerDetail.soDienThoai">
+                      <i class="bi bi-phone-fill me-1"></i>{{ volunteerDetail.soDienThoai }}
+                    </span>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
-        </div>
 
-        <!-- Tab: Sự kiện đang tham gia -->
-        <div *ngIf="!isLoading && volunteerDetail && activeTab === 'active-events'">
-          <div *ngIf="isLoadingEvents" class="text-center py-3">
-            <div class="spinner-border spinner-border-sm text-primary"></div>
-            <p class="mt-2">Đang tải sự kiện...</p>
-          </div>
-          
-          <div *ngIf="!isLoadingEvents && activeEvents.length === 0" class="text-center py-4">
-            <i class="bi bi-calendar-event" style="font-size: 2rem; color: #ccc;"></i>
-            <p class="mt-2 text-muted">Chưa có sự kiện đang tham gia</p>
-          </div>
-          
-          <div *ngIf="!isLoadingEvents && activeEvents.length > 0" class="list-group">
-            <div class="list-group-item" *ngFor="let reg of activeEvents">
-              <h6 class="mb-1">{{ reg.event?.tenSuKien || 'Sự kiện' }}</h6>
-              <p class="mb-1 text-muted">
-                <i class="bi bi-calendar me-1"></i>
-                {{ reg.event?.ngayBatDau | date:'dd/MM/yyyy' }} - {{ reg.event?.ngayKetThuc | date:'dd/MM/yyyy' }}
-              </p>
-              <p class="mb-0 text-muted">
-                <i class="bi bi-geo-alt me-1"></i>{{ reg.event?.diaChi || 'Chưa có địa chỉ' }}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <!-- Tab: Sự kiện đã tham gia -->
-        <div *ngIf="!isLoading && volunteerDetail && activeTab === 'finished-events'">
-          <div *ngIf="isLoadingEvents" class="text-center py-3">
-            <div class="spinner-border spinner-border-sm text-primary"></div>
-            <p class="mt-2">Đang tải sự kiện...</p>
-          </div>
-          
-          <div *ngIf="!isLoadingEvents && finishedEvents.length === 0" class="text-center py-4">
-            <i class="bi bi-calendar-check" style="font-size: 2rem; color: #ccc;"></i>
-            <p class="mt-2 text-muted">Chưa có sự kiện đã tham gia</p>
-          </div>
-          
-          <div *ngIf="!isLoadingEvents && finishedEvents.length > 0" class="list-group">
-            <div class="list-group-item" *ngFor="let reg of finishedEvents">
-              <h6 class="mb-1">{{ reg.event?.tenSuKien || 'Sự kiện' }}</h6>
-              <p class="mb-1 text-muted">
-                <i class="bi bi-calendar me-1"></i>
-                {{ reg.event?.ngayBatDau | date:'dd/MM/yyyy' }} - {{ reg.event?.ngayKetThuc | date:'dd/MM/yyyy' }}
-              </p>
-              <p class="mb-0 text-muted">
-                <i class="bi bi-geo-alt me-1"></i>{{ reg.event?.diaChi || 'Chưa có địa chỉ' }}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <!-- Tab: Giấy chứng nhận -->
-        <div *ngIf="!isLoading && volunteerDetail && activeTab === 'certificates'">
-          <div *ngIf="isLoadingCertificates" class="text-center py-3">
-            <div class="spinner-border spinner-border-sm text-primary"></div>
-            <p class="mt-2">Đang tải chứng nhận...</p>
-          </div>
-          
-          <div *ngIf="!isLoadingCertificates && certificates.length === 0" class="text-center py-4">
-            <i class="bi bi-award" style="font-size: 2rem; color: #ccc;"></i>
-            <p class="mt-2 text-muted">Chưa có giấy chứng nhận nào</p>
-          </div>
-          
-          <div *ngIf="!isLoadingCertificates && certificates.length > 0" class="list-group">
-            <div class="list-group-item" *ngFor="let cert of certificates">
-              <div class="d-flex justify-content-between align-items-start">
-                <div>
-                  <h6 class="mb-1">{{ cert.tenSuKien || cert.suKien?.tenSuKien || 'Sự kiện' }}</h6>
-                  <p class="mb-1 text-muted">
-                    <i class="bi bi-calendar me-1"></i>
-                    Ngày cấp: {{ cert.ngayCap | date:'dd/MM/yyyy' }}
-                  </p>
-                  <p class="mb-0 text-muted" *ngIf="cert.tenMau">
-                    <i class="bi bi-file-earmark me-1"></i>Mẫu: {{ cert.tenMau }}
-                  </p>
-                </div>
-                <a *ngIf="cert.filePath" [href]="getImageUrl(cert.filePath)" target="_blank" class="btn btn-sm btn-outline-primary">
-                  <i class="bi bi-download me-1"></i>Tải xuống
+          <!-- Tab Navigation với icons màu sắc -->
+          <div class="profile-tabs-container">
+            <ul class="nav nav-tabs profile-tabs">
+              <li class="nav-item">
+                <a class="nav-link" [class.active]="activeTab === 'info'" (click)="selectTab('info')" style="cursor: pointer;">
+                  <i class="bi bi-info-circle-fill me-2" style="color: #3b82f6;"></i>Thông tin
                 </a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link" [class.active]="activeTab === 'evaluations'" (click)="selectTab('evaluations')" style="cursor: pointer;">
+                  <i class="bi bi-star-fill me-2" style="color: #fbbf24;"></i>Đánh giá
+                </a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link" [class.active]="activeTab === 'active-events'" (click)="selectTab('active-events')" style="cursor: pointer;">
+                  <i class="bi bi-calendar-event-fill me-2" style="color: #10b981;"></i>Đang tham gia
+                </a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link" [class.active]="activeTab === 'finished-events'" (click)="selectTab('finished-events')" style="cursor: pointer;">
+                  <i class="bi bi-calendar-check-fill me-2" style="color: #8b5cf6;"></i>Đã tham gia
+                </a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link" [class.active]="activeTab === 'certificates'" (click)="selectTab('certificates')" style="cursor: pointer;">
+                  <i class="bi bi-award-fill me-2" style="color: #f59e0b;"></i>Chứng nhận
+                </a>
+              </li>
+            </ul>
+          </div>
+
+          <!-- Tab Content Container -->
+          <div class="profile-tab-content px-4 py-4">
+            <!-- Tab: Thông tin -->
+            <div *ngIf="activeTab === 'info'" class="tab-content-info">
+              <div class="row g-4">
+                <!-- Cột trái: Thông tin liên hệ -->
+                <div class="col-md-6">
+                  <div class="info-card card border-0 shadow-sm h-100">
+                    <div class="card-header bg-transparent border-0 pb-0">
+                      <h6 class="card-title mb-0">
+                        <i class="bi bi-telephone-fill me-2" style="color: #10b981;"></i>
+                        Thông tin liên hệ
+                      </h6>
+                    </div>
+                    <div class="card-body">
+                      <div class="info-item mb-3">
+                        <div class="info-label">
+                          <i class="bi bi-envelope-fill me-2" style="color: #8b5cf6;"></i>
+                          <span>Email</span>
+                        </div>
+                        <div class="info-value">{{ volunteerDetail.email || 'Chưa cập nhật' }}</div>
+                      </div>
+                      <div class="info-item mb-3" *ngIf="volunteerDetail.soDienThoai">
+                        <div class="info-label">
+                          <i class="bi bi-phone-fill me-2" style="color: #10b981;"></i>
+                          <span>Số điện thoại</span>
+                        </div>
+                        <div class="info-value">{{ volunteerDetail.soDienThoai }}</div>
+                      </div>
+                      <div class="info-item mb-0" *ngIf="volunteerDetail.diaChi">
+                        <div class="info-label">
+                          <i class="bi bi-geo-alt-fill me-2" style="color: #ef4444;"></i>
+                          <span>Địa chỉ</span>
+                        </div>
+                        <div class="info-value">{{ volunteerDetail.diaChi }}</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Cột phải: Thông tin cá nhân -->
+                <div class="col-md-6">
+                  <div class="info-card card border-0 shadow-sm h-100">
+                    <div class="card-header bg-transparent border-0 pb-0">
+                      <h6 class="card-title mb-0">
+                        <i class="bi bi-person-fill me-2" style="color: #3b82f6;"></i>
+                        Thông tin cá nhân
+                      </h6>
+                    </div>
+                    <div class="card-body">
+                      <div class="info-item mb-3" *ngIf="volunteerDetail.ngaySinh">
+                        <div class="info-label">
+                          <i class="bi bi-calendar-event-fill me-2" style="color: #f59e0b;"></i>
+                          <span>Ngày sinh</span>
+                        </div>
+                        <div class="info-value">{{ volunteerDetail.ngaySinh | date:'dd/MM/yyyy' }}</div>
+                      </div>
+                      <div class="info-item mb-0" *ngIf="volunteerDetail.gioiThieu">
+                        <div class="info-label">
+                          <i class="bi bi-card-text-fill me-2" style="color: #06b6d4;"></i>
+                          <span>Giới thiệu</span>
+                        </div>
+                        <div class="info-value">{{ volunteerDetail.gioiThieu }}</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Kỹ năng & Lĩnh vực - Full width -->
+                <div class="col-12">
+                  <div class="info-card card border-0 shadow-sm">
+                    <div class="card-header bg-transparent border-0 pb-0">
+                      <h6 class="card-title mb-0">
+                        <i class="bi bi-lightbulb-fill me-2" style="color: #fbbf24;"></i>
+                        Kỹ năng & Lĩnh vực
+                      </h6>
+                    </div>
+                    <div class="card-body">
+                      <div class="row g-3">
+                        <div class="col-md-6">
+                          <div class="skill-section">
+                            <div class="section-label mb-2">
+                              <i class="bi bi-tools me-2" style="color: #8b5cf6;"></i>
+                              <strong>Kỹ năng</strong>
+                            </div>
+                            <div class="skills-tags">
+                              <span *ngFor="let skill of getDetailSkills(volunteerDetail)" class="skill-tag">
+                                <i class="bi bi-check-circle-fill me-1"></i>
+                                {{ skill.tenKyNang }}
+                              </span>
+                              <span *ngIf="getDetailSkills(volunteerDetail).length === 0" class="text-muted">
+                                <i class="bi bi-dash-circle me-1"></i>Chưa cập nhật
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                        <div class="col-md-6">
+                          <div class="field-section">
+                            <div class="section-label mb-2">
+                              <i class="bi bi-tags-fill me-2" style="color: #10b981;"></i>
+                              <strong>Lĩnh vực</strong>
+                            </div>
+                            <div class="fields-tags">
+                              <span *ngFor="let field of getDetailFields(volunteerDetail)" class="field-tag">
+                                <i class="bi bi-tag-fill me-1"></i>
+                                {{ field.tenLinhVuc }}
+                              </span>
+                              <span *ngIf="getDetailFields(volunteerDetail).length === 0" class="text-muted">
+                                <i class="bi bi-dash-circle me-1"></i>Chưa cập nhật
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Tab: Đánh giá -->
+            <div *ngIf="activeTab === 'evaluations'" class="tab-content-evaluations">
+              <div *ngIf="isLoadingEvaluations" class="text-center py-5">
+                <div class="spinner-border text-primary mb-3" role="status"></div>
+                <p class="text-muted">Đang tải đánh giá...</p>
+              </div>
+              
+              <div *ngIf="!isLoadingEvaluations && evaluations.length === 0" class="empty-state text-center py-5">
+                <i class="bi bi-star-fill" style="font-size: 4rem; opacity: 0.3; color: #fbbf24;"></i>
+                <h5 class="mt-3 fw-bold text-muted">Chưa có đánh giá nào</h5>
+                <p class="text-muted">Tình nguyện viên này chưa nhận được đánh giá từ tổ chức</p>
+              </div>
+              
+              <div *ngIf="!isLoadingEvaluations && evaluations.length > 0" class="evaluations-list">
+                <div class="evaluation-card card border-0 shadow-sm mb-3" *ngFor="let eval of evaluations">
+                  <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start">
+                      <div class="flex-grow-1">
+                        <div class="evaluation-header mb-2">
+                          <h6 class="mb-1">
+                            <i class="bi bi-building-fill me-2" style="color: #3b82f6;"></i>
+                            {{ eval.tenNguoiDanhGia || eval.tenToChuc || eval.toChuc?.tenToChuc || 'Tổ chức' }}
+                          </h6>
+                          <p class="text-muted small mb-0">
+                            <i class="bi bi-calendar-event-fill me-1" style="color: #10b981;"></i>
+                            {{ eval.tenSuKien || eval.suKien?.tenSuKien || 'Sự kiện' }}
+                          </p>
+                        </div>
+                        <div class="evaluation-rating mb-2">
+                          <span class="rating-badge">
+                            <i class="bi bi-star-fill me-1" style="color: #fbbf24;"></i>
+                            <strong>{{ eval.diemSo || eval.diemDanhGia || 0 }}/5</strong>
+                          </span>
+                        </div>
+                        <p class="evaluation-content mb-2" *ngIf="eval.noiDung">{{ eval.noiDung }}</p>
+                        <small class="text-muted">
+                          <i class="bi bi-clock-fill me-1"></i>
+                          {{ eval.ngayTao | date:'dd/MM/yyyy HH:mm' }}
+                        </small>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Tab: Sự kiện đang tham gia -->
+            <div *ngIf="activeTab === 'active-events'" class="tab-content-events">
+              <div *ngIf="isLoadingEvents" class="text-center py-5">
+                <div class="spinner-border text-primary mb-3" role="status"></div>
+                <p class="text-muted">Đang tải sự kiện...</p>
+              </div>
+              
+              <div *ngIf="!isLoadingEvents && activeEvents.length === 0" class="empty-state text-center py-5">
+                <i class="bi bi-calendar-event-fill" style="font-size: 4rem; opacity: 0.3; color: #10b981;"></i>
+                <h5 class="mt-3 fw-bold text-muted">Chưa có sự kiện đang tham gia</h5>
+                <p class="text-muted">Tình nguyện viên này chưa tham gia sự kiện nào</p>
+              </div>
+              
+              <div *ngIf="!isLoadingEvents && activeEvents.length > 0" class="events-list">
+                <div class="event-card card border-0 shadow-sm mb-3" *ngFor="let reg of activeEvents">
+                  <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start">
+                      <div class="flex-grow-1">
+                        <h6 class="event-title mb-2">
+                          <i class="bi bi-calendar-event-fill me-2" style="color: #10b981;"></i>
+                          {{ reg.event?.tenSuKien || 'Sự kiện' }}
+                        </h6>
+                        <div class="event-details">
+                          <p class="mb-1 text-muted">
+                            <i class="bi bi-calendar-range-fill me-2" style="color: #f59e0b;"></i>
+                            {{ reg.event?.ngayBatDau | date:'dd/MM/yyyy' }} - {{ reg.event?.ngayKetThuc | date:'dd/MM/yyyy' }}
+                          </p>
+                          <p class="mb-0 text-muted" *ngIf="reg.event?.diaChi">
+                            <i class="bi bi-geo-alt-fill me-2" style="color: #ef4444;"></i>
+                            {{ reg.event.diaChi }}
+                          </p>
+                        </div>
+                      </div>
+                      <span class="badge bg-success">
+                        <i class="bi bi-check-circle-fill me-1"></i>Đang tham gia
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Tab: Sự kiện đã tham gia -->
+            <div *ngIf="activeTab === 'finished-events'" class="tab-content-events">
+              <div *ngIf="isLoadingEvents" class="text-center py-5">
+                <div class="spinner-border text-primary mb-3" role="status"></div>
+                <p class="text-muted">Đang tải sự kiện...</p>
+              </div>
+              
+              <div *ngIf="!isLoadingEvents && finishedEvents.length === 0" class="empty-state text-center py-5">
+                <i class="bi bi-calendar-check-fill" style="font-size: 4rem; opacity: 0.3; color: #8b5cf6;"></i>
+                <h5 class="mt-3 fw-bold text-muted">Chưa có sự kiện đã tham gia</h5>
+                <p class="text-muted">Tình nguyện viên này chưa hoàn thành sự kiện nào</p>
+              </div>
+              
+              <div *ngIf="!isLoadingEvents && finishedEvents.length > 0" class="events-list">
+                <div class="event-card card border-0 shadow-sm mb-3" *ngFor="let reg of finishedEvents">
+                  <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start">
+                      <div class="flex-grow-1">
+                        <h6 class="event-title mb-2">
+                          <i class="bi bi-calendar-check-fill me-2" style="color: #8b5cf6;"></i>
+                          {{ reg.event?.tenSuKien || 'Sự kiện' }}
+                        </h6>
+                        <div class="event-details">
+                          <p class="mb-1 text-muted">
+                            <i class="bi bi-calendar-range-fill me-2" style="color: #f59e0b;"></i>
+                            {{ reg.event?.ngayBatDau | date:'dd/MM/yyyy' }} - {{ reg.event?.ngayKetThuc | date:'dd/MM/yyyy' }}
+                          </p>
+                          <p class="mb-0 text-muted" *ngIf="reg.event?.diaChi">
+                            <i class="bi bi-geo-alt-fill me-2" style="color: #ef4444;"></i>
+                            {{ reg.event.diaChi }}
+                          </p>
+                        </div>
+                      </div>
+                      <span class="badge bg-secondary">
+                        <i class="bi bi-check-circle-fill me-1"></i>Đã hoàn thành
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Tab: Giấy chứng nhận -->
+            <div *ngIf="activeTab === 'certificates'" class="tab-content-certificates">
+              <div *ngIf="isLoadingCertificates" class="text-center py-5">
+                <div class="spinner-border text-primary mb-3" role="status"></div>
+                <p class="text-muted">Đang tải chứng nhận...</p>
+              </div>
+              
+              <div *ngIf="!isLoadingCertificates && certificates.length === 0" class="empty-state text-center py-5">
+                <i class="bi bi-award-fill" style="font-size: 4rem; opacity: 0.3; color: #f59e0b;"></i>
+                <h5 class="mt-3 fw-bold text-muted">Chưa có giấy chứng nhận nào</h5>
+                <p class="text-muted">Tình nguyện viên này chưa nhận được chứng nhận nào</p>
+              </div>
+              
+              <div *ngIf="!isLoadingCertificates && certificates.length > 0" class="certificates-list">
+                <div class="certificate-card card border-0 shadow-sm mb-3" *ngFor="let cert of certificates">
+                  <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start">
+                      <div class="flex-grow-1">
+                        <div class="certificate-header mb-2">
+                          <h6 class="mb-1">
+                            <i class="bi bi-award-fill me-2" style="color: #f59e0b;"></i>
+                            {{ cert.tenSuKien || cert.suKien?.tenSuKien || 'Sự kiện' }}
+                          </h6>
+                          <p class="text-muted small mb-0" *ngIf="cert.tenMau">
+                            <i class="bi bi-file-earmark-text-fill me-1" style="color: #3b82f6;"></i>
+                            Mẫu: {{ cert.tenMau }}
+                          </p>
+                        </div>
+                        <div class="certificate-date">
+                          <small class="text-muted">
+                            <i class="bi bi-calendar-check-fill me-1" style="color: #10b981;"></i>
+                            Ngày cấp: {{ cert.ngayCap | date:'dd/MM/yyyy' }}
+                          </small>
+                        </div>
+                      </div>
+                      <a *ngIf="cert.filePath" [href]="getImageUrl(cert.filePath)" target="_blank" class="btn btn-sm btn-primary">
+                        <i class="bi bi-download-fill me-1"></i>Tải xuống
+                      </a>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
         </div>
 
         <!-- Error state -->
-        <div *ngIf="!isLoading && !volunteerDetail" class="text-center py-4">
-          <p class="text-muted">Không thể tải thông tin tình nguyện viên</p>
+        <div *ngIf="!isLoading && !volunteerDetail" class="text-center py-5">
+          <i class="bi bi-exclamation-triangle-fill" style="font-size: 3rem; color: #ef4444; opacity: 0.5;"></i>
+          <p class="text-muted mt-3">Không thể tải thông tin tình nguyện viên</p>
         </div>
       </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+
+      <div class="modal-footer border-0 bg-light">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+          <i class="bi bi-x-lg me-1"></i>Đóng
+        </button>
       </div>
     </div>
   </div>
 </div>
-

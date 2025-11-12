@@ -9,6 +9,8 @@ import { CertificateService } from '../../services/certificate.service';
 import { EvaluationService, CreateEvaluationDto } from '../../services/evaluation.service';
 import { getImageUrl } from '../../utils/image-url.util';
 import { StarRatingComponent } from '../shared/star-rating/star-rating';
+import { ToastService } from '../../services/toast.service';
+import { ConfirmService } from '../../services/confirm.service';
 
 interface Volunteer {
   maTNV: number;
@@ -63,18 +65,20 @@ export class EventDetailComponent implements OnInit {
     private registrationService: RegistrationService,
     private authService: AuthService,
     private certificateService: CertificateService,
-    private evaluationService: EvaluationService
+    private evaluationService: EvaluationService,
+    private toast: ToastService,
+    private confirm: ConfirmService
   ) {}
 
   ngOnInit(): void {
-    const userInfo = localStorage.getItem('user');
-    if (userInfo) {
-      this.user = JSON.parse(userInfo);
+    // Sử dụng authService.getUser() để lấy user từ cả localStorage và sessionStorage
+    this.user = this.authService.getUser();
+    if (this.user) {
       this.role = this.authService.getRole();
       
       // Chặn không cho User (TNV) vào trang này
       if (this.role !== 'Organization' && this.role !== 'Admin') {
-        alert('Bạn không có quyền truy cập trang này!');
+        this.toast.error('Bạn không có quyền truy cập trang này!');
         this.router.navigate(['/home']);
         return;
       }
@@ -157,15 +161,15 @@ export class EventDetailComponent implements OnInit {
       return this.event.trangThaiHienThi;
     }
     
-    if (this.event.trangThai === 'Đã kết thúc') {
-      return 'Đã kết thúc';
+    if (this.event.trangThai === 'Đã kết thúc' || this.event.trangThai === 'Sự kiện đã kết thúc') {
+      return 'Sự kiện đã kết thúc';
     }
     
     const now = new Date();
     const start = this.event.ngayBatDau ? new Date(this.event.ngayBatDau) : null;
     const end = this.event.ngayKetThuc ? new Date(this.event.ngayKetThuc) : null;
     
-    if (end && end < now) return 'Đã kết thúc';
+    if (end && end < now) return 'Sự kiện đã kết thúc';
     if (start && start > now) return 'Sắp diễn ra';
     if (start && start <= now && (!end || end >= now)) return 'Đang diễn ra';
     
@@ -175,6 +179,7 @@ export class EventDetailComponent implements OnInit {
   getEventStatusClass(): string {
     const status = this.getEventStatusText();
     switch (status) {
+      case 'Sự kiện đã kết thúc':
       case 'Đã kết thúc': return 'bg-secondary';
       case 'Đang diễn ra': return 'bg-success';
       case 'Sắp diễn ra': return 'bg-info';
@@ -190,36 +195,36 @@ export class EventDetailComponent implements OnInit {
   }
 
   finishEvent(): void {
-    if (!confirm('Bạn có chắc chắn muốn kết thúc sự kiện này?')) {
-      return;
-    }
+    this.confirm.confirm('Bạn có chắc chắn muốn kết thúc sự kiện này?', { okText: 'Kết thúc' }).then(confirmed => {
+      if (!confirmed) return;
 
-    this.eventService.finishEvent(this.eventId).subscribe({
-      next: () => {
-        alert('Đã kết thúc sự kiện thành công!');
-        this.loadEventDetail();
-      },
-      error: (err: any) => {
-        console.error('Lỗi kết thúc sự kiện:', err);
-        alert(err.error?.message || 'Không thể kết thúc sự kiện');
-      }
+      this.eventService.finishEvent(this.eventId).subscribe({
+        next: () => {
+          this.toast.success('Đã kết thúc sự kiện thành công!');
+          this.loadEventDetail();
+        },
+        error: (err: any) => {
+          console.error('Lỗi kết thúc sự kiện:', err);
+          this.toast.error(err.error?.message || 'Không thể kết thúc sự kiện');
+        }
+      });
     });
   }
 
   deleteEvent(): void {
-    if (!confirm('Bạn có chắc chắn muốn xóa sự kiện này? Hành động này không thể hoàn tác!')) {
-      return;
-    }
+    this.confirm.confirm('Bạn có chắc chắn muốn xóa sự kiện này? Hành động này không thể hoàn tác!', { variant: 'danger', okText: 'Xóa' }).then(confirmed => {
+      if (!confirmed) return;
 
-    this.eventService.deleteSuKien(this.eventId).subscribe({
-      next: () => {
-        alert('Đã xóa sự kiện thành công!');
-        this.router.navigate(['/manage-org']);
-      },
-      error: (err) => {
-        console.error('Lỗi xóa sự kiện:', err);
-        alert(err.error?.message || 'Không thể xóa sự kiện');
-      }
+      this.eventService.deleteSuKien(this.eventId).subscribe({
+        next: () => {
+          this.toast.success('Đã xóa sự kiện thành công!');
+          this.router.navigate(['/manage-org']);
+        },
+        error: (err) => {
+          console.error('Lỗi xóa sự kiện:', err);
+          this.toast.error(err.error?.message || 'Không thể xóa sự kiện');
+        }
+      });
     });
   }
 
@@ -247,8 +252,8 @@ export class EventDetailComponent implements OnInit {
 
     this.evalSubmitting = true;
     
-    console.log('Volunteer info:', this.evaluatingVolunteer);
-    console.log('User info:', this.user);
+    console.log('Thông tin tình nguyện viên:', this.evaluatingVolunteer);
+    console.log('Thông tin người dùng:', this.user);
     
     const evalDto: CreateEvaluationDto = {
       maNguoiDanhGia: this.user.maTaiKhoan,
@@ -258,11 +263,11 @@ export class EventDetailComponent implements OnInit {
       noiDung: this.evalComment
     };
     
-    console.log('Sending evaluation:', evalDto);
+    console.log('Đang gửi đánh giá:', evalDto);
 
     this.evaluationService.createEvaluation(evalDto).subscribe({
       next: () => {
-        alert('Đánh giá thành công!');
+        this.toast.success('Đánh giá thành công!');
         this.evaluatedVolunteerIds.add(this.evaluatingVolunteer!.maTNV);
         this.evalSubmitting = false;
         
@@ -274,7 +279,7 @@ export class EventDetailComponent implements OnInit {
       },
       error: (err) => {
         console.error('Lỗi đánh giá:', err);
-        alert(err.error?.message || 'Không thể gửi đánh giá');
+        this.toast.error(err.error?.message || 'Không thể gửi đánh giá');
         this.evalSubmitting = false;
       }
     });
@@ -303,7 +308,7 @@ export class EventDetailComponent implements OnInit {
 
   issueCertificatesBulk(): void {
     if (!this.selectedCertificateSample || this.selectedVolunteersForCert.size === 0) {
-      alert('Vui lòng chọn mẫu chứng nhận và ít nhất một tình nguyện viên!');
+      this.toast.warning('Vui lòng chọn mẫu chứng nhận và ít nhất một tình nguyện viên!');
       return;
     }
 
@@ -331,7 +336,7 @@ export class EventDetailComponent implements OnInit {
 
     Promise.all(promises).then(() => {
       this.isIssuingCertificates = false;
-      alert(`Hoàn thành! Thành công: ${successCount}/${total}`);
+      this.toast.success(`Hoàn thành! Thành công: ${successCount}/${total}`);
       this.selectedVolunteersForCert.clear();
       
       const modalEl = document.getElementById('certificateModal');
@@ -361,13 +366,13 @@ export class EventDetailComponent implements OnInit {
   canFinishEvent(): boolean {
     if (!this.event) return false;
     const status = this.getEventStatusText();
-    return status !== 'Đã kết thúc' && this.canEditOrDelete();
+    return status !== 'Sự kiện đã kết thúc' && status !== 'Đã kết thúc' && this.canEditOrDelete();
   }
 
   canEvaluateVolunteer(volunteer: Volunteer): boolean {
     if (!this.event) return false;
     const status = this.getEventStatusText();
-    return status === 'Đã kết thúc' && 
+    return (status === 'Sự kiện đã kết thúc' || status === 'Đã kết thúc') && 
            volunteer.trangThai === 1 && 
            !this.evaluatedVolunteerIds.has(volunteer.maTNV);
   }

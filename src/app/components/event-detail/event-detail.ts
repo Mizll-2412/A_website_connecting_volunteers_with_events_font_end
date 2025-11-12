@@ -12,6 +12,9 @@ import { EvaluationService, EvaluationResponseDto } from '../../services/evaluat
 import { environment } from '../../../environments/environment';
 import { getImageUrl, getOrgDefaultImage as getOrgDefaultImageUtil } from '../../utils/image-url.util';
 import { StarRatingComponent } from '../shared/star-rating/star-rating';
+import { ToastService } from '../../services/toast.service';
+import { ConfirmService } from '../../services/confirm.service';
+import { formatDateTime, formatDateOnly } from '../../utils/date-format.util';
 
 declare var bootstrap: any;
 
@@ -94,7 +97,9 @@ export class EventDetailComponent implements OnInit, AfterViewInit {
     private orgService: ToChucService,
     private registrationService: RegistrationService,
     private evaluationService: EvaluationService,
-    private http: HttpClient
+    private http: HttpClient,
+    private toast: ToastService,
+    private confirm: ConfirmService
   ) { }
 
   ngOnInit() {
@@ -103,9 +108,9 @@ export class EventDetailComponent implements OnInit, AfterViewInit {
     if (this.isLoggedIn) {
       this.username = this.auth.getUsername();
       this.role = this.auth.getRole();
-      const userInfo = localStorage.getItem('user');
-      if (userInfo) {
-        this.user = JSON.parse(userInfo);
+      // Sử dụng authService.getUser() để lấy user từ cả localStorage và sessionStorage
+      this.user = this.auth.getUser();
+      if (this.user) {
         this.loadVolunteerInfo();
       }
     }
@@ -357,6 +362,11 @@ export class EventDetailComponent implements OnInit, AfterViewInit {
           const registrationData = response.data || response;
           this.isRegistered = true;
           this.registrationStatus = registrationData.trangThai !== undefined ? registrationData.trangThai : null;
+          
+          // Nếu đã duyệt (status = 1), kiểm tra trạng thái hủy
+          if (this.registrationStatus === 1) {
+            this.checkCancellationStatus();
+          }
         }
       },
       error: (err: HttpErrorResponse) => {
@@ -370,26 +380,32 @@ export class EventDetailComponent implements OnInit, AfterViewInit {
   registerForEvent() {
     // Kiểm tra nếu là tổ chức thì không cho đăng ký
     if (this.role === 'Organization') {
-      alert('Tổ chức không thể đăng ký tham gia sự kiện');
+      this.toast.warning('Tổ chức không thể đăng ký tham gia sự kiện');
       return;
     }
     
     if (!this.volunteer?.maTNV || !this.eventId) {
       // Kiểm tra nếu đã đăng nhập nhưng chưa có hồ sơ tình nguyện viên
       if (this.isLoggedIn && this.role === 'User' && this.user?.maTaiKhoan && !this.volunteer) {
-        alert('Bạn cần hoàn thiện hồ sơ tình nguyện viên trước khi đăng ký sự kiện');
+        this.toast.warning('Bạn cần hoàn thiện hồ sơ tình nguyện viên trước khi đăng ký sự kiện');
         this.router.navigate(['/profile']);
         return;
       }
       
-      alert('Bạn cần đăng nhập và hoàn thiện hồ sơ tình nguyện viên trước khi đăng ký');
+      this.toast.warning('Bạn cần đăng nhập và hoàn thiện hồ sơ tình nguyện viên trước khi đăng ký');
+      return;
+    }
+
+    // Kiểm tra sự kiện đã kết thúc chưa
+    if (this.isEventEnded()) {
+      this.toast.error('Không thể đăng ký vì sự kiện đã kết thúc');
       return;
     }
 
     // Kiểm tra số lượng slot còn lại
     const remainingSlots = this.getRemainingSlots();
     if (remainingSlots <= 0) {
-      alert('Sự kiện đã đủ số lượng tình nguyện viên. Không thể đăng ký thêm.');
+      this.toast.error('Sự kiện đã đủ số lượng tình nguyện viên. Không thể đăng ký thêm.');
       return;
     }
 
@@ -409,7 +425,7 @@ export class EventDetailComponent implements OnInit, AfterViewInit {
         this.isRegistered = true;
         this.registrationStatus = 0; // Chờ duyệt
         this.isRegistering = false;
-        alert('Đăng ký tham gia sự kiện thành công!');
+        this.toast.success('Đăng ký tham gia sự kiện thành công!');
         // Reload event details để cập nhật số lượng từ backend
         if (this.eventId) {
           this.loadEventDetails(this.eventId);
@@ -419,15 +435,13 @@ export class EventDetailComponent implements OnInit, AfterViewInit {
         console.error('Lỗi khi đăng ký sự kiện:', err);
         this.isRegistering = false;
         
-        let errorMessage = 'Không thể đăng ký tham gia. Vui lòng thử lại sau.';
-        
-        // Cố gắng lấy thông báo lỗi cụ thể từ API nếu có
-        if (err.error && err.error.message) {
-          errorMessage = err.error.message;
-        }
+        // Sử dụng normalizedMessage từ error interceptor (đã được chuẩn hóa)
+        const errorMessage = (err as any).normalizedMessage || 
+          (err.error && err.error.message) || 
+          'Không thể đăng ký tham gia. Vui lòng thử lại sau.';
         
         this.registrationError = errorMessage;
-        alert(errorMessage);
+        this.toast.error(errorMessage);
       }
     });
   }
@@ -435,23 +449,42 @@ export class EventDetailComponent implements OnInit, AfterViewInit {
   cancelRegistration() {
     if (!this.volunteer?.maTNV || !this.eventId) return;
 
-    if (!confirm('Bạn có chắc chắn muốn hủy đăng ký tham gia sự kiện này?')) return;
+    // Kiểm tra sự kiện đã kết thúc chưa
+    const eventStatus = this.getEventStatusText();
+    if (eventStatus === 'Đã kết thúc' || eventStatus === 'Sự kiện đã kết thúc') {
+      this.toast.error('Không thể hủy đăng ký vì sự kiện đã kết thúc');
+      return;
+    }
 
-    this.registrationService.cancelRegistration(this.volunteer.maTNV, this.eventId).subscribe({
-      next: (response: any) => {
-        console.log('Hủy đăng ký thành công:', response);
-        this.isRegistered = false;
-        this.registrationStatus = null;
-        alert('Hủy đăng ký tham gia sự kiện thành công!');
-        // Reload event details để cập nhật số lượng từ backend
-        if (this.eventId) {
-          this.loadEventDetails(this.eventId);
-        }
-      },
-      error: (err: HttpErrorResponse) => {
-        console.error('Lỗi khi hủy đăng ký:', err);
-        alert('Không thể hủy đăng ký. Vui lòng thử lại sau.');
+    // Kiểm tra ngày kết thúc
+    if (this.event?.ngayKetThuc) {
+      const now = new Date();
+      const endDate = new Date(this.event.ngayKetThuc);
+      if (endDate < now) {
+        this.toast.error('Không thể hủy đăng ký vì sự kiện đã kết thúc');
+        return;
       }
+    }
+
+    this.confirm.confirm('Bạn có chắc chắn muốn hủy đăng ký tham gia sự kiện này?', { variant: 'danger', okText: 'Hủy đăng ký' }).then(confirmed => {
+      if (!confirmed) return;
+
+      this.registrationService.cancelRegistration(this.volunteer!.maTNV, this.eventId!).subscribe({
+        next: (response: any) => {
+          console.log('Hủy đăng ký thành công:', response);
+          this.isRegistered = false;
+          this.registrationStatus = null;
+          this.toast.success('Hủy đăng ký tham gia sự kiện thành công!');
+          // Reload event details để cập nhật số lượng từ backend
+          if (this.eventId) {
+            this.loadEventDetails(this.eventId);
+          }
+        },
+        error: (err: HttpErrorResponse) => {
+          console.error('Lỗi khi hủy đăng ký:', err);
+          this.toast.error('Không thể hủy đăng ký. Vui lòng thử lại sau.');
+        }
+      });
     });
   }
 
@@ -462,11 +495,44 @@ export class EventDetailComponent implements OnInit, AfterViewInit {
     return now >= eventStart;
   }
 
+  getEventStatusText(): string {
+    if (!this.event) return '';
+    
+    if (this.event.trangThaiHienThi) {
+      return this.event.trangThaiHienThi;
+    }
+    
+    if (this.event.trangThai === 'Đã kết thúc' || this.event.trangThai === 'Sự kiện đã kết thúc') {
+      return 'Sự kiện đã kết thúc';
+    }
+    
+    const now = new Date();
+    const start = this.event.ngayBatDau ? new Date(this.event.ngayBatDau) : null;
+    const end = this.event.ngayKetThuc ? new Date(this.event.ngayKetThuc) : null;
+    
+    if (end && end < now) return 'Sự kiện đã kết thúc';
+    if (start && start > now) return 'Sắp diễn ra';
+    if (start && start <= now && (!end || end >= now)) return 'Đang diễn ra';
+    
+    return 'Đang tuyển';
+  }
+
   isEventEnded(): boolean {
     if (!this.event?.ngayKetThuc) return false;
     const now = new Date();
     const eventEnd = new Date(this.event.ngayKetThuc);
     return now > eventEnd;
+  }
+
+  canCancelRegistration(): boolean {
+    // Không thể hủy nếu sự kiện đã kết thúc
+    if (this.isEventEnded()) {
+      return false;
+    }
+    
+    // Không thể hủy nếu hết thời gian tuyển (tuy nhiên vẫn có thể hủy nếu đã đăng ký trước đó)
+    // Chỉ kiểm tra sự kiện đã kết thúc
+    return true;
   }
 
   goBack(): void {
@@ -573,9 +639,8 @@ export class EventDetailComponent implements OnInit, AfterViewInit {
   }
 
   formatDate(dateStr?: any): string {
-    if (!dateStr) return '';
-    const date = new Date(dateStr);
-    return date.toLocaleDateString('vi-VN');
+    // Sử dụng utility function thống nhất
+    return formatDateTime(dateStr);
   }
 
   getSimilarEventsExplanation(): string {
@@ -627,5 +692,54 @@ export class EventDetailComponent implements OnInit, AfterViewInit {
     const registered = this.getRegisteredSlots();
     const remaining = required - registered;
     return remaining > 0 ? remaining : 0;
+  }
+
+  // Phương thức tính phần trăm tuyển dụng
+  getRecruitmentPercentage(): number {
+    if (!this.event || !this.event.soLuong || this.event.soLuong === 0) return 0;
+    const percentage = ((this.event.soLuongDaDangKy || 0) / this.event.soLuong) * 100;
+    return Math.min(percentage, 100); // Max 100%
+  }
+
+  getApprovedPercentage(): number {
+    if (!this.event?.soLuong || this.event.soLuong === 0) return 0;
+    return Math.min(((this.event.soLuongDaDuyet || 0) / this.event.soLuong) * 100, 100);
+  }
+
+  getPendingPercentage(): number {
+    if (!this.event?.soLuong || this.event.soLuong === 0) return 0;
+    const approved = this.getApprovedPercentage();
+    const pending = ((this.event.soLuongChoDuyet || 0) / this.event.soLuong) * 100;
+    return Math.min(pending, 100 - approved);
+  }
+
+  cancellationInfo: any = null;
+
+  checkCancellationStatus(): void {
+    if (!this.volunteer || !this.eventId || this.registrationStatus !== 1) return;
+    
+    this.registrationService.canCancelRegistration(this.volunteer.maTNV, this.eventId).subscribe({
+      next: (res) => {
+        this.cancellationInfo = res;
+      },
+      error: () => {
+        this.cancellationInfo = { canCancel: false, reason: 'Không thể kiểm tra', hoursRemaining: 0 };
+      }
+    });
+  }
+
+  formatHoursToCountdown(hours: number): string {
+    if (hours <= 0) return 'Đã hết hạn';
+    
+    const days = Math.floor(hours / 24);
+    const remainingHours = Math.floor(hours % 24);
+    const minutes = Math.floor((hours * 60) % 60);
+    
+    let result = '';
+    if (days > 0) result += `${days} ngày `;
+    if (remainingHours > 0) result += `${remainingHours} giờ `;
+    if (minutes > 0 && days === 0) result += `${minutes} phút`;
+    
+    return result.trim() || '< 1 phút';
   }
 }

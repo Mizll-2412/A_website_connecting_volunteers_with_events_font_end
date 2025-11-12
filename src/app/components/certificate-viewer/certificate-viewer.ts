@@ -4,6 +4,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { CertificateService } from '../../services/certificate.service';
 import { environment } from '../../../environments/environment';
 import { jsPDF } from 'jspdf';
+import { ToastService } from '../../services/toast.service';
 
 interface TemplateField {
   key: string;
@@ -38,7 +39,8 @@ export class CertificateViewerComponent implements OnInit, AfterViewInit {
   constructor(
     private certificateService: CertificateService,
     private route: ActivatedRoute,
-    private router: Router
+    private router: Router,
+    private toast: ToastService
   ) {}
 
   ngOnInit(): void {
@@ -99,7 +101,10 @@ export class CertificateViewerComponent implements OnInit, AfterViewInit {
       },
       error: (err: any) => {
         console.error('Lỗi tải chứng nhận:', err);
-        this.errorMessage = err.error?.message || err.message || 'Không thể tải chứng nhận';
+        // Sử dụng normalizedMessage từ error interceptor (đã được chuẩn hóa)
+        this.errorMessage = err.normalizedMessage || 
+          err.error?.message || 
+          'Không thể tải chứng nhận';
         this.isLoading = false;
       }
     });
@@ -186,14 +191,14 @@ export class CertificateViewerComponent implements OnInit, AfterViewInit {
 
   downloadImage(): void {
     if (!this.canvas) {
-      alert('Canvas chưa được khởi tạo');
+      this.toast.error('Canvas chưa được khởi tạo');
       return;
     }
 
     // Export canvas thành PNG
     this.canvas.nativeElement.toBlob((blob: Blob | null) => {
       if (!blob) {
-        alert('Không thể tạo file ảnh');
+        this.toast.error('Không thể tạo file ảnh');
         return;
       }
 
@@ -213,7 +218,7 @@ export class CertificateViewerComponent implements OnInit, AfterViewInit {
 
   downloadPDF(): void {
     if (!this.canvas) {
-      alert('Canvas chưa được khởi tạo');
+      this.toast.error('Canvas chưa được khởi tạo');
       return;
     }
 
@@ -240,7 +245,8 @@ export class CertificateViewerComponent implements OnInit, AfterViewInit {
       pdf.save(`ChungNhan_${this.certificateId}.pdf`);
     } catch (error) {
       console.error('Lỗi tạo PDF:', error);
-      alert('Không thể tạo PDF: ' + (error instanceof Error ? error.message : 'Đã xảy ra lỗi'));
+      // Lỗi local (không phải HTTP), chỉ hiển thị message tiếng Việt
+      this.toast.error('Không thể tạo PDF. Vui lòng thử lại sau.');
     }
   }
 
@@ -254,7 +260,7 @@ export class CertificateViewerComponent implements OnInit, AfterViewInit {
     } else {
       // Fallback: Copy link to clipboard
       navigator.clipboard.writeText(window.location.href).then(() => {
-        alert('Đã copy link vào clipboard');
+        this.toast.info('Đã copy link vào clipboard');
       });
     }
   }

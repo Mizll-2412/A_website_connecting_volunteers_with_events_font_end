@@ -192,11 +192,8 @@ export class Home implements OnInit, OnDestroy {
     if (this.isLoggedIn) {
       this.username = this.auth.getUsername();
       this.role = this.auth.getRole();
-    }
-
-    const userInfo = localStorage.getItem('user');
-    if (userInfo) {
-      this.user = JSON.parse(userInfo);
+      // Sử dụng authService.getUser() để lấy user từ cả localStorage và sessionStorage
+      this.user = this.auth.getUser();
     }
 
     this.loadSuKien();
@@ -385,7 +382,8 @@ export class Home implements OnInit, OnDestroy {
   }
 
   logout(): void {
-    localStorage.removeItem('user');
+    // Sử dụng authService.logout() để xóa cả localStorage và sessionStorage
+    this.auth.logout();
     this.router.navigate(['/login']);
   }
 

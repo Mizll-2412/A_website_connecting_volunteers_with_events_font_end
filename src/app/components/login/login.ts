@@ -24,6 +24,7 @@ export class LoginComponent {
     password: ''
   };
 
+  rememberMe: boolean = false;
   errorMessage: string = '';
   successMessage: string = '';
   isLoading: boolean = false;
@@ -71,8 +72,15 @@ export class LoginComponent {
         if (response.success) {
           this.successMessage = response.message;
 
-          this.authService.saveToken(response.token!);
-          this.authService.saveUser(response.userInfo);
+          this.authService.saveToken(response.token!, this.rememberMe);
+          this.authService.saveUser(response.userInfo, this.rememberMe);
+          
+          // Lưu rememberMe flag
+          if (this.rememberMe) {
+            localStorage.setItem('rememberMe', 'true');
+          } else {
+            localStorage.removeItem('rememberMe');
+          }
 
           // Đợi animation chạy hết trước khi chuyển trang (nếu có)
           if (showAnimation) {

@@ -56,7 +56,7 @@
 
       <div class="form-options">
         <label class="checkbox-label">
-          <input type="checkbox" />
+          <input type="checkbox" [(ngModel)]="rememberMe" name="rememberMe" [disabled]="isLoading" />
           <span>Ghi nhớ đăng nhập</span>
         </label>
         <a routerLink="/forgot-password" class="forgot-password">Quên mật khẩu?</a>

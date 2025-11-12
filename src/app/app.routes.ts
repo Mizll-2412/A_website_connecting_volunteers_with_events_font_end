@@ -40,12 +40,14 @@ import { OrganizationDetailComponent } from './components/organization-detail/or
 import { OrganizationEventDetailComponent } from './components/organization-event-detail/organization-event-detail';
 import { CertificateTemplateEditorComponent } from './components/certificate-template-editor/certificate-template-editor';
 import { CertificateViewerComponent } from './components/certificate-viewer/certificate-viewer';
+import { ConfirmChangeEmailComponent } from './components/confirm-change-email/confirm-change-email';
 
 export const routes: Routes = [
   { path: 'login', component: LoginComponent },
   { path: 'register', component: RegisterComponent },
   { path: 'forgot-password', component: ForgotPassword },
   { path: 'reset-password', component: ResetPassword },
+  { path: 'confirm-change-email', component: ConfirmChangeEmailComponent },
   {
     path: '',
     component: Layout,

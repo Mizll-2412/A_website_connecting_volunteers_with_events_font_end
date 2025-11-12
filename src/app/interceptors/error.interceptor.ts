@@ -27,6 +27,37 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
         }
       }
 
+      // Nếu không có message từ API, sử dụng message tiếng Việt dựa trên HTTP status code
+      if (message === 'Lỗi kết nối đến server' || !message || message.trim() === '') {
+        switch (error.status) {
+          case 400:
+            message = 'Yêu cầu không hợp lệ. Vui lòng kiểm tra lại thông tin.';
+            break;
+          case 401:
+            message = 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.';
+            break;
+          case 403:
+            message = 'Bạn không có quyền thực hiện thao tác này.';
+            break;
+          case 404:
+            message = 'Không tìm thấy tài nguyên yêu cầu.';
+            break;
+          case 500:
+            message = 'Lỗi máy chủ. Vui lòng thử lại sau.';
+            break;
+          case 0:
+            message = 'Không thể kết nối đến server. Vui lòng kiểm tra kết nối mạng.';
+            break;
+          default:
+            if (error.status >= 500) {
+              message = 'Lỗi máy chủ. Vui lòng thử lại sau.';
+            } else if (error.status >= 400) {
+              message = 'Yêu cầu không hợp lệ. Vui lòng thử lại.';
+            }
+            break;
+        }
+      }
+
       return throwError(() => ({ ...error, normalizedMessage: message }));
     })
   );

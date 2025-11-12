@@ -13,6 +13,7 @@ import { ToChucService } from '../../services/organization';
 import { VolunteerProfileViewerComponent } from '../volunteer-profile-viewer/volunteer-profile-viewer';
 import { environment } from '../../../environments/environment';
 import { getImageUrl as getImageUrlUtil } from '../../utils/image-url.util';
+import { ToastService } from '../../services/toast.service';
 
 interface Volunteer {
   maTNV: number;
@@ -78,7 +79,8 @@ export class FeaturedProfilesComponent implements OnInit {
     private notificationService: NotificationService,
     private toChucService: ToChucService,
     private route: ActivatedRoute,
-    private router: Router
+    private router: Router,
+    private toast: ToastService
   ) { }
 
   ngOnInit(): void {
@@ -133,15 +135,15 @@ export class FeaturedProfilesComponent implements OnInit {
       return;
     }
     
-    console.log('Loading organization info for account ID:', user.maTaiKhoan);
+    console.log('Đang tải thông tin tổ chức cho ID tài khoản:', user.maTaiKhoan);
     this.toChucService.getOrganizationByAccountId(user.maTaiKhoan).subscribe({
       next: (response: any) => {
         this.organization = response?.data || response;
-        console.log('Organization info loaded:', this.organization);
+        console.log('Đã tải thông tin tổ chức:', this.organization);
         console.log('maToChuc:', this.organization?.maToChuc);
       },
       error: (err) => {
-        console.error('Error loading organization info:', err);
+        console.error('Lỗi khi tải thông tin tổ chức:', err);
         this.organization = null;
       }
     });
@@ -167,11 +169,11 @@ export class FeaturedProfilesComponent implements OnInit {
       this.toChucService.getOrganizationByAccountId(user.maTaiKhoan).subscribe({
         next: (response: any) => {
           this.organization = response?.data || response;
-          console.log('Organization info loaded in loadOrgEvents:', this.organization);
+          console.log('Đã tải thông tin tổ chức trong loadOrgEvents:', this.organization);
           
           // Phải dùng maToChuc từ organization object, KHÔNG dùng maTaiKhoan
           if (this.organization?.maToChuc) {
-            console.log('Loading events with maToChuc:', this.organization.maToChuc);
+            console.log('Đang tải sự kiện với maToChuc:', this.organization.maToChuc);
             this.loadEventsByOrgId(this.organization.maToChuc);
           } else {
             console.warn('Không tìm thấy maToChuc từ organization response:', this.organization);
@@ -179,7 +181,7 @@ export class FeaturedProfilesComponent implements OnInit {
           }
         },
         error: (err) => {
-          console.error('Error loading organization info:', err);
+          console.error('Lỗi khi tải thông tin tổ chức:', err);
           this.orgEvents = [];
         }
       });
@@ -194,36 +196,36 @@ export class FeaturedProfilesComponent implements OnInit {
   private loadEventsByOrgId(orgId: number): void {
     // Đảm bảo orgId là maToChuc, không phải maTaiKhoan
     if (!orgId || orgId <= 0) {
-      console.error('Invalid organization ID:', orgId);
+      console.error('ID tổ chức không hợp lệ:', orgId);
       this.orgEvents = [];
       return;
     }
     
-    console.log('=== Loading events ===');
-    console.log('Organization ID (maToChuc):', orgId);
-    console.log('Current organization object:', this.organization);
-    console.log('Expected maToChuc:', this.organization?.maToChuc);
+    console.log('=== Đang tải sự kiện ===');
+    console.log('ID tổ chức (maToChuc):', orgId);
+    console.log('Đối tượng tổ chức hiện tại:', this.organization);
+    console.log('maToChuc mong đợi:', this.organization?.maToChuc);
     
     // Double check: đảm bảo orgId khớp với maToChuc từ organization object
     if (this.organization && this.organization.maToChuc && orgId !== this.organization.maToChuc) {
-      console.warn('WARNING: orgId does not match organization.maToChuc!', {
+      console.warn('CẢNH BÁO: orgId không khớp với organization.maToChuc!', {
         orgId,
         organizationMaToChuc: this.organization.maToChuc
       });
       // Sửa lại để dùng maToChuc từ organization object
       orgId = this.organization.maToChuc;
-      console.log('Using corrected maToChuc:', orgId);
+      console.log('Sử dụng maToChuc đã sửa:', orgId);
     }
     
     this.eventService.getEventsByOrganizationId(orgId).subscribe({
       next: (resp: any) => {
-        console.log('Events response:', resp);
+        console.log('Phản hồi sự kiện:', resp);
         this.orgEvents = resp?.data || resp || [];
-        console.log('Loaded events:', this.orgEvents.length);
+        console.log('Đã tải sự kiện:', this.orgEvents.length);
       },
       error: (err) => { 
-        console.error('Error loading organization events:', err);
-        console.error('Failed with organization ID:', orgId);
+        console.error('Lỗi khi tải sự kiện của tổ chức:', err);
+        console.error('Lỗi với ID tổ chức:', orgId);
         this.orgEvents = []; 
       }
     });
@@ -242,9 +244,9 @@ export class FeaturedProfilesComponent implements OnInit {
         const body = await r.json().catch(() => ({}));
         throw new Error(body?.message || 'Không thể gửi lời mời');
       }
-      alert('Đã gửi lời mời tới tình nguyện viên.');
+      this.toast.success('Đã gửi lời mời tới tình nguyện viên.');
     }).catch((e) => {
-      alert(e.message || 'Không thể gửi lời mời');
+      this.toast.error(e.message || 'Không thể gửi lời mời');
     });
   }
 
@@ -477,14 +479,14 @@ export class FeaturedProfilesComponent implements OnInit {
 
   inviteToEvent(volunteerId: number): void {
     if (!this.selectedEventId) {
-      alert('Vui lòng chọn sự kiện muốn mời');
+      this.toast.warning('Vui lòng chọn sự kiện muốn mời');
       return;
     }
 
     // Gửi thông báo mời tham gia sự kiện
     this.notificationService.inviteVolunteerToEvent(volunteerId, this.selectedEventId).subscribe({
       next: (response) => {
-        alert('Đã gửi lời mời tham gia sự kiện thành công!');
+        this.toast.success('Đã gửi lời mời tham gia sự kiện thành công!');
         
         // Đóng modal
         const modalEl = document.getElementById('inviteModal');
@@ -496,7 +498,7 @@ export class FeaturedProfilesComponent implements OnInit {
       error: (err) => {
         console.error('Lỗi gửi lời mời:', err);
         const errorMsg = err.normalizedMessage || 'Không thể gửi lời mời. Vui lòng thử lại';
-        alert(errorMsg);
+        this.toast.error(errorMsg);
       }
     });
   }
@@ -516,41 +518,41 @@ export class FeaturedProfilesComponent implements OnInit {
       if (!this.organization?.maToChuc) {
         // Nếu chưa có organization info, load trước
         if (user.maTaiKhoan) {
-          console.log('Loading organization info for account:', user.maTaiKhoan);
+          console.log('Đang tải thông tin tổ chức cho tài khoản:', user.maTaiKhoan);
           this.toChucService.getOrganizationByAccountId(user.maTaiKhoan).subscribe({
             next: (response: any) => {
               this.organization = response?.data || response;
-              console.log('=== Organization loaded in openInviteModal ===');
-              console.log('Full organization object:', this.organization);
+              console.log('=== Đã tải tổ chức trong openInviteModal ===');
+              console.log('Đối tượng tổ chức đầy đủ:', this.organization);
               console.log('maToChuc:', this.organization?.maToChuc);
               console.log('maTaiKhoan:', this.organization?.maTaiKhoan);
               
               // Đảm bảo dùng maToChuc, KHÔNG dùng maTaiKhoan
               const maToChuc = this.organization?.maToChuc;
               if (maToChuc) {
-                console.log('Loading events with maToChuc:', maToChuc);
+                console.log('Đang tải sự kiện với maToChuc:', maToChuc);
                 this.loadEventsByOrgId(maToChuc);
               } else {
-                console.error('ERROR: maToChuc not found in organization object!');
+                console.error('LỖI: Không tìm thấy maToChuc trong đối tượng tổ chức!');
               }
             },
             error: (err) => {
-              console.error('Error loading organization in openInviteModal:', err);
+              console.error('Lỗi khi tải thông tin tổ chức trong openInviteModal:', err);
             }
           });
         } else {
-          console.error('ERROR: user.maTaiKhoan not found!');
+          console.error('LỖI: Không tìm thấy user.maTaiKhoan!');
         }
       } else {
         // Nếu đã có organization info, load events trực tiếp với maToChuc
         const maToChuc = this.organization.maToChuc;
-        console.log('=== Using existing organization ===');
+        console.log('=== Sử dụng tổ chức hiện có ===');
         console.log('maToChuc:', maToChuc);
-        console.log('maTaiKhoan (should NOT use):', this.organization.maTaiKhoan);
+        console.log('maTaiKhoan (không nên sử dụng):', this.organization.maTaiKhoan);
         this.loadEventsByOrgId(maToChuc);
       }
     } else {
-      console.warn('User is not an Organization or user not found');
+      console.warn('Người dùng không phải là Tổ chức hoặc không tìm thấy người dùng');
     }
     
     const modalEl = document.getElementById('inviteModal');

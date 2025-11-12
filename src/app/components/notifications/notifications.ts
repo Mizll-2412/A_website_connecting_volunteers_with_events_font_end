@@ -6,6 +6,8 @@ import { NotificationService } from '../../services/notification.service';
 import { Subscription } from 'rxjs';
 import { formatDistanceToNow } from 'date-fns';
 import { vi } from 'date-fns/locale';
+import { ToastService } from '../../services/toast.service';
+import { ConfirmService } from '../../services/confirm.service';
 
 @Component({
   selector: 'app-notifications',
@@ -26,7 +28,9 @@ export class Notifications implements OnInit, OnDestroy {
   
   constructor(
     private notificationService: NotificationService,
-    private router: Router
+    private router: Router,
+    private toast: ToastService,
+    private confirm: ConfirmService
   ) {}
   
   ngOnInit(): void {
@@ -125,12 +129,15 @@ export class Notifications implements OnInit, OnDestroy {
         this.applyFilter();
         
         // Hiển thị thông báo lỗi cho người dùng
-        if (err.error?.message) {
-          alert('Lỗi: ' + err.error.message);
+        // Sử dụng normalizedMessage từ error interceptor (đã được chuẩn hóa)
+        if ((err as any).normalizedMessage) {
+          this.toast.error((err as any).normalizedMessage);
+        } else if (err.error?.message) {
+          this.toast.error(err.error.message);
         } else if (err.status === 401) {
-          alert('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.');
+          this.toast.warning('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.');
         } else {
-          alert('Không thể đánh dấu thông báo đã đọc. Vui lòng thử lại.');
+          this.toast.error('Không thể đánh dấu thông báo đã đọc. Vui lòng thử lại.');
         }
       }
     });
@@ -141,7 +148,8 @@ export class Notifications implements OnInit, OnDestroy {
   }
   
   deleteNotification(notification: Notification): void {
-    if (confirm('Bạn có chắc chắn muốn xóa thông báo này không?')) {
+    this.confirm.confirm('Bạn có chắc chắn muốn xóa thông báo này không?', { variant: 'danger', okText: 'Xóa' }).then(confirmed => {
+      if (!confirmed) return;
       this.notificationService.deleteNotification(notification.maThongBao).subscribe({
         next: () => {
           // Xóa khỏi danh sách cục bộ
@@ -160,17 +168,18 @@ export class Notifications implements OnInit, OnDestroy {
           console.error('Lỗi xóa thông báo:', err);
         }
       });
-    }
+    });
   }
 
   deleteAllNotifications(): void {
-    if (confirm('Bạn có chắc chắn muốn xóa TẤT CẢ thông báo không? Hành động này không thể hoàn tác!')) {
+    this.confirm.confirm('Bạn có chắc chắn muốn xóa TẤT CẢ thông báo không? Hành động này không thể hoàn tác!', { variant: 'danger', okText: 'Xóa tất cả' }).then(confirmed => {
+      if (!confirmed) return;
       this.notificationService.deleteAllNotifications();
       // Clear local data
       this.notifications = [];
       this.filteredNotifications = [];
       this.unreadCount = 0;
-    }
+    });
   }
   
   getNotificationCategoryText(notification: Notification): string {

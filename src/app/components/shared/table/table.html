@@ -1,0 +1,82 @@
+<div class="app-table-wrapper">
+  <div class="table-container" [class.loading]="loading">
+    <table 
+      class="app-table" 
+      [class.bordered]="bordered"
+      [class.striped]="striped"
+      [class.hoverable]="hoverable"
+      [class.size-small]="size === 'small'"
+      [class.size-large]="size === 'large'"
+    >
+      <thead>
+        <tr>
+          <th 
+            *ngFor="let column of columns; let i = index" 
+            [style.width]="getColumnWidth(i)"
+            [style.text-align]="column.align || 'left'"
+            [class.sortable]="column.sortable"
+            [class.resizable]="isColumnResizable(i)"
+            [class.resizing]="resizingColumnIndex === i"
+            (click)="onSort(column)"
+            #thElement
+          >
+            <div class="th-content">
+              <span>{{ column.title }}</span>
+              <i 
+                *ngIf="column.sortable" 
+                class="bi"
+                [ngClass]="getSortIcon(column)"
+                [class.active]="sortKey === column.key && sortDirection"
+              ></i>
+            </div>
+            <div 
+              *ngIf="isColumnResizable(i)"
+              class="resize-handle"
+              (mousedown)="onResizeStart($event, i, thElement)"
+              title="Kéo để thay đổi độ rộng cột"
+            ></div>
+          </th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr 
+          *ngFor="let row of data; trackBy: trackByIndex"
+          (click)="onRowClick(row)"
+          [class.clickable]="rowClick.observed"
+        >
+          <td 
+            *ngFor="let column of columns"
+            [style.text-align]="column.align || 'left'"
+          >
+            <ng-container *ngIf="column.template; else defaultCell">
+              <ng-container *ngTemplateOutlet="column.template; context: { $implicit: row, column: column }"></ng-container>
+            </ng-container>
+            <ng-template #defaultCell>
+              {{ getCellValue(row, column) }}
+            </ng-template>
+          </td>
+        </tr>
+        <tr *ngIf="data.length === 0 && !loading">
+          <td [attr.colspan]="columns.length" class="empty-cell">
+            <div class="empty-content">
+              <div class="empty-icon">
+                <svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M8 16h48v32H8V16z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+                  <path d="M8 16l24 16 24-16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+                </svg>
+              </div>
+              <p class="empty-text">{{ emptyText }}</p>
+            </div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+    
+    <div *ngIf="loading" class="loading-overlay">
+      <div class="spinner-border text-primary" role="status">
+        <span class="visually-hidden">Đang tải...</span>
+      </div>
+    </div>
+  </div>
+</div>
+

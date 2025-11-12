@@ -5,8 +5,18 @@
       class="card-img-top event-image" 
       [alt]="event.tenSuKien"
       onerror="this.src='assets/event-default.jpg'">
-    <span class="event-status-badge position-absolute top-0 end-0 m-2" [ngClass]="getEventStatusClass(event)">
-      {{ getEventStatus(event) }}
+    <!-- 2 Badges trạng thái mới -->
+    <div class="position-absolute top-0 end-0 m-2 d-flex flex-column gap-1" *ngIf="event.trangThaiSuKien !== 'Đã kết thúc'">
+      <span class="status-badge-small" [ngClass]="'badge-' + (event.trangThaiTuyenMau || 'secondary')">
+        {{ event.trangThaiTuyen || 'Đang tuyển' }}
+      </span>
+      <span class="status-badge-small" [ngClass]="'badge-' + (event.trangThaiSuKienMau || 'info')">
+        {{ event.trangThaiSuKien || 'Sắp diễn ra' }}
+      </span>
+    </div>
+    <!-- Badge khi sự kiện đã kết thúc -->
+    <span class="status-badge-small badge-secondary position-absolute top-0 end-0 m-2" *ngIf="event.trangThaiSuKien === 'Đã kết thúc'">
+      Đã kết thúc
     </span>
   </div>
   <div class="card-body">
@@ -64,6 +74,27 @@
     </div>
   </div>
   <div class="card-footer bg-transparent">
+    <!-- Progress bar cho tuyển dụng với thống kê chi tiết -->
+    <div class="recruitment-mini mb-2" *ngIf="event.soLuong">
+      <div class="recruitment-stats mb-1">
+        <span class="stat-item approved">
+          <i class="bi bi-check-circle-fill"></i> 
+          {{event.soLuongDaDuyet || 0}}/{{event.soLuong || 0}}
+        </span>
+        <span class="stat-item pending">
+          <i class="bi bi-clock-fill"></i> 
+          {{event.soLuongChoDuyet || 0}}
+        </span>
+      </div>
+      <div class="progress-stacked" style="height: 6px;">
+        <div class="progress-bar bg-success" 
+             [style.width.%]="getApprovedPercentage()"
+             [title]="'Đã duyệt: ' + (event.soLuongDaDuyet || 0)"></div>
+        <div class="progress-bar bg-warning" 
+             [style.width.%]="getPendingPercentage()"
+             [title]="'Chờ duyệt: ' + (event.soLuongChoDuyet || 0)"></div>
+      </div>
+    </div>
     <a [routerLink]="['/su-kien', event.maSuKien]" class="btn btn-sm btn-outline-primary w-100" (click)="$event.stopPropagation()">
       <i class="bi bi-eye me-2"></i>Xem chi tiết
     </a>

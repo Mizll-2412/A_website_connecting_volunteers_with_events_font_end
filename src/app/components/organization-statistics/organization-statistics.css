@@ -263,6 +263,32 @@
   }
 }
 
+/* Ant Design Date Picker Styles */
+:host ::ng-deep .ant-picker {
+  width: 100% !important;
+  height: 42px !important;
+}
+
+:host ::ng-deep .ant-picker-input {
+  height: 36px !important;
+}
+
+:host ::ng-deep .ant-picker-range {
+  width: 100% !important;
+}
+
+:host ::ng-deep .ant-picker-dropdown {
+  z-index: 1050 !important;
+}
+
+:host ::ng-deep .ant-picker-panel-container {
+  z-index: 1050 !important;
+}
+
+:host ::ng-deep .ant-picker-panel {
+  z-index: 1050 !important;
+}
+
 @media (max-width: 767.98px) {
   .page-container {
     padding: 0 1rem;

@@ -13,6 +13,10 @@ import { FieldService } from '../../services/field';
 import { environment } from '../../../environments/environment';
 import { VolunteerProfileViewerComponent } from '../volunteer-profile-viewer/volunteer-profile-viewer';
 import { StarRatingComponent } from '../shared/star-rating/star-rating';
+import { ToastService } from '../../services/toast.service';
+import { PaginationComponent } from '../shared/pagination/pagination';
+import { formatDateTime, formatDateOnly } from '../../utils/date-format.util';
+import { EventFormModalComponent, EventFormData } from '../shared/event-form-modal/event-form-modal';
 
 interface Registration {
   maTNV: number;
@@ -46,14 +50,22 @@ interface CertificateSample {
   tenMau: string;
   moTa?: string;
   file?: string;
-  maSuKien: number;
+  filePath?: string;
+  templateConfig?: string;
+  backgroundImage?: string;
+  maSuKien?: number | null;
+  isDefault?: boolean;
   previewUrl?: string;
+  width?: number;
+  height?: number;
 }
+
+export type TabType = 'info' | 'registrations' | 'evaluations' | 'certificates';
 
 @Component({
   selector: 'app-organization-event-detail',
   standalone: true,
-  imports: [CommonModule, RouterModule, FormsModule, VolunteerProfileViewerComponent, StarRatingComponent],
+  imports: [CommonModule, RouterModule, FormsModule, VolunteerProfileViewerComponent, StarRatingComponent, PaginationComponent, EventFormModalComponent],
   templateUrl: './organization-event-detail.html',
   styleUrls: ['./organization-event-detail.css']
 })
@@ -66,12 +78,16 @@ export class OrganizationEventDetailComponent implements OnInit {
   isLoading = true;
   errorMessage = '';
   
-  activeTab = 'info'; // info, registrations, evaluations, certificates
+  activeTab: TabType = 'info' as TabType;
   
   // Registrations
   registrations: Registration[] = [];
   filteredRegistrations: Registration[] = [];
   registrationFilter = 'all'; // all, pending, approved, rejected
+  
+  // Pagination
+  currentPage: number = 1;
+  itemsPerPage: number = 10;
   
   // Skills and Fields
   skills: any[] = [];
@@ -123,9 +139,25 @@ export class OrganizationEventDetailComponent implements OnInit {
   
   // Select volunteers for certificates
   showSelectVolunteersModal = false;
-  selectedVolunteersForCert: Set<number> = new Set();
-  selectedTemplateForBulk: number = 0;
+  selectedVolunteersForCert: Set<number> = new Set(); // Set of maTNV
+  selectedCertificateTemplate: number | null = null; // Mẫu chứng nhận đã chọn
   isIssuingCertificates = false;
+  
+  // Bulk evaluation
+  selectedVolunteersForBulkEvaluation: Set<number> = new Set();
+  showBulkEvaluateModal = false;
+  bulkEvaluationRating = 5;
+  bulkEvaluationComment = '';
+  isSubmittingBulkEvaluation = false;
+  
+  // Bulk registration actions
+  selectedRegistrationsForBulkAction: Set<number> = new Set(); // Set of maTNV
+  isProcessingBulkAction = false;
+  
+  // Event edit modal
+  showEventModal = false;
+  isEditingEvent = false;
+  eventFormData: EventFormData | null = null;
   
   private apiUrl = environment.apiUrl;
   
@@ -158,7 +190,8 @@ export class OrganizationEventDetailComponent implements OnInit {
     private certificateService: CertificateService,
     private evaluationService: EvaluationService,
     private skillService: SkillService,
-    private fieldService: FieldService
+    private fieldService: FieldService,
+    private toastService: ToastService
   ) {}
   
   ngOnInit(): void {
@@ -255,7 +288,11 @@ export class OrganizationEventDetailComponent implements OnInit {
   }
   
   loadCertificateSamples(): void {
-    if (this.certificateSamples.length > 0) return; // Already loaded
+    if (!this.eventId) {
+      console.error('EventId chưa được khởi tạo');
+      this.isLoadingCertificates = false;
+      return;
+    }
     
     this.isLoadingCertificates = true;
     this.certificateService.getCertificateSamples().subscribe({
@@ -273,6 +310,8 @@ export class OrganizationEventDetailComponent implements OnInit {
       error: (err: any) => {
         console.error('Lỗi tải mẫu chứng nhận:', err);
         this.isLoadingCertificates = false;
+        this.toastService.error('Không thể tải mẫu chứng nhận. Vui lòng thử lại.');
+        this.certificateSamples = [];
       }
     });
   }
@@ -289,12 +328,40 @@ export class OrganizationEventDetailComponent implements OnInit {
     });
   }
   
-  switchTab(tab: string): void {
+  switchTab(tab: TabType): void {
     this.activeTab = tab;
     
-    if (tab === 'certificates' && this.certificateSamples.length === 0) {
+    // Load dữ liệu khi switch sang tab certificates
+    if (tab === 'certificates') {
+      // Clear selection khi switch sang tab certificates để đảm bảo bắt đầu từ đầu
+      this.selectedCertificateTemplate = null;
+      this.selectedVolunteersForCert.clear();
       this.loadCertificateSamples();
+      this.loadRegistrations(); // Load để có danh sách approvedRegistrationsNotIssued
     }
+    
+    // Load dữ liệu khi switch sang tab evaluations
+    if (tab === 'evaluations') {
+      this.loadEvaluations();
+      this.loadRegistrations();
+    }
+  }
+  
+  // Helper methods for template
+  isInfoTab(): boolean {
+    return this.activeTab === 'info';
+  }
+  
+  isRegistrationsTab(): boolean {
+    return this.activeTab === 'registrations';
+  }
+  
+  isEvaluationsTab(): boolean {
+    return this.activeTab === 'evaluations';
+  }
+  
+  isCertificatesTab(): boolean {
+    return this.activeTab === 'certificates';
   }
   
   applyRegistrationFilter(): void {
@@ -307,6 +374,22 @@ export class OrganizationEventDetailComponent implements OnInit {
     } else if (this.registrationFilter === 'rejected') {
       this.filteredRegistrations = this.registrations.filter(r => r.trangThai === 2);
     }
+    this.currentPage = 1; // Reset về trang đầu khi filter
+  }
+
+  get paginatedRegistrations(): Registration[] {
+    const startIndex = (this.currentPage - 1) * this.itemsPerPage;
+    const endIndex = startIndex + this.itemsPerPage;
+    return this.filteredRegistrations.slice(startIndex, endIndex);
+  }
+
+  onPageChange(page: number): void {
+    this.currentPage = page;
+  }
+
+  onItemsPerPageChange(itemsPerPage: number): void {
+    this.itemsPerPage = itemsPerPage;
+    this.currentPage = 1;
   }
   
   getRegistrationStatusText(status: number): string {
@@ -320,45 +403,313 @@ export class OrganizationEventDetailComponent implements OnInit {
   
   getRegistrationStatusClass(status: number): string {
     switch (status) {
-      case 0: return 'badge bg-warning';
-      case 1: return 'badge bg-success';
-      case 2: return 'badge bg-danger';
-      default: return 'badge bg-secondary';
+      case 0: return 'bg-warning-subtle';
+      case 1: return 'bg-success-subtle';
+      case 2: return 'bg-danger-subtle';
+      default: return 'bg-secondary';
     }
   }
   
   approveRegistration(registration: Registration): void {
-    if (confirm('Xác nhận duyệt đơn đăng ký này?')) {
+    // Kiểm tra số lượng trước khi duyệt
+    const soLuongDaDuyet = this.event?.soLuongDaDuyet || 0;
+    const soLuong = this.event?.soLuong || 0;
+    
+    let confirmMessage = 'Xác nhận duyệt đơn đăng ký này?';
+    
+    // Cảnh báo nếu sắp đủ số lượng
+    if (soLuong > 0) {
+      const soLuongConLai = soLuong - soLuongDaDuyet;
+      if (soLuongConLai === 1) {
+        confirmMessage = `⚠️ CẢNH BÁO: Đây là tình nguyện viên cuối cùng!\n\nSố lượng hiện tại: ${soLuongDaDuyet}/${soLuong}\nSau khi duyệt sẽ đủ số lượng tuyển.\n\nXác nhận duyệt?`;
+      } else if (soLuongConLai <= 3) {
+        confirmMessage = `⚠️ Chú ý: Còn ${soLuongConLai} vị trí trống\n\nSố lượng hiện tại: ${soLuongDaDuyet}/${soLuong}\n\nXác nhận duyệt đơn này?`;
+      }
+    }
+    
+    if (confirm(confirmMessage)) {
       this.registrationService.updateRegistrationStatus(registration.maTNV, registration.maSuKien, { trangThai: 1 }).subscribe({
         next: () => {
-          registration.trangThai = 1;
-          this.applyRegistrationFilter();
-          alert('Đã duyệt đơn đăng ký thành công');
+          // Reload lại danh sách từ API để đảm bảo dữ liệu đồng bộ
+          this.loadRegistrations();
+          this.toastService.success('Đã duyệt đơn đăng ký thành công');
         },
         error: (err: any) => {
           console.error('Lỗi duyệt đơn:', err);
-          alert('Không thể duyệt đơn đăng ký');
+          // Hiển thị thông báo lỗi chi tiết từ backend
+          const errorMessage = err.error?.message || 'Không thể duyệt đơn đăng ký';
+          this.toastService.error(errorMessage);
         }
       });
     }
   }
   
   rejectRegistration(registration: Registration): void {
-    const reason = prompt('Lý do từ chối:');
-    if (reason !== null) {
-      this.registrationService.updateRegistrationStatus(registration.maTNV, registration.maSuKien, { trangThai: 2, ghiChu: reason }).subscribe({
+    // Check if this is an approved registration being rejected
+    if (registration.trangThai === 1) {
+      // Open modal for rejection reason (required for approved registrations)
+      this.openRejectModal(registration);
+    } else {
+      // For pending registrations, use simple prompt
+      const reason = prompt('Lý do từ chối (tùy chọn):');
+      if (reason !== null) {
+        this.registrationService.updateRegistrationStatus(registration.maTNV, registration.maSuKien, { trangThai: 2, ghiChu: reason || undefined }).subscribe({
+          next: () => {
+            this.loadRegistrations();
+            this.toastService.success('Đã từ chối đơn đăng ký');
+          },
+          error: (err: any) => {
+            console.error('Lỗi từ chối đơn:', err);
+            const errorMessage = err.error?.message || 'Không thể từ chối đơn đăng ký';
+            this.toastService.error(errorMessage);
+          }
+        });
+      }
+    }
+  }
+
+  undoApproval(registration: Registration): void {
+    if (confirm('Xác nhận hoàn tác duyệt đơn này? Đơn sẽ chuyển về trạng thái chờ duyệt.')) {
+      this.registrationService.updateRegistrationStatus(registration.maTNV, registration.maSuKien, { trangThai: 0 }).subscribe({
         next: () => {
-          registration.trangThai = 2;
-          registration.ghiChu = reason;
-          this.applyRegistrationFilter();
-          alert('Đã từ chối đơn đăng ký');
+          this.loadRegistrations();
+          this.toastService.success('Đã hoàn tác duyệt thành công');
         },
         error: (err: any) => {
-          console.error('Lỗi từ chối đơn:', err);
-          alert('Không thể từ chối đơn đăng ký');
+          console.error('Lỗi hoàn tác duyệt:', err);
+          const errorMessage = err.error?.message || 'Không thể hoàn tác duyệt';
+          this.toastService.error(errorMessage);
         }
       });
     }
+  }
+
+  // Bulk registration actions
+  toggleRegistrationForBulkAction(maTNV: number): void {
+    if (this.selectedRegistrationsForBulkAction.has(maTNV)) {
+      this.selectedRegistrationsForBulkAction.delete(maTNV);
+    } else {
+      this.selectedRegistrationsForBulkAction.add(maTNV);
+    }
+  }
+
+  selectAllRegistrationsForBulkAction(): void {
+    this.paginatedRegistrations.forEach(reg => {
+      this.selectedRegistrationsForBulkAction.add(reg.maTNV);
+    });
+  }
+
+  deselectAllRegistrationsForBulkAction(): void {
+    this.selectedRegistrationsForBulkAction.clear();
+  }
+
+  areAllRegistrationsSelected(): boolean {
+    if (this.paginatedRegistrations.length === 0) return false;
+    return this.paginatedRegistrations.every(reg => this.selectedRegistrationsForBulkAction.has(reg.maTNV));
+  }
+
+  toggleSelectAllRegistrations(): void {
+    if (this.areAllRegistrationsSelected()) {
+      this.deselectAllRegistrationsForBulkAction();
+    } else {
+      this.selectAllRegistrationsForBulkAction();
+    }
+  }
+
+  getSelectedRegistrations(): Registration[] {
+    return this.registrations.filter(reg => this.selectedRegistrationsForBulkAction.has(reg.maTNV));
+  }
+
+  bulkApproveRegistrations(): void {
+    const selected = this.getSelectedRegistrations();
+    if (selected.length === 0) {
+      this.toastService.warning('Vui lòng chọn ít nhất một đơn đăng ký');
+      return;
+    }
+
+    const pendingRegistrations = selected.filter(reg => reg.trangThai === 0);
+    if (pendingRegistrations.length === 0) {
+      this.toastService.warning('Không có đơn nào ở trạng thái chờ duyệt');
+      return;
+    }
+
+    if (!confirm(`Xác nhận duyệt ${pendingRegistrations.length} đơn đăng ký?`)) {
+      return;
+    }
+
+    this.isProcessingBulkAction = true;
+    let successCount = 0;
+    let failCount = 0;
+
+    pendingRegistrations.forEach(reg => {
+      this.registrationService.updateRegistrationStatus(reg.maTNV, reg.maSuKien, { trangThai: 1 }).subscribe({
+        next: () => {
+          successCount++;
+          if (successCount + failCount === pendingRegistrations.length) {
+            this.isProcessingBulkAction = false;
+            this.loadRegistrations();
+            this.selectedRegistrationsForBulkAction.clear();
+            if (failCount === 0) {
+              this.toastService.success(`Đã duyệt thành công ${successCount} đơn đăng ký`);
+            } else {
+              this.toastService.warning(`Duyệt hoàn tất: Thành công ${successCount}, Thất bại ${failCount}`);
+            }
+          }
+        },
+        error: (err: any) => {
+          failCount++;
+          console.error(`Lỗi duyệt đơn ${reg.maTNV}:`, err);
+          if (successCount + failCount === pendingRegistrations.length) {
+            this.isProcessingBulkAction = false;
+            this.loadRegistrations();
+            this.selectedRegistrationsForBulkAction.clear();
+            this.toastService.warning(`Duyệt hoàn tất: Thành công ${successCount}, Thất bại ${failCount}`);
+          }
+        }
+      });
+    });
+  }
+
+  bulkRejectRegistrations(): void {
+    const selected = this.getSelectedRegistrations();
+    if (selected.length === 0) {
+      this.toastService.warning('Vui lòng chọn ít nhất một đơn đăng ký');
+      return;
+    }
+
+    const reason = prompt('Lý do từ chối (tùy chọn):');
+    if (reason === null) return; // User cancelled
+
+    this.isProcessingBulkAction = true;
+    let successCount = 0;
+    let failCount = 0;
+
+    selected.forEach(reg => {
+      this.registrationService.updateRegistrationStatus(reg.maTNV, reg.maSuKien, { trangThai: 2, ghiChu: reason || undefined }).subscribe({
+        next: () => {
+          successCount++;
+          if (successCount + failCount === selected.length) {
+            this.isProcessingBulkAction = false;
+            this.loadRegistrations();
+            this.selectedRegistrationsForBulkAction.clear();
+            if (failCount === 0) {
+              this.toastService.success(`Đã từ chối thành công ${successCount} đơn đăng ký`);
+            } else {
+              this.toastService.warning(`Từ chối hoàn tất: Thành công ${successCount}, Thất bại ${failCount}`);
+            }
+          }
+        },
+        error: (err: any) => {
+          failCount++;
+          console.error(`Lỗi từ chối đơn ${reg.maTNV}:`, err);
+          if (successCount + failCount === selected.length) {
+            this.isProcessingBulkAction = false;
+            this.loadRegistrations();
+            this.selectedRegistrationsForBulkAction.clear();
+            this.toastService.warning(`Từ chối hoàn tất: Thành công ${successCount}, Thất bại ${failCount}`);
+          }
+        }
+      });
+    });
+  }
+
+  bulkUndoApprovals(): void {
+    const selected = this.getSelectedRegistrations();
+    if (selected.length === 0) {
+      this.toastService.warning('Vui lòng chọn ít nhất một đơn đăng ký');
+      return;
+    }
+
+    const approvedRegistrations = selected.filter(reg => reg.trangThai === 1);
+    if (approvedRegistrations.length === 0) {
+      this.toastService.warning('Không có đơn nào ở trạng thái đã duyệt');
+      return;
+    }
+
+    if (!confirm(`Xác nhận hoàn tác duyệt ${approvedRegistrations.length} đơn đăng ký?`)) {
+      return;
+    }
+
+    this.isProcessingBulkAction = true;
+    let successCount = 0;
+    let failCount = 0;
+
+    approvedRegistrations.forEach(reg => {
+      this.registrationService.updateRegistrationStatus(reg.maTNV, reg.maSuKien, { trangThai: 0 }).subscribe({
+        next: () => {
+          successCount++;
+          if (successCount + failCount === approvedRegistrations.length) {
+            this.isProcessingBulkAction = false;
+            this.loadRegistrations();
+            this.selectedRegistrationsForBulkAction.clear();
+            if (failCount === 0) {
+              this.toastService.success(`Đã hoàn tác duyệt thành công ${successCount} đơn đăng ký`);
+            } else {
+              this.toastService.warning(`Hoàn tác hoàn tất: Thành công ${successCount}, Thất bại ${failCount}`);
+            }
+          }
+        },
+        error: (err: any) => {
+          failCount++;
+          console.error(`Lỗi hoàn tác duyệt đơn ${reg.maTNV}:`, err);
+          if (successCount + failCount === approvedRegistrations.length) {
+            this.isProcessingBulkAction = false;
+            this.loadRegistrations();
+            this.selectedRegistrationsForBulkAction.clear();
+            this.toastService.warning(`Hoàn tác hoàn tất: Thành công ${successCount}, Thất bại ${failCount}`);
+          }
+        }
+      });
+    });
+  }
+
+  // Reject modal for approved registrations
+  rejectingRegistration: Registration | null = null;
+  rejectReason: string = '';
+
+  openRejectModal(registration: Registration): void {
+    this.rejectingRegistration = registration;
+    this.rejectReason = '';
+    const modalEl = document.getElementById('rejectApprovedModal');
+    if ((window as any).bootstrap && modalEl) {
+      const modal = new (window as any).bootstrap.Modal(modalEl);
+      modal.show();
+    }
+  }
+
+  closeRejectModal(): void {
+    const modalEl = document.getElementById('rejectApprovedModal');
+    if ((window as any).bootstrap && modalEl) {
+      const modal = (window as any).bootstrap.Modal.getInstance(modalEl);
+      if (modal) modal.hide();
+    }
+    this.rejectingRegistration = null;
+    this.rejectReason = '';
+  }
+
+  confirmRejectApproved(): void {
+    if (!this.rejectingRegistration) return;
+    if (!this.rejectReason || this.rejectReason.trim() === '') {
+      this.toastService.warning('Vui lòng nhập lý do từ chối');
+      return;
+    }
+
+    this.registrationService.updateRegistrationStatus(
+      this.rejectingRegistration.maTNV,
+      this.rejectingRegistration.maSuKien,
+      { trangThai: 2, ghiChu: this.rejectReason.trim() }
+    ).subscribe({
+      next: () => {
+        this.closeRejectModal();
+        this.loadRegistrations();
+        this.toastService.success('Đã từ chối đơn đăng ký đã duyệt');
+      },
+      error: (err: any) => {
+        console.error('Lỗi từ chối đơn đã duyệt:', err);
+        const errorMessage = err.error?.message || 'Không thể từ chối đơn đăng ký';
+        this.toastService.error(errorMessage);
+      }
+    });
   }
   
   viewVolunteerProfile(registration: Registration): void {
@@ -386,13 +737,24 @@ export class OrganizationEventDetailComponent implements OnInit {
   }
   
   formatDate(date: any): string {
-    if (!date) return '';
-    return new Date(date).toLocaleDateString('vi-VN');
-  }
+    // Sử dụng utility function thống nhất
+    return formatDateTime(date);
+        }
   
   formatDateTime(date: any): string {
+    // Sử dụng utility function thống nhất
+    return formatDateTime(date);
+  }
+  
+  formatDateTimeOld(date: any): string {
     if (!date) return '';
-    return new Date(date).toLocaleString('vi-VN');
+    try {
+      const d = date instanceof Date ? date : new Date(date);
+      if (isNaN(d.getTime())) return '';
+      return d.toLocaleString('vi-VN');
+    } catch {
+      return '';
+    }
   }
   
   backToList(): void {
@@ -452,7 +814,7 @@ export class OrganizationEventDetailComponent implements OnInit {
       }
     } catch (error) {
       console.error('Lỗi tải template config:', error);
-      alert('Không thể tải mẫu chứng nhận: ' + (error as any)?.message || 'Đã xảy ra lỗi');
+      this.toastService.error('Không thể tải mẫu chứng nhận: ' + ((error as any)?.message || 'Đã xảy ra lỗi'));
     }
   }
   
@@ -558,7 +920,7 @@ export class OrganizationEventDetailComponent implements OnInit {
       // Canvas đã được render, không cần tạo previewUrl nữa
     } catch (error) {
       console.error('Lỗi render preview:', error);
-      alert('Không thể render mẫu chứng nhận');
+      this.toastService.error('Không thể render mẫu chứng nhận');
     }
   }
   
@@ -631,10 +993,17 @@ export class OrganizationEventDetailComponent implements OnInit {
   }
   
   issueCertificateToVolunteer(registration: Registration, sampleId: number): void {
+    // Kiểm tra mẫu có thể cấp được không
+    const sample = this.certificateSamples.find(s => s.maMau === sampleId);
+    if (!this.canIssueCertificate(sample)) {
+      this.toastService.error('Mẫu chứng nhận chưa có template config hoặc file. Vui lòng tạo template config hoặc upload file cho mẫu này trước khi cấp chứng nhận.');
+      return;
+    }
+
     // Kiểm tra sự kiện đã kết thúc chưa
     const eventStatus = this.getEventStatusText();
-    if (eventStatus !== 'Đã kết thúc') {
-      alert('Chỉ có thể cấp chứng nhận khi sự kiện đã kết thúc');
+    if (eventStatus !== 'Sự kiện đã kết thúc' && eventStatus !== 'Đã kết thúc') {
+      this.toastService.warning('Chỉ có thể cấp chứng nhận khi sự kiện đã kết thúc');
       return;
     }
     
@@ -646,30 +1015,38 @@ export class OrganizationEventDetailComponent implements OnInit {
       
       this.certificateService.issueCertificate(formData).subscribe({
         next: () => {
-          alert('Đã cấp chứng nhận thành công');
+          this.toastService.success('Đã cấp chứng nhận thành công');
           // Reload danh sách chứng nhận đã cấp để cập nhật số lượng
           this.loadIssuedCertificates();
+          this.loadRegistrations();
         },
         error: (err: any) => {
           console.error('Lỗi cấp chứng nhận:', err);
-          alert(err.error?.message || 'Không thể cấp chứng nhận');
+          this.toastService.error(err.error?.message || 'Không thể cấp chứng nhận');
         }
       });
     }
   }
   
   issueAllCertificates(sampleId: number): void {
+    // Kiểm tra mẫu có thể cấp được không
+    const sample = this.certificateSamples.find(s => s.maMau === sampleId);
+    if (!this.canIssueCertificate(sample)) {
+      this.toastService.error('Mẫu chứng nhận chưa có template config hoặc file. Vui lòng tạo template config hoặc upload file cho mẫu này trước khi cấp chứng nhận.');
+      return;
+    }
+
     // Kiểm tra sự kiện đã kết thúc chưa
     const eventStatus = this.getEventStatusText();
-    if (eventStatus !== 'Đã kết thúc') {
-      alert('Chỉ có thể cấp chứng nhận khi sự kiện đã kết thúc');
+    if (eventStatus !== 'Sự kiện đã kết thúc' && eventStatus !== 'Đã kết thúc') {
+      this.toastService.warning('Chỉ có thể cấp chứng nhận khi sự kiện đã kết thúc');
       return;
     }
     
     const notIssuedCount = this.approvedCount;
     
     if (notIssuedCount === 0) {
-      alert('Không có tình nguyện viên nào chưa được cấp chứng nhận');
+      this.toastService.info('Không có tình nguyện viên nào chưa được cấp chứng nhận');
       return;
     }
     
@@ -677,13 +1054,14 @@ export class OrganizationEventDetailComponent implements OnInit {
       this.certificateService.issueAllCertificates(this.eventId, sampleId).subscribe({
         next: (response: any) => {
           const count = response.data?.length || 0;
-          alert(`Đã cấp chứng nhận thành công cho ${count} tình nguyện viên`);
+          this.toastService.success(`Đã cấp chứng nhận thành công cho ${count} tình nguyện viên`);
           // Reload danh sách chứng nhận đã cấp
           this.loadIssuedCertificates();
+          this.loadRegistrations();
         },
         error: (err: any) => {
           console.error('Lỗi cấp hàng loạt:', err);
-          alert(err.error?.message || 'Không thể cấp chứng nhận hàng loạt');
+          this.toastService.error(err.error?.message || 'Không thể cấp chứng nhận hàng loạt');
         }
       });
     }
@@ -727,7 +1105,7 @@ export class OrganizationEventDetailComponent implements OnInit {
     const recruitEnd = this.event.tuyenKetThuc ? new Date(this.event.tuyenKetThuc) : null;
     
     if (endDate < now) {
-      return 'Đã kết thúc';
+      return 'Sự kiện đã kết thúc';
     } else if (startDate <= now && now <= endDate) {
       return 'Đang diễn ra';
     } else if (recruitStart && recruitEnd && recruitStart <= now && now <= recruitEnd) {
@@ -743,20 +1121,60 @@ export class OrganizationEventDetailComponent implements OnInit {
       case 'Đang diễn ra': return 'badge bg-success';
       case 'Đang tuyển': return 'badge bg-info';
       case 'Sắp diễn ra': return 'badge bg-warning';
+      case 'Sự kiện đã kết thúc':
       case 'Đã kết thúc': return 'badge bg-secondary';
       default: return 'badge bg-secondary';
+    }
+  }
+
+  // Helper methods for metrics
+  getTotalRegistrations(): number {
+    return this.registrations.length;
+  }
+
+  getApprovedRegistrationsCount(): number {
+    return this.approvedRegistrations.length;
+  }
+
+  getPendingRegistrationsCount(): number {
+    return this.registrations.filter(r => r.trangThai === 0).length;
+  }
+
+  getRejectedRegistrationsCount(): number {
+    return this.registrations.filter(r => r.trangThai === 2).length;
+  }
+
+  getRequiredSlots(): number {
+    return this.event?.soLuong || 0;
+  }
+
+  getRemainingSlots(): number {
+    const required = this.getRequiredSlots();
+    const approved = this.getApprovedRegistrationsCount();
+    return Math.max(0, required - approved);
+  }
+
+  formatDateOnly(date: any): string {
+    if (!date) return '';
+    try {
+      const d = date instanceof Date ? date : new Date(date);
+      if (isNaN(d.getTime())) return '';
+      return d.toLocaleDateString('vi-VN');
+    } catch {
+      return '';
     }
   }
   
   canCompleteEvent(): boolean {
     if (!this.event) return false;
     const status = this.getEventStatusText();
-    return status === 'Đã kết thúc' || status === 'Đang diễn ra';
+    // Chỉ cho phép kết thúc khi đang diễn ra, không cho phép khi đã kết thúc
+    return status === 'Đang diễn ra';
   }
   
   completeEvent(): void {
     if (!this.canCompleteEvent()) {
-      alert('Chỉ có thể kết thúc sự kiện khi sự kiện đang diễn ra hoặc đã kết thúc');
+      this.toastService.warning('Chỉ có thể kết thúc sự kiện khi sự kiện đang diễn ra hoặc đã kết thúc');
       return;
     }
     
@@ -764,27 +1182,164 @@ export class OrganizationEventDetailComponent implements OnInit {
       // Gọi endpoint finish đã có sẵn trong backend
       this.http.post(`${this.apiUrl}/sukien/${this.eventId}/finish`, {}).subscribe({
         next: () => {
-          alert('Đã kết thúc sự kiện thành công');
+          this.toastService.success('Đã kết thúc sự kiện thành công');
           this.loadEventDetails(); // Reload to update status
           this.switchTab('certificates'); // Switch to certificates tab
         },
         error: (err: any) => {
           console.error('Lỗi kết thúc sự kiện:', err);
-          alert(err.error?.message || 'Không thể kết thúc sự kiện');
+          this.toastService.error(err.error?.message || 'Không thể kết thúc sự kiện');
+        }
+      });
+    }
+  }
+
+  canCloseRecruitment(): boolean {
+    if (!this.event) return false;
+    
+    // 1. Sự kiện chưa kết thúc
+    if (this.event.trangThaiSuKien === 'Đã kết thúc') return false;
+    
+    // 2. Phiên tuyển chưa đóng
+    if (this.event.trangThaiTuyen === 'Đóng') return false;
+    
+    // 3. Đã tới thời gian tuyển (kiểm tra tuyenBatDau và tuyenKetThuc)
+    if (!this.event.tuyenBatDau || !this.event.tuyenKetThuc) return false;
+    
+    const now = new Date();
+    const recruitStart = new Date(this.event.tuyenBatDau);
+    const recruitEnd = new Date(this.event.tuyenKetThuc);
+    
+    // Chỉ cho phép đóng khi đang trong thời gian tuyển
+    return now >= recruitStart && now <= recruitEnd;
+  }
+
+  closeRecruitment(): void {
+    if (!this.canCloseRecruitment()) {
+      this.toastService.warning('Không thể đóng phiên tuyển');
+      return;
+    }
+    
+    if (confirm('Xác nhận đóng phiên tuyển? Sau khi đóng, tình nguyện viên sẽ không thể đăng ký thêm.')) {
+      this.eventService.closeRecruitment(this.eventId).subscribe({
+        next: () => {
+          this.toastService.success('Đã đóng phiên tuyển thành công');
+          this.loadEventDetails(); // Reload to update status
+        },
+        error: (err: any) => {
+          console.error('Lỗi đóng phiên tuyển:', err);
+          this.toastService.error(err.error?.message || 'Không thể đóng phiên tuyển');
+        }
+      });
+    }
+  }
+  
+  canReopenRecruitment(): boolean {
+    if (!this.event) return false;
+    
+    // 1. Sự kiện chưa kết thúc
+    if (this.event.trangThaiSuKien === 'Đã kết thúc') return false;
+    
+    // 2. Phiên tuyển đã đóng
+    if (this.event.trangThaiTuyen !== 'Đóng') return false;
+    
+    // 3. Đã tới thời gian tuyển (kiểm tra tuyenBatDau và tuyenKetThuc)
+    if (!this.event.tuyenBatDau || !this.event.tuyenKetThuc) return false;
+    
+    const now = new Date();
+    const recruitStart = new Date(this.event.tuyenBatDau);
+    const recruitEnd = new Date(this.event.tuyenKetThuc);
+    
+    // Chỉ cho phép mở lại khi vẫn còn trong thời gian tuyển
+    return now >= recruitStart && now <= recruitEnd;
+  }
+  
+  reopenRecruitment(): void {
+    if (!this.canReopenRecruitment()) {
+      this.toastService.warning('Không thể mở lại phiên tuyển. Vui lòng kiểm tra lại thời gian tuyển dụng.');
+      return;
+    }
+    
+    if (confirm('Xác nhận mở lại phiên tuyển? Sau khi mở lại, tình nguyện viên có thể đăng ký thêm.')) {
+      this.eventService.openRecruitment(this.eventId).subscribe({
+        next: () => {
+          this.toastService.success('Đã mở lại phiên tuyển thành công');
+          this.loadEventDetails(); // Reload to update status
+        },
+        error: (err: any) => {
+          console.error('Lỗi mở lại phiên tuyển:', err);
+          this.toastService.error(err.error?.message || 'Không thể mở lại phiên tuyển');
         }
       });
     }
   }
   
   editEventInline(): void {
-    // Navigate to edit event page or open edit modal
-    this.router.navigate(['/manage-org'], { 
-      queryParams: { editEvent: this.eventId } 
+    // Load đầy đủ dữ liệu từ API và mở modal chỉnh sửa
+    if (!this.eventId) {
+      this.toastService.error('Không tìm thấy ID sự kiện');
+      return;
+    }
+
+    this.eventService.getSuKienById(this.eventId).subscribe({
+      next: (response: any) => {
+        const fullEvent = response.data || response;
+        
+        // Chuẩn bị dữ liệu cho modal
+        this.eventFormData = {
+          maSuKien: fullEvent.maSuKien,
+          tenSuKien: fullEvent.tenSuKien || '',
+          noiDung: fullEvent.noiDung || '',
+          ngayBatDau: fullEvent.ngayBatDau,
+          ngayKetThuc: fullEvent.ngayKetThuc,
+          tuyenBatDau: fullEvent.tuyenBatDau,
+          tuyenKetThuc: fullEvent.tuyenKetThuc,
+          ngayDienRaBatDau: fullEvent.ngayDienRaBatDau,
+          ngayDienRaKetThuc: fullEvent.ngayDienRaKetThuc,
+          thoiGianKhoaHuy: fullEvent.thoiGianKhoaHuy,
+          diaChi: fullEvent.diaChi || '',
+          soLuong: fullEvent.soLuong || fullEvent.soLuongTNV || 1,
+          maToChuc: fullEvent.maToChuc,
+          hinhAnh: fullEvent.hinhAnh,
+          linhVucIds: Array.isArray(fullEvent.linhVucIds) && fullEvent.linhVucIds.length > 0 
+            ? fullEvent.linhVucIds 
+            : (fullEvent.linhVucs && Array.isArray(fullEvent.linhVucs) 
+              ? fullEvent.linhVucs.map((lv: any) => lv.maLinhVuc || lv.maLinhVucId)
+              : []),
+          kyNangIds: Array.isArray(fullEvent.kyNangIds) && fullEvent.kyNangIds.length > 0 
+            ? fullEvent.kyNangIds 
+            : (fullEvent.kyNangs && Array.isArray(fullEvent.kyNangs) 
+              ? fullEvent.kyNangs.map((kn: any) => kn.maKyNang || kn.maKyNangId)
+              : [])
+        };
+        
+        this.isEditingEvent = true;
+        this.showEventModal = true;
+      },
+      error: (err: any) => {
+        console.error('Lỗi khi load chi tiết sự kiện:', err);
+        this.toastService.error('Không thể tải thông tin sự kiện. Vui lòng thử lại.');
+      }
     });
   }
   
+  onEventModalSaved(): void {
+    // Reload dữ liệu sự kiện sau khi cập nhật thành công
+    this.loadEventDetails();
+    this.showEventModal = false;
+    this.isEditingEvent = false;
+    this.eventFormData = null;
+  }
+  
+  onEventModalCancelled(): void {
+    // Đóng modal khi user cancel
+    this.showEventModal = false;
+    this.isEditingEvent = false;
+    this.eventFormData = null;
+  }
+  
   openSelectVolunteersModal(sample: CertificateSample): void {
-    this.selectedTemplateForBulk = sample.maMau;
+    this.selectedCertificateTemplate = sample.maMau;
     this.selectedVolunteersForCert.clear();
     this.showSelectVolunteersModal = true;
   }
@@ -792,7 +1347,7 @@ export class OrganizationEventDetailComponent implements OnInit {
   closeSelectVolunteersModal(): void {
     this.showSelectVolunteersModal = false;
     this.selectedVolunteersForCert.clear();
-    this.selectedTemplateForBulk = 0;
+    this.selectedCertificateTemplate = null;
   }
   
   toggleVolunteerSelection(maTNV: number): void {
@@ -802,27 +1357,95 @@ export class OrganizationEventDetailComponent implements OnInit {
       this.selectedVolunteersForCert.add(maTNV);
     }
   }
+
+  toggleVolunteerSelectionForCert(maTNV: number): void {
+    this.toggleVolunteerSelection(maTNV);
+  }
   
-  selectAllVolunteers(): void {
+  selectAllVolunteersForCert(): void {
     this.approvedRegistrationsNotIssued.forEach(reg => {
       this.selectedVolunteersForCert.add(reg.maTNV);
     });
   }
   
-  deselectAllVolunteers(): void {
+  deselectAllVolunteersForCert(): void {
     this.selectedVolunteersForCert.clear();
   }
+
+  // Giữ lại các phương thức cũ để tương thích với modal
+  selectAllVolunteers(): void {
+    this.selectAllVolunteersForCert();
+  }
   
-  async issueSelectedCertificates(): Promise<void> {
-    // Kiểm tra sự kiện đã kết thúc chưa
-    const eventStatus = this.getEventStatusText();
-    if (eventStatus !== 'Đã kết thúc') {
-      alert('Chỉ có thể cấp chứng nhận khi sự kiện đã kết thúc');
+  deselectAllVolunteers(): void {
+    this.deselectAllVolunteersForCert();
+  }
+
+  areAllVolunteersForCertSelected(): boolean {
+    if (this.approvedRegistrationsNotIssued.length === 0) return false;
+    return this.approvedRegistrationsNotIssued.every(reg => this.selectedVolunteersForCert.has(reg.maTNV));
+  }
+
+  toggleSelectAllVolunteersForCert(): void {
+    if (this.areAllVolunteersForCertSelected()) {
+      this.deselectAllVolunteersForCert();
+    } else {
+      this.selectAllVolunteersForCert();
+    }
+  }
+
+  getSelectedCertificateSample(): CertificateSample | null {
+    if (!this.selectedCertificateTemplate) return null;
+    return this.certificateSamples.find(s => s.maMau === this.selectedCertificateTemplate) || null;
+  }
+
+  canIssueCertificate(sample?: CertificateSample | null): boolean {
+    if (!sample) {
+      sample = this.getSelectedCertificateSample();
+    }
+    if (!sample) return false;
+    
+    // Kiểm tra mẫu có TemplateConfig (mẫu động) hoặc File (mẫu tĩnh)
+    const hasTemplateConfig: boolean = !!(sample.templateConfig && sample.templateConfig.trim() !== '');
+    const hasFileFromFile: boolean = !!(sample.file && sample.file.trim() !== '');
+    const hasFileFromPath: boolean = !!(sample.filePath && sample.filePath.trim() !== '');
+    const hasFile: boolean = hasFileFromFile || hasFileFromPath;
+    
+    return hasTemplateConfig || hasFile;
+  }
+
+  onCertificateTemplateChange(value: number | null): void {
+    // Kiểm tra nếu chọn option đầu tiên (null)
+    if (value === null || value === undefined) {
+      // Clear selection và ẩn danh sách TNV
+      this.selectedCertificateTemplate = null;
+      this.selectedVolunteersForCert.clear();
+      return;
+    }
+    
+    // Nếu chọn mẫu mới (khác với mẫu hiện tại), clear selection cũ
+    if (value !== this.selectedCertificateTemplate) {
+      this.selectedVolunteersForCert.clear();
+    }
+    
+    // Set mẫu mới
+    this.selectedCertificateTemplate = value;
+  }
+  
+  async bulkIssueCertificates(): Promise<void> {
+    if (!this.selectedCertificateTemplate) {
+      this.toastService.warning('Vui lòng chọn mẫu chứng nhận');
+      return;
+    }
+
+    const selectedSample = this.getSelectedCertificateSample();
+    if (!this.canIssueCertificate(selectedSample)) {
+      this.toastService.error('Mẫu chứng nhận chưa có template config hoặc file. Vui lòng tạo template config hoặc upload file cho mẫu này trước khi cấp chứng nhận.');
       return;
     }
     
     if (this.selectedVolunteersForCert.size === 0) {
-      alert('Vui lòng chọn ít nhất một tình nguyện viên');
+      this.toastService.warning('Vui lòng chọn ít nhất một tình nguyện viên');
       return;
     }
     
@@ -833,20 +1456,25 @@ export class OrganizationEventDetailComponent implements OnInit {
     this.isIssuingCertificates = true;
     let successCount = 0;
     let failCount = 0;
+    const errors: string[] = [];
     
     // Cấp chứng nhận tuần tự cho từng TNV
     for (const maTNV of Array.from(this.selectedVolunteersForCert)) {
       try {
         const formData = new FormData();
-        formData.append('MaMau', this.selectedTemplateForBulk.toString());
+        formData.append('MaMau', this.selectedCertificateTemplate.toString());
         formData.append('MaTNV', maTNV.toString());
         formData.append('MaSuKien', this.eventId.toString());
         
         await this.certificateService.issueCertificate(formData).toPromise();
         successCount++;
-      } catch (error) {
+      } catch (error: any) {
         console.error(`Lỗi cấp chứng nhận cho TNV ${maTNV}:`, error);
         failCount++;
+        const errorMessage = error.error?.message || error.message || 'Không thể cấp chứng nhận';
+        if (!errors.includes(errorMessage)) {
+          errors.push(errorMessage);
+        }
       }
     }
     
@@ -854,13 +1482,63 @@ export class OrganizationEventDetailComponent implements OnInit {
     
     // Hiển thị kết quả
     if (failCount === 0) {
-      alert(`Đã cấp chứng nhận thành công cho ${successCount} tình nguyện viên`);
+      this.toastService.success(`Đã cấp chứng nhận thành công cho ${successCount} tình nguyện viên`);
     } else {
-      alert(`Cấp chứng nhận hoàn tất:\n- Thành công: ${successCount}\n- Thất bại: ${failCount}`);
+      const errorMsg = errors.length > 0 ? `\nLỗi: ${errors.join(', ')}` : '';
+      this.toastService.warning(`Cấp chứng nhận hoàn tất:\n- Thành công: ${successCount}\n- Thất bại: ${failCount}${errorMsg}`);
     }
     
-    // Reload và đóng modal
+    // Reload và clear selection
     this.loadIssuedCertificates();
+    this.loadRegistrations(); // Reload để cập nhật danh sách
+    this.selectedVolunteersForCert.clear();
+  }
+
+  async issueCertificateToVolunteerSingle(reg: Registration): Promise<void> {
+    if (!this.selectedCertificateTemplate) {
+      this.toastService.warning('Vui lòng chọn mẫu chứng nhận');
+      return;
+    }
+
+    const selectedSample = this.getSelectedCertificateSample();
+    if (!this.canIssueCertificate(selectedSample)) {
+      this.toastService.error('Mẫu chứng nhận chưa có template config hoặc file. Vui lòng tạo template config hoặc upload file cho mẫu này trước khi cấp chứng nhận.');
+      return;
+    }
+    
+    if (!confirm(`Xác nhận cấp chứng nhận cho ${reg.tenTNV || 'tình nguyện viên này'}?`)) {
+      return;
+    }
+    
+    this.isIssuingCertificates = true;
+    try {
+      const formData = new FormData();
+      formData.append('MaMau', this.selectedCertificateTemplate.toString());
+      formData.append('MaTNV', reg.maTNV.toString());
+      formData.append('MaSuKien', this.eventId.toString());
+      
+      await this.certificateService.issueCertificate(formData).toPromise();
+      this.toastService.success('Đã cấp chứng nhận thành công');
+      
+      // Reload
+      this.loadIssuedCertificates();
+      this.loadRegistrations();
+    } catch (error: any) {
+      console.error('Lỗi cấp chứng nhận:', error);
+      this.toastService.error(error.error?.message || 'Không thể cấp chứng nhận');
+    } finally {
+      this.isIssuingCertificates = false;
+    }
+  }
+  
+  // Giữ lại phương thức cũ để tương thích với modal
+  async issueSelectedCertificates(): Promise<void> {
+    if (!this.selectedCertificateTemplate) {
+      this.toastService.warning('Vui lòng chọn mẫu chứng nhận');
+      return;
+    }
+    
+    await this.bulkIssueCertificates();
     this.closeSelectVolunteersModal();
   }
   
@@ -901,11 +1579,11 @@ export class OrganizationEventDetailComponent implements OnInit {
         // Render vào canvas trong modal
         await this.renderIssuedCertificateToCanvas(config, certificateData);
       } else {
-        alert('Không thể tải dữ liệu chứng nhận');
+        this.toastService.error('Không thể tải dữ liệu chứng nhận');
       }
     } catch (error) {
       console.error('Lỗi xem chứng nhận:', error);
-      alert('Không thể xem chứng nhận: ' + (error as any)?.message || 'Đã xảy ra lỗi');
+      this.toastService.error('Không thể xem chứng nhận: ' + ((error as any)?.message || 'Đã xảy ra lỗi'));
     }
   }
   
@@ -1009,7 +1687,7 @@ export class OrganizationEventDetailComponent implements OnInit {
       }
     } catch (error) {
       console.error('Lỗi render chứng nhận đã cấp:', error);
-      alert('Không thể render chứng nhận');
+      this.toastService.error('Không thể render chứng nhận');
     }
   }
 
@@ -1055,13 +1733,13 @@ export class OrganizationEventDetailComponent implements OnInit {
     
     this.certificateService.revokeCertificate(cert.maGiayChungNhan).subscribe({
       next: () => {
-        alert('Đã thu hồi chứng nhận thành công');
+        this.toastService.success('Đã thu hồi chứng nhận thành công');
         // Reload danh sách
         this.loadIssuedCertificates();
       },
       error: (err: any) => {
         console.error('Lỗi thu hồi chứng nhận:', err);
-        alert(err.error?.message || 'Không thể thu hồi chứng nhận');
+        this.toastService.error(err.error?.message || 'Không thể thu hồi chứng nhận');
       }
     });
   }
@@ -1076,7 +1754,7 @@ export class OrganizationEventDetailComponent implements OnInit {
     if (this.evaluatedVolunteerIds.has(registration.maTaiKhoan)) return false;
     
     const eventStatus = this.getEventStatusText();
-    return eventStatus === 'Đã kết thúc';
+    return eventStatus === 'Sự kiện đã kết thúc' || eventStatus === 'Đã kết thúc';
   }
   
   openEvaluateVolunteer(registration: Registration): void {
@@ -1129,7 +1807,7 @@ export class OrganizationEventDetailComponent implements OnInit {
     
     const orgAccountId = this.auth.getUser()?.maTaiKhoan;
     if (!orgAccountId) {
-      alert('Không thể xác định tài khoản tổ chức');
+      this.toastService.error('Không thể xác định tài khoản tổ chức');
       return;
     }
     
@@ -1143,7 +1821,7 @@ export class OrganizationEventDetailComponent implements OnInit {
     
     this.evaluationService.createEvaluation(evaluation).subscribe({
       next: () => {
-        alert('Đánh giá tình nguyện viên thành công!');
+        this.toastService.success('Đánh giá tình nguyện viên thành công!');
         
         // Reload evaluations để cập nhật trạng thái
         this.loadEvaluations();
@@ -1152,7 +1830,141 @@ export class OrganizationEventDetailComponent implements OnInit {
       },
       error: (err: any) => {
         console.error('Lỗi đánh giá:', err);
-        alert(err.error?.message || 'Không thể gửi đánh giá');
+        this.toastService.error(err.error?.message || 'Không thể gửi đánh giá');
+      }
+    });
+  }
+
+  // Bulk evaluation methods
+  getSelectableVolunteersForBulkEvaluation(): Registration[] {
+    return this.registrations.filter(reg => this.canEvaluateVolunteer(reg));
+  }
+
+  getSelectedVolunteersForBulkEvaluation(): number[] {
+    return Array.from(this.selectedVolunteersForBulkEvaluation);
+  }
+
+  toggleVolunteerForBulkEvaluation(maTNV: number): void {
+    if (this.selectedVolunteersForBulkEvaluation.has(maTNV)) {
+      this.selectedVolunteersForBulkEvaluation.delete(maTNV);
+    } else {
+      this.selectedVolunteersForBulkEvaluation.add(maTNV);
+    }
+  }
+
+  selectAllVolunteersForBulkEvaluation(): void {
+    const selectable = this.getSelectableVolunteersForBulkEvaluation();
+    selectable.forEach(reg => {
+      this.selectedVolunteersForBulkEvaluation.add(reg.maTNV);
+    });
+  }
+
+  selectAllApprovedVolunteersForBulkEvaluation(): void {
+    // Chọn tất cả TNV đã duyệt và chưa được đánh giá
+    this.approvedRegistrations.forEach(reg => {
+      // Chỉ thêm vào nếu chưa được đánh giá
+      if (!this.getEvaluationForVolunteer(reg).fromOrg) {
+        this.selectedVolunteersForBulkEvaluation.add(reg.maTNV);
+      }
+    });
+  }
+
+  deselectAllVolunteersForBulkEvaluation(): void {
+    this.selectedVolunteersForBulkEvaluation.clear();
+  }
+
+  areAllSelectableVolunteersSelected(): boolean {
+    // Kiểm tra xem tất cả TNV đã duyệt và chưa được đánh giá có được chọn không
+    const selectableApproved = this.approvedRegistrations.filter(reg => !this.getEvaluationForVolunteer(reg).fromOrg);
+    if (selectableApproved.length === 0) return false;
+    return selectableApproved.every(reg => this.selectedVolunteersForBulkEvaluation.has(reg.maTNV));
+  }
+
+  toggleSelectAllVolunteersForBulkEvaluation(): void {
+    if (this.areAllSelectableVolunteersSelected()) {
+      this.deselectAllVolunteersForBulkEvaluation();
+    } else {
+      this.selectAllApprovedVolunteersForBulkEvaluation();
+    }
+  }
+
+  openBulkEvaluateModal(): void {
+    if (this.selectedVolunteersForBulkEvaluation.size === 0) {
+      this.toastService.warning('Vui lòng chọn ít nhất một tình nguyện viên');
+      return;
+    }
+    
+    // Kiểm tra và lọc lại danh sách để chỉ giữ những TNV có thể đánh giá được
+    const selectableTNVs = Array.from(this.selectedVolunteersForBulkEvaluation).filter(maTNV => {
+      const reg = this.approvedRegistrations.find(r => r.maTNV === maTNV);
+      return reg && reg.trangThai === 1 && !this.getEvaluationForVolunteer(reg).fromOrg;
+    });
+    
+    if (selectableTNVs.length === 0) {
+      this.toastService.warning('Không có tình nguyện viên nào có thể được đánh giá. Vui lòng chọn các tình nguyện viên đã được duyệt và chưa được đánh giá.');
+      return;
+    }
+    
+    // Cập nhật lại selection với danh sách đã lọc
+    this.selectedVolunteersForBulkEvaluation.clear();
+    selectableTNVs.forEach(maTNV => {
+      this.selectedVolunteersForBulkEvaluation.add(maTNV);
+    });
+    
+    this.bulkEvaluationRating = 5;
+    this.bulkEvaluationComment = '';
+    this.showBulkEvaluateModal = true;
+  }
+
+  closeBulkEvaluateModal(): void {
+    this.showBulkEvaluateModal = false;
+    this.bulkEvaluationRating = 5;
+    this.bulkEvaluationComment = '';
+  }
+
+  setBulkEvaluationRating(rating: number): void {
+    this.bulkEvaluationRating = rating;
+  }
+
+  submitBulkEvaluation(): void {
+    if (this.selectedVolunteersForBulkEvaluation.size === 0) {
+      this.toastService.warning('Vui lòng chọn ít nhất một tình nguyện viên');
+      return;
+    }
+
+    if (!this.eventId) {
+      this.toastService.error('Không tìm thấy sự kiện');
+      return;
+    }
+
+    const maTNVs = Array.from(this.selectedVolunteersForBulkEvaluation);
+    
+    this.isSubmittingBulkEvaluation = true;
+    
+    this.evaluationService.bulkEvaluate(
+      this.eventId,
+      maTNVs,
+      this.bulkEvaluationRating,
+      this.bulkEvaluationComment
+    ).subscribe({
+      next: (response: any) => {
+        const count = response.data?.length || response.count || maTNVs.length;
+        this.toastService.success(`Đã đánh giá thành công ${count} tình nguyện viên!`);
+        
+        // Reload evaluations và registrations để cập nhật trạng thái
+        this.loadEvaluations();
+        this.loadRegistrations();
+        
+        // Clear selection
+        this.selectedVolunteersForBulkEvaluation.clear();
+        
+        this.closeBulkEvaluateModal();
+        this.isSubmittingBulkEvaluation = false;
+      },
+      error: (err: any) => {
+        console.error('Lỗi đánh giá hàng loạt:', err);
+        this.toastService.error(err.error?.message || 'Không thể gửi đánh giá hàng loạt');
+        this.isSubmittingBulkEvaluation = false;
       }
     });
   }

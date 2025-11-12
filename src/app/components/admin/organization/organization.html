@@ -1,13 +1,7 @@
-<div class="main-header">
-  <h1>Quản lý Tổ chức</h1>
-  <div class="actions">
-    <div class="search-box">
-      <i class="bi bi-search"></i>
-      <input type="text" [(ngModel)]="tuKhoaTimKiem" (input)="timKiem()" placeholder="Tìm kiếm tổ chức..." />
-    </div>
-    <button class="btn btn-primary" (click)="batDauThemMoi()">
-      <i class="bi bi-plus-circle"></i> Thêm tổ chức
-    </button>
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+  <div>
+    <h2 class="page-title mb-1">Quản lý xác minh tổ chức</h2>
+    <p class="text-muted mb-0">Danh sách toàn bộ tổ chức trên hệ thống</p>
   </div>
 </div>
 
@@ -24,56 +18,90 @@
     <div class="stat-value">{{demToChuc(TrangThaiXacMinh.TuChoi)}}</div>
     <div class="stat-label">Từ chối</div>
   </div>
+  <div class="stat-card">
+    <div class="stat-value">{{demToChuc(TrangThaiXacMinh.ThuHoi)}}</div>
+    <div class="stat-label">Đã thu hồi</div>
+  </div>
 </div>
 
 <div class="table-container">
-  <table class="data-table">
-    <thead>
-      <tr>
-        <th>Mã TC</th>
-        <th>Tên tổ chức</th>
-        <th>Email</th>
-        <th>Địa chỉ</th>
-        <th>Trạng thái</th>
-        <th>Ngày tạo</th>
-        <th>Thao tác</th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr *ngFor="let toChuc of danhSachHienThi">
-        <td>{{toChuc.maToChuc}}</td>
-        <td>{{toChuc.tenToChuc || 'Chưa cập nhật'}}</td>
-        <td>{{toChuc.email}}</td>
-        <td>{{toChuc.diaChi || 'Chưa cập nhật'}}</td>
-        <td>
-          <span class="badge" [ngClass]="{
-            'badge-pending': toChuc.trangThaiXacMinh === TrangThaiXacMinh.ChoDuyet || toChuc.trangThaiXacMinh === null,
-            'badge-approved': toChuc.trangThaiXacMinh === TrangThaiXacMinh.DaDuyet,
-            'badge-rejected': toChuc.trangThaiXacMinh === TrangThaiXacMinh.TuChoi
-          }">{{getTrangThaiText(toChuc.trangThaiXacMinh)}}</span>
-        </td>
-        <td>{{formatNgayTao(toChuc.ngayTao)}}</td>
-        <td>
-          <div class="btn-group">
-            <button class="btn-action btn-view" (click)="xemChiTiet(toChuc)">
-              <i class="bi bi-eye"></i>
-            </button>
-            <button class="btn-action btn-edit" (click)="suaToChuc(toChuc)">
-              <i class="bi bi-pencil"></i>
-            </button>
-            <button class="btn-action btn-delete" (click)="xoaToChuc(toChuc)">
-              <i class="bi bi-trash"></i>
-            </button>
-          </div>
-        </td>
-      </tr>
-      <tr *ngIf="danhSachHienThi.length === 0">
-        <td colspan="7" class="text-center py-3">
-          <p class="text-muted mb-0">Không tìm thấy tổ chức nào</p>
-        </td>
-      </tr>
-    </tbody>
-  </table>
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <div class="d-flex gap-2 align-items-center flex-wrap">
+      <h4>Quản lý xác minh tổ chức</h4>
+      <span class="badge bg-warning text-dark">Chờ duyệt: {{demToChuc(TrangThaiXacMinh.ChoDuyet)}}</span>
+      <span class="badge bg-success">Đã duyệt: {{demToChuc(TrangThaiXacMinh.DaDuyet)}}</span>
+      <span class="badge bg-danger">Từ chối: {{demToChuc(TrangThaiXacMinh.TuChoi)}}</span>
+      <span class="badge bg-dark">Đã thu hồi: {{demToChuc(TrangThaiXacMinh.ThuHoi)}}</span>
+    </div>
+    <div class="d-flex gap-2">
+      
+      <select class="form-select" [(ngModel)]="filterStatus" (change)="onFilterChange()" style="width: 220px; padding: 0.375rem 0.75rem;">
+        <option value="all">Tất cả trạng thái</option>
+        <option [value]="TrangThaiXacMinh.ChoDuyet">Chờ duyệt</option>
+        <option [value]="TrangThaiXacMinh.DaDuyet">Đã duyệt</option>
+        <option [value]="TrangThaiXacMinh.TuChoi">Từ chối</option>
+        <option [value]="TrangThaiXacMinh.ThuHoi">Đã thu hồi</option>
+      </select>
+      <input type="text" class="form-control" [(ngModel)]="tuKhoaTimKiem" (input)="applyFilters()" placeholder="Tìm kiếm..." style="padding: 0.375rem 0.75rem;" />
+    </div>
+  </div>
+  <app-table
+    [columns]="tableColumns"
+    [data]="paginatedOrganizationsList"
+    [emptyText]="'Không tìm thấy tổ chức nào'"
+    [storageKey]="'organization'"
+  >
+    <!-- Template cho cột Giao diện (avatar/logo) -->
+    <ng-template #giaoDienTemplate let-toChuc>
+      <div class="org-avatar">
+        <img *ngIf="toChuc.anhDaiDien" [src]="getImageUrl(toChuc.anhDaiDien)"
+             alt="Logo tổ chức" (error)="$event.target.src='assets/images/organization-placeholder.png'">
+        <div *ngIf="!toChuc.anhDaiDien" class="org-avatar-fallback">
+          {{ (toChuc.tenToChuc || 'TC').trim().charAt(0) | uppercase }}
+        </div>
+      </div>
+    </ng-template>
+
+    <!-- Template cho cột Số điện thoại -->
+    <ng-template #soDienThoaiTemplate let-toChuc>
+      {{toChuc.soDienThoai || 'Chưa cập nhật'}}
+    </ng-template>
+
+    <!-- Template cho cột Trạng thái -->
+    <ng-template #trangThaiTemplate let-toChuc>
+      <span class="badge rounded-pill" [ngClass]="getTrangThaiClass(toChuc.trangThaiXacMinh)">
+        {{getTrangThaiText(toChuc.trangThaiXacMinh)}}
+      </span>
+    </ng-template>
+
+    <!-- Template cho cột Ngày tạo -->
+    <ng-template #ngayTaoTemplate let-toChuc>
+      {{formatNgayTao(toChuc.ngayTao)}}
+    </ng-template>
+
+    <!-- Template cho cột Thao tác -->
+    <ng-template #actionsTemplate let-toChuc>
+      <div class="btn-group">
+        <button class="btn-action btn-view" (click)="xemChiTiet(toChuc); $event.stopPropagation()">
+          <i class="bi bi-eye"></i>
+        </button>
+        <button class="btn-action btn-edit" (click)="suaToChuc(toChuc); $event.stopPropagation()">
+          <i class="bi bi-pencil"></i>
+        </button>
+        <button class="btn-action btn-delete" (click)="xoaToChuc(toChuc); $event.stopPropagation()">
+          <i class="bi bi-trash"></i>
+        </button>
+      </div>
+    </ng-template>
+  </app-table>
+  
+  <app-pagination
+    [totalItems]="danhSachHienThi.length"
+    [itemsPerPage]="itemsPerPage"
+    [currentPage]="currentPage"
+    (pageChange)="onPageChange($event)"
+    (itemsPerPageChange)="onItemsPerPageChange($event)"
+  ></app-pagination>
 </div>
 
 <!-- Modal chi tiết tổ chức -->
@@ -84,122 +112,115 @@
       <button class="btn-close" (click)="dongModal()">&times;</button>
     </div>
     <div class="modal-body">
-      <div class="row">
-        <div class="col-md-4 text-center mb-3">
-          <img [src]="getImageUrl(hoSoDangXem.anhDaiDien) || 'assets/images/organization-placeholder.png'" 
-            class="img-fluid rounded" alt="Logo tổ chức" style="max-height: 200px;"
-            onerror="this.src='assets/images/organization-placeholder.png'">
-        </div>
-        <div class="col-md-8">
-          <h4>{{hoSoDangXem.tenToChuc || 'Chưa cập nhật tên tổ chức'}}</h4>
-          
-          <div class="detail-row">
-            <div class="label">Email:</div>
-            <div class="value">{{hoSoDangXem.email}}</div>
+      <div class="org-detail-grid">
+        <div class="org-hero">
+          <div class="org-hero-avatar">
+            <img [src]="getImageUrl(hoSoDangXem.anhDaiDien) || 'assets/images/organization-placeholder.png'"
+                 alt="Logo tổ chức"
+                 onerror="this.src='assets/images/organization-placeholder.png'">
           </div>
-          
-          <div class="detail-row">
-            <div class="label">Số điện thoại:</div>
-            <div class="value">{{hoSoDangXem.soDienThoai || 'Chưa cập nhật'}}</div>
-          </div>
-          
-          <div class="detail-row">
-            <div class="label">Địa chỉ:</div>
-            <div class="value">{{hoSoDangXem.diaChi || 'Chưa cập nhật'}}</div>
-          </div>
-          
-          <div class="detail-row">
-            <div class="label">Ngày đăng ký:</div>
-            <div class="value">{{formatNgayTao(hoSoDangXem.ngayTao)}}</div>
-          </div>
-          
-          <div class="detail-row">
-            <div class="label">Trạng thái:</div>
-            <div class="value">
-              <span class="badge" [ngClass]="{
-                'badge-pending': hoSoDangXem.trangThaiXacMinh === TrangThaiXacMinh.ChoDuyet || hoSoDangXem.trangThaiXacMinh === null,
-                'badge-approved': hoSoDangXem.trangThaiXacMinh === TrangThaiXacMinh.DaDuyet,
-                'badge-rejected': hoSoDangXem.trangThaiXacMinh === TrangThaiXacMinh.TuChoi
-              }">{{getTrangThaiText(hoSoDangXem.trangThaiXacMinh)}}</span>
+          <div class="org-hero-info">
+            <h3 class="org-title">{{hoSoDangXem.tenToChuc || 'Chưa cập nhật tên tổ chức'}}</h3>
+            <div class="org-meta">
+              <span class="badge rounded-pill" [ngClass]="getTrangThaiClass(hoSoDangXem.trangThaiXacMinh)">
+                {{getTrangThaiText(hoSoDangXem.trangThaiXacMinh)}}
+              </span>
+              <span class="org-meta-item">
+                <i class="bi bi-envelope"></i> {{hoSoDangXem.email}}
+              </span>
+              <span class="org-meta-item">
+                <i class="bi bi-telephone"></i> {{hoSoDangXem.soDienThoai || 'Chưa cập nhật'}}
+              </span>
+              <span class="org-meta-item">
+                <i class="bi bi-geo-alt"></i> {{hoSoDangXem.diaChi || 'Chưa cập nhật'}}
+              </span>
+              <span class="org-meta-item">
+                <i class="bi bi-calendar"></i> {{formatNgayTao(hoSoDangXem.ngayTao)}}
+              </span>
             </div>
           </div>
-          
-          <div class="detail-row" *ngIf="hoSoDangXem.trangThaiXacMinh === TrangThaiXacMinh.TuChoi && hoSoDangXem.lyDoTuChoi">
-            <div class="label">Lý do từ chối:</div>
-            <div class="value text-danger">{{hoSoDangXem.lyDoTuChoi}}</div>
+        </div>
+
+        <div class="detail-two-col">
+          <div class="detail-section">
+            <h3>Giới thiệu</h3>
+            <div class="detail-row full-width">
+              <div class="value">{{hoSoDangXem.gioiThieu || 'Chưa cập nhật'}}</div>
+            </div>
+            <div class="detail-row" *ngIf="hoSoDangXem.trangThaiXacMinh === TrangThaiXacMinh.TuChoi && hoSoDangXem.lyDoTuChoi">
+              <div class="label">Lý do từ chối:</div>
+              <div class="value text-danger">{{hoSoDangXem.lyDoTuChoi}}</div>
+            </div>
           </div>
-          
-          <div class="detail-row full-width">
-            <div class="label">Giới thiệu:</div>
-            <div class="value">{{hoSoDangXem.gioiThieu || 'Chưa cập nhật'}}</div>
+
+          <div class="detail-section">
+            <h3>Giấy tờ pháp lý</h3>
+            <div class="doc-list" *ngIf="hoSoDangXem?.giayTos?.length > 0; else noDocs">
+              <div class="doc-item" *ngFor="let d of hoSoDangXem.giayTos">
+                <div class="doc-main">
+                  <div class="doc-icon"><i class="bi bi-file-earmark-text"></i></div>
+                  <div class="doc-info">
+                    <div class="doc-name">{{ d.tenGiayTo || 'Giấy tờ' }}</div>
+                    <div class="doc-meta">
+                      <span class="text-truncate">{{ d.moTa || 'Không có mô tả' }}</span>
+                      <span class="doc-date">{{ d.ngayTao | date:'dd/MM/yyyy HH:mm' }}</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="doc-actions">
+                  <a [href]="getImageUrl(d.file)" target="_blank" class="btn btn-sm btn-outline-secondary" *ngIf="d.file">Xem/Tải</a>
+                </div>
+              </div>
+            </div>
+            <ng-template #noDocs>
+              <div class="empty-state">Chưa có giấy tờ</div>
+            </ng-template>
           </div>
         </div>
       </div>
       
       <div class="mt-4">
-        <h5>Sự kiện đã tạo</h5>
-        <div class="table-responsive">
-          <table class="table table-sm table-hover">
-            <thead>
-              <tr>
-                <th>Tên sự kiện</th>
-                <th>Ngày bắt đầu</th>
-                <th>Ngày kết thúc</th>
-                <th>Số lượng TNV</th>
-                <th>Trạng thái</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr *ngIf="!hoSoDangXem.suKiens || hoSoDangXem.suKiens?.length === 0">
-                <td colspan="5" class="text-center">Chưa có sự kiện nào</td>
-              </tr>
-              <tr *ngFor="let event of hoSoDangXem.suKiens">
-                <td>{{event.tenSuKien || 'Chưa có tên'}}</td>
-                <td>{{event.ngayBatDau ? formatNgayTao(event.ngayBatDau) : 'Chưa có'}}</td>
-                <td>{{event.ngayKetThuc ? formatNgayTao(event.ngayKetThuc) : 'Chưa có'}}</td>
-                <td>{{event.soLuong || 0}}</td>
-                <td>
-                  <span class="badge" [ngClass]="{
-                    'badge-pending': event.trangThai === 'Đang tuyển' || event.trangThai === 'Sắp diễn ra',
-                    'badge-approved': event.trangThai === 'Đang diễn ra' || event.trangThai === 'Đã duyệt',
-                    'badge-type': event.trangThai === 'Đã kết thúc' || event.trangThai === 'Kết thúc',
-                    'badge-danger': event.trangThai === 'Hủy bỏ' || event.trangThai === 'Đã hủy'
-                  }">{{event.trangThai || 'Đang tuyển'}}</span>
-                </td>
-              </tr>
-            </tbody>
-          </table>
+        <h5 class="section-title">Sự kiện đã tạo</h5>
+        <div class="events-table-wrapper">
+          <div class="table-scroll-x">
+            <app-table
+              [columns]="eventTableColumns"
+              [data]="eventsPaginatedList"
+              [emptyText]="'Chưa có sự kiện nào'"
+              [storageKey]="'organization-events'"
+            >
+              <ng-template #eventImageTemplate let-row>
+                <div class="event-thumb">
+                  <img [src]="row?.hinhAnh ? getImageUrl(row.hinhAnh) : 'assets/images/event-placeholder.png'"
+                       alt="Hình sự kiện"
+                       (error)="$event.target.src='assets/images/event-placeholder.png'">
+                </div>
+              </ng-template>
+
+              <ng-template #eventDateTemplate let-row let-column="column">
+                {{ row?.[column.key] ? (formatDateDash(row?.[column.key]) || 'Chưa có') : 'Chưa có' }}
+              </ng-template>
+
+              <ng-template #eventStatusTemplate let-row>
+                <span class="badge" [ngClass]="getEventStatusClassFromText(row?.trangThaiHienThi)">
+                  {{row?.trangThaiHienThi || 'Đang tuyển'}}
+                </span>
+              </ng-template>
+            </app-table>
+          </div>
+        </div>
+        <div class="events-pagination">
+          <app-pagination
+            [totalItems]="hoSoDangXem?.suKiens?.length || 0"
+            [itemsPerPage]="eventsItemsPerPage"
+            [currentPage]="eventsCurrentPage"
+            (pageChange)="onEventsPageChange($event)"
+            (itemsPerPageChange)="onEventsItemsPerPageChange($event)"
+          ></app-pagination>
         </div>
       </div>
 
-      <div class="mt-4">
-        <h5>Giấy tờ pháp lý</h5>
-        <div class="table-responsive">
-          <table class="table table-sm table-hover">
-            <thead>
-              <tr>
-                <th>Tên giấy tờ</th>
-                <th>Mô tả</th>
-                <th>File</th>
-                <th>Ngày tải</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr *ngIf="!hoSoDangXem.giayTos || hoSoDangXem.giayTos.length === 0">
-                <td colspan="4" class="text-center">Chưa có giấy tờ</td>
-              </tr>
-              <tr *ngFor="let d of hoSoDangXem.giayTos">
-                <td>{{ d.tenGiayTo || 'Giấy tờ' }}</td>
-                <td class="text-truncate" style="max-width:260px">{{ d.moTa }}</td>
-                <td>
-                  <a *ngIf="d.file" [href]="getImageUrl(d.file)" target="_blank" class="btn btn-sm btn-outline-secondary">Xem/Tải</a>
-                </td>
-                <td>{{ d.ngayTao | date:'dd/MM/yyyy HH:mm' }}</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
+      <!-- Phần giấy tờ pháp lý đã chuyển lên cạnh Giới thiệu -->
     </div>
     <div class="modal-footer">
       <button class="btn-modal btn-edit" (click)="suaToChuc(hoSoDangXem)">Chỉnh sửa</button>
@@ -212,48 +233,52 @@
 <div class="modal" *ngIf="toChucDangSua" (click)="huyChinhSua()">
   <div class="modal-content" (click)="$event.stopPropagation()">
     <div class="modal-header">
-      <h2>{{isThemMoi ? 'Thêm tổ chức mới' : 'Chỉnh sửa tổ chức'}}</h2>
+      <h2>Chỉnh sửa tổ chức</h2>
       <button class="btn-close" (click)="huyChinhSua()">&times;</button>
     </div>
     <div class="modal-body">
       <form (ngSubmit)="luuToChuc()">
-        <div class="form-group">
-          <label for="tenToChuc">Tên tổ chức</label>
-          <input type="text" id="tenToChuc" class="form-control" [(ngModel)]="toChucDangSua.tenToChuc" name="tenToChuc" required>
+        <div class="form-grid two-col">
+          <div class="form-group">
+            <label for="tenToChuc">Tên tổ chức <span class="required">*</span></label>
+            <input type="text" id="tenToChuc" class="form-control" [(ngModel)]="toChucDangSua.tenToChuc" name="tenToChuc" placeholder="Nhập tên tổ chức" required>
+          </div>
+          
+          <div class="form-group">
+            <label for="email">Email <span class="required">*</span></label>
+            <input type="email" id="email" class="form-control" [(ngModel)]="toChucDangSua.email" name="email" placeholder="email@domain.com" required>
+          </div>
+          
+          <div class="form-group">
+            <label for="soDienThoai">Số điện thoại</label>
+            <input type="tel" id="soDienThoai" class="form-control" [(ngModel)]="toChucDangSua.soDienThoai" name="soDienThoai" placeholder="Ví dụ: 0912345678">
+          </div>
+          
+          <div class="form-group">
+            <label for="diaChi">Địa chỉ</label>
+            <input type="text" id="diaChi" class="form-control" [(ngModel)]="toChucDangSua.diaChi" name="diaChi" placeholder="Số nhà, đường, phường/xã, quận/huyện, tỉnh/thành">
+          </div>
         </div>
-        
-        <div class="form-group">
-          <label for="email">Email</label>
-          <input type="email" id="email" class="form-control" [(ngModel)]="toChucDangSua.email" name="email" required>
-        </div>
-        
-        <div class="form-group">
-          <label for="soDienThoai">Số điện thoại</label>
-          <input type="tel" id="soDienThoai" class="form-control" [(ngModel)]="toChucDangSua.soDienThoai" name="soDienThoai">
-        </div>
-        
-        <div class="form-group">
-          <label for="diaChi">Địa chỉ</label>
-          <input type="text" id="diaChi" class="form-control" [(ngModel)]="toChucDangSua.diaChi" name="diaChi">
-        </div>
-        
+
         <div class="form-group">
           <label for="gioiThieu">Giới thiệu</label>
-          <textarea id="gioiThieu" class="form-control" [(ngModel)]="toChucDangSua.gioiThieu" name="gioiThieu" rows="3"></textarea>
+          <textarea id="gioiThieu" class="form-control" [(ngModel)]="toChucDangSua.gioiThieu" name="gioiThieu" rows="4" placeholder="Mô tả ngắn về tổ chức, sứ mệnh, hoạt động nổi bật..."></textarea>
         </div>
-        
-        <div class="form-group">
-          <label for="trangThaiXacMinh">Trạng thái xác minh</label>
-          <select id="trangThaiXacMinh" class="form-control" [(ngModel)]="toChucDangSua.trangThaiXacMinh" name="trangThaiXacMinh">
-            <option [ngValue]="TrangThaiXacMinh.ChoDuyet">Chờ duyệt</option>
-            <option [ngValue]="TrangThaiXacMinh.DaDuyet">Đã duyệt</option>
-            <option [ngValue]="TrangThaiXacMinh.TuChoi">Từ chối</option>
-          </select>
-        </div>
-        
-        <div class="form-group" *ngIf="toChucDangSua.trangThaiXacMinh === TrangThaiXacMinh.TuChoi">
-          <label for="lyDoTuChoi">Lý do từ chối</label>
-          <textarea id="lyDoTuChoi" class="form-control" [(ngModel)]="toChucDangSua.lyDoTuChoi" name="lyDoTuChoi" rows="2"></textarea>
+
+        <div class="form-grid two-col">
+          <div class="form-group">
+            <label>Trạng thái xác minh</label>
+            <div>
+              <span class="badge" [ngClass]="getTrangThaiClass(toChucDangSua.trangThaiXacMinh)">
+                {{ getTrangThaiText(toChucDangSua.trangThaiXacMinh) }}
+              </span>
+            </div>
+          </div>
+
+          <div class="form-group" *ngIf="toChucDangSua.trangThaiXacMinh === TrangThaiXacMinh.TuChoi">
+            <label for="lyDoTuChoi">Lý do từ chối</label>
+            <textarea id="lyDoTuChoi" class="form-control" [(ngModel)]="toChucDangSua.lyDoTuChoi" name="lyDoTuChoi" rows="2" placeholder="Nhập lý do từ chối" readonly></textarea>
+          </div>
         </div>
       </form>
     </div>

@@ -1,13 +1,149 @@
-<div class="admin-evaluations py-4 px-3 px-lg-4">
+<div class="admin-evaluations p-0">
+  
   <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
     <div>
-      <h2 class="page-title mb-1">Tổng hợp đánh giá</h2>
+      <h2 class="mb-1">Tổng hợp đánh giá</h2>
       <p class="text-muted mb-0">Danh sách toàn bộ đánh giá giữa tổ chức và tình nguyện viên trên hệ thống</p>
     </div>
-    <button class="btn btn-outline-primary" type="button" (click)="reload()" [disabled]="isLoading">
-      <i class="bi bi-arrow-repeat me-1"></i>
-      Làm mới
-    </button>
+  </div>
+
+  <!-- Stats overview -->
+  <div class="row g-3 mb-4">
+    <div class="col-12 col-md-4">
+      <div class="stat-card d-flex align-items-center">
+        <div class="stat-icon bg-primary-subtle text-primary"><i class="bi bi-card-checklist"></i></div>
+        <div class="ms-3">
+          <div class="stat-label">Tổng số đánh giá</div>
+          <div class="stat-value">{{ totalEvaluationsCount }}</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-md-4">
+      <div class="stat-card d-flex align-items-center">
+        <div class="stat-icon bg-success-subtle text-success"><i class="bi bi-hand-thumbs-up"></i></div>
+        <div class="ms-3">
+          <div class="stat-label">Điểm trung bình</div>
+          <div class="stat-value">{{ averageScore | number:'1.1-1' }}/5</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-md-4">
+      <div class="stat-card d-flex align-items-center">
+        <div class="stat-split">
+          <span class="badge rounded-pill bg-primary-subtle text-primary"><i class="bi bi-person-heart me-1"></i> TNV ➜ TC: {{ v2oCount }}</span>
+          <span class="badge rounded-pill bg-warning-subtle text-warning"><i class="bi bi-building-check me-1"></i> TC ➜ TNV: {{ o2vCount }}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bộ lọc thời gian -->
+  <div class="card mb-4">
+    <div class="card-body">
+      <div class="row g-3 align-items-end">
+        <div class="col-md-3">
+          <label class="form-label small fw-semibold mb-2">Loại lọc</label>
+          <select class="form-select" [(ngModel)]="timeFilterType" (change)="onTimeFilterTypeChange()">
+            <option value="year">Theo năm</option>
+            <option value="quarter">Theo quý</option>
+            <option value="month">Theo tháng</option>
+            <option value="custom">Khoảng ngày cụ thể</option>
+          </select>
+        </div>
+
+        <!-- Lọc theo năm -->
+        <div class="col-md-3" *ngIf="timeFilterType === 'year'">
+          <label class="form-label small fw-semibold mb-2">Năm</label>
+          <select class="form-select" [(ngModel)]="selectedYear" (change)="applyTimeFilter()">
+            <option *ngFor="let year of availableYears" [value]="year">{{ year }}</option>
+          </select>
+        </div>
+
+        <!-- Lọc theo quý -->
+        <div class="col-md-2" *ngIf="timeFilterType === 'quarter'">
+          <label class="form-label small fw-semibold mb-2">Năm</label>
+          <select class="form-select" [(ngModel)]="selectedYear" (change)="applyTimeFilter()">
+            <option *ngFor="let year of availableYears" [value]="year">{{ year }}</option>
+          </select>
+        </div>
+        <div class="col-md-2" *ngIf="timeFilterType === 'quarter'">
+          <label class="form-label small fw-semibold mb-2">Quý</label>
+          <select class="form-select" [(ngModel)]="selectedQuarter" (change)="applyTimeFilter()">
+            <option value="1">Quý 1</option>
+            <option value="2">Quý 2</option>
+            <option value="3">Quý 3</option>
+            <option value="4">Quý 4</option>
+          </select>
+        </div>
+
+        <!-- Lọc theo tháng -->
+        <div class="col-md-2" *ngIf="timeFilterType === 'month'">
+          <label class="form-label small fw-semibold mb-2">Năm</label>
+          <select class="form-select" [(ngModel)]="selectedYear" (change)="applyTimeFilter()">
+            <option *ngFor="let year of availableYears" [value]="year">{{ year }}</option>
+          </select>
+        </div>
+        <div class="col-md-2" *ngIf="timeFilterType === 'month'">
+          <label class="form-label small fw-semibold mb-2">Tháng</label>
+          <select class="form-select" [(ngModel)]="selectedMonth" (change)="applyTimeFilter()">
+            <option value="1">Tháng 1</option>
+            <option value="2">Tháng 2</option>
+            <option value="3">Tháng 3</option>
+            <option value="4">Tháng 4</option>
+            <option value="5">Tháng 5</option>
+            <option value="6">Tháng 6</option>
+            <option value="7">Tháng 7</option>
+            <option value="8">Tháng 8</option>
+            <option value="9">Tháng 9</option>
+            <option value="10">Tháng 10</option>
+            <option value="11">Tháng 11</option>
+            <option value="12">Tháng 12</option>
+          </select>
+        </div>
+
+        <!-- Lọc theo khoảng ngày -->
+        <div class="col-md-4" *ngIf="timeFilterType === 'custom'">
+          <label class="form-label small fw-semibold mb-2">Khoảng thời gian</label>
+          <nz-range-picker
+            [(ngModel)]="dateRange"
+            (ngModelChange)="onDateRangeChange($event)"
+            nzFormat="dd/MM/yyyy"
+            [nzPlaceHolder]="['Từ ngày', 'Đến ngày']"
+            nzSize="default"
+            style="width: 100%;" />
+        </div>
+
+        <!-- Lọc theo số sao -->
+        <div class="col-md-2">
+          <label class="form-label small fw-semibold mb-2">Số sao tối thiểu</label>
+          <select class="form-select" [ngModel]="selectedMinScore" (ngModelChange)="onMinScoreChange($event)">
+            <option [ngValue]="null">Tất cả</option>
+            <option [ngValue]="1">1 sao trở lên</option>
+            <option [ngValue]="2">2 sao trở lên</option>
+            <option [ngValue]="3">3 sao trở lên</option>
+            <option [ngValue]="4">4 sao trở lên</option>
+            <option [ngValue]="5">5 sao</option>
+          </select>
+        </div>
+        <div class="col-md-2">
+          <label class="form-label small fw-semibold mb-2">Số sao tối đa</label>
+          <select class="form-select" [ngModel]="selectedMaxScore" (ngModelChange)="onMaxScoreChange($event)">
+            <option [ngValue]="null">Tất cả</option>
+            <option [ngValue]="1">1 sao</option>
+            <option [ngValue]="2">2 sao</option>
+            <option [ngValue]="3">3 sao</option>
+            <option [ngValue]="4">4 sao</option>
+            <option [ngValue]="5">5 sao</option>
+          </select>
+        </div>
+
+        <div class="col-md-auto">
+          <button class="btn btn-outline-secondary" (click)="clearTimeFilter()">
+            <i class="bi bi-x-circle me-1"></i>Xóa bộ lọc
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 
   <div *ngIf="isLoading" class="loading-state text-center py-5">
@@ -22,64 +158,128 @@
   </div>
 
   <div *ngIf="!isLoading && !errorMessage" class="row g-4">
-    <div class="col-12 col-xl-6">
+    <!-- Sidebar filters -->
+    <div class="col-12 col-xl-3">
       <div class="evaluation-panel">
         <div class="panel-header">
           <div>
-            <h5 class="mb-0">Tình nguyện viên ➜ Tổ chức</h5>
-            <small class="text-muted">Đánh giá tổ chức do tình nguyện viên gửi</small>
+            <h5 class="mb-0">Bộ lọc nâng cao</h5>
+            <small class="text-muted">Theo tổ chức và sự kiện</small>
           </div>
-          <span class="badge bg-light text-dark">{{ volunteerToOrganization.length }}</span>
+          <button class="btn btn-sm btn-outline-secondary" (click)="clearNameFilters()">
+            <i class="bi bi-eraser me-1"></i> Xóa
+          </button>
         </div>
-
-        <div *ngIf="volunteerToOrganization.length === 0" class="empty-state">
-          <i class="bi bi-emoji-neutral mb-2"></i>
-          <p class="mb-0 text-muted">Chưa có đánh giá nào.</p>
-        </div>
-
-        <div *ngFor="let evaluation of volunteerToOrganization; trackBy: trackByEvaluationId" class="evaluation-card">
-          <div class="evaluation-meta">
-            <div>
-              <strong>{{ evaluation.scorerName }}</strong>
-              <div class="text-muted small">
-                {{ evaluation.eventName }} • {{ evaluation.createdAt | date:'dd/MM/yyyy HH:mm' }}
-              </div>
+        <div>
+          <label class="fw-semibold small text-uppercase text-muted d-block mb-2">Tổ chức</label>
+          <div class="filter-list">
+            <div *ngIf="organizationOptions.length === 0" class="text-muted small">Chưa có dữ liệu</div>
+            <div class="form-check mb-2" *ngFor="let org of organizationOptions">
+              <input class="form-check-input" type="checkbox" [id]="'org_'+org" [checked]="isOrgSelected(org)" (change)="toggleOrganization(org)">
+              <label class="form-check-label" [for]="'org_'+org">{{ org }}</label>
             </div>
-            <app-star-rating [rating]="evaluation.score" [readonly]="true" size="sm" [showLabel]="false"></app-star-rating>
           </div>
-          <p class="mb-1">{{ evaluation.content || 'Tình nguyện viên không để lại nhận xét chi tiết.' }}</p>
-          <div class="text-muted small">Đánh giá cho: {{ evaluation.targetName }}</div>
+        </div>
+        <div class="mt-3">
+          <label class="fw-semibold small text-uppercase text-muted d-block mb-2">Sự kiện</label>
+          <div class="filter-list">
+            <div *ngIf="eventOptions.length === 0" class="text-muted small">Chưa có dữ liệu</div>
+            <div class="form-check mb-2" *ngFor="let ev of eventOptions">
+              <input class="form-check-input" type="checkbox" [id]="'ev_'+ev" [checked]="isEventSelected(ev)" (change)="toggleEvent(ev)">
+              <label class="form-check-label" [for]="'ev_'+ev">{{ ev }}</label>
+            </div>
+          </div>
         </div>
       </div>
     </div>
 
-    <div class="col-12 col-xl-6">
-      <div class="evaluation-panel">
-        <div class="panel-header">
-          <div>
-            <h5 class="mb-0">Tổ chức ➜ Tình nguyện viên</h5>
-            <small class="text-muted">Đánh giá tình nguyện viên do tổ chức gửi</small>
-          </div>
-          <span class="badge bg-light text-dark">{{ organizationToVolunteer.length }}</span>
-        </div>
-
-        <div *ngIf="organizationToVolunteer.length === 0" class="empty-state">
-          <i class="bi bi-people mb-2"></i>
-          <p class="mb-0 text-muted">Chưa có đánh giá nào.</p>
-        </div>
-
-        <div *ngFor="let evaluation of organizationToVolunteer; trackBy: trackByEvaluationId" class="evaluation-card">
-          <div class="evaluation-meta">
-            <div>
-              <strong>{{ evaluation.scorerName }}</strong>
-              <div class="text-muted small">
-                {{ evaluation.eventName }} • {{ evaluation.createdAt | date:'dd/MM/yyyy HH:mm' }}
+    <!-- Content -->
+    <div class="col-12 col-xl-9">
+      <div class="row g-4">
+        <div class="col-12 col-xl-6">
+          <div class="evaluation-panel">
+            <div class="panel-header">
+              <div>
+                <h5 class="mb-0">Tình nguyện viên ➜ Tổ chức</h5>
+                <small class="text-muted">Đánh giá tổ chức do tình nguyện viên gửi</small>
               </div>
+              <span class="badge bg-light text-dark">{{ volunteerToOrganization.length }}</span>
             </div>
-            <app-star-rating [rating]="evaluation.score" [readonly]="true" size="sm" [showLabel]="false"></app-star-rating>
+
+            <div *ngIf="volunteerToOrganization.length === 0" class="empty-state">
+              <i class="bi bi-emoji-neutral mb-2"></i>
+              <p class="mb-0 text-muted">Chưa có đánh giá nào.</p>
+            </div>
+
+            <div *ngFor="let evaluation of paginatedVolunteerToOrg; trackBy: trackByEvaluationId" class="evaluation-card">
+              <div class="evaluation-meta">
+                <div>
+                  <span class="role-chip me-2 bg-primary-subtle text-primary"><i class="bi bi-person"></i></span>
+                  <strong>{{ evaluation.scorerName }}</strong>
+                  <div class="text-muted small">
+                    <i class="bi bi-calendar-event me-1 text-primary"></i><strong>{{ evaluation.eventName }}</strong>
+                    <span class="mx-1">•</span>
+                    <i class="bi bi-clock me-1 text-success"></i><strong>{{ evaluation.createdAt | date:'dd/MM/yyyy HH:mm' }}</strong>
+                  </div>
+                </div>
+                <app-star-rating [rating]="evaluation.score" [readonly]="true" size="sm" [showLabel]="false"></app-star-rating>
+              </div>
+              <p class="mb-1 evaluation-content">{{ evaluation.content || 'Tình nguyện viên không để lại nhận xét chi tiết.' }}</p>
+              <div class="text-muted small"><span class="role-chip me-1 bg-warning-subtle text-warning"><i class="bi bi-building"></i></span>Đánh giá cho: {{ evaluation.targetName }}</div>
+            </div>
+            
+            <app-pagination
+              *ngIf="volunteerToOrganization.length > 0"
+              [totalItems]="volunteerToOrganization.length"
+              [itemsPerPage]="itemsPerPage"
+              [currentPage]="volunteerCurrentPage"
+              (pageChange)="onVolunteerPageChange($event)"
+              (itemsPerPageChange)="onVolunteerItemsPerPageChange($event)"
+            ></app-pagination>
           </div>
-          <p class="mb-1">{{ evaluation.content || 'Tổ chức không để lại nhận xét chi tiết.' }}</p>
-          <div class="text-muted small">Đánh giá cho: {{ evaluation.targetName }}</div>
+        </div>
+
+        <div class="col-12 col-xl-6">
+          <div class="evaluation-panel">
+            <div class="panel-header">
+              <div>
+                <h5 class="mb-0">Tổ chức ➜ Tình nguyện viên</h5>
+                <small class="text-muted">Đánh giá tình nguyện viên do tổ chức gửi</small>
+              </div>
+              <span class="badge bg-light text-dark">{{ organizationToVolunteer.length }}</span>
+            </div>
+
+            <div *ngIf="organizationToVolunteer.length === 0" class="empty-state">
+              <i class="bi bi-people mb-2"></i>
+              <p class="mb-0 text-muted">Chưa có đánh giá nào.</p>
+            </div>
+
+            <div *ngFor="let evaluation of paginatedOrgToVolunteer; trackBy: trackByEvaluationId" class="evaluation-card">
+              <div class="evaluation-meta">
+                <div>
+                  <span class="role-chip me-2 bg-warning-subtle text-warning"><i class="bi bi-building"></i></span>
+                  <strong>{{ evaluation.scorerName }}</strong>
+                  <div class="text-muted small">
+                    <i class="bi bi-calendar-event me-1 text-primary"></i><strong>{{ evaluation.eventName }}</strong>
+                    <span class="mx-1">•</span>
+                    <i class="bi bi-clock me-1 text-success"></i><strong>{{ evaluation.createdAt | date:'dd/MM/yyyy HH:mm' }}</strong>
+                  </div>
+                </div>
+                <app-star-rating [rating]="evaluation.score" [readonly]="true" size="sm" [showLabel]="false"></app-star-rating>
+              </div>
+              <p class="mb-1 evaluation-content">{{ evaluation.content || 'Tổ chức không để lại nhận xét chi tiết.' }}</p>
+              <div class="text-muted small"><span class="role-chip me-1 bg-primary-subtle text-primary"><i class="bi bi-person"></i></span>Đánh giá cho: {{ evaluation.targetName }}</div>
+            </div>
+            
+            <app-pagination
+              *ngIf="organizationToVolunteer.length > 0"
+              [totalItems]="organizationToVolunteer.length"
+              [itemsPerPage]="itemsPerPage"
+              [currentPage]="organizationCurrentPage"
+              (pageChange)="onOrganizationPageChange($event)"
+              (itemsPerPageChange)="onOrganizationItemsPerPageChange($event)"
+            ></app-pagination>
+          </div>
         </div>
       </div>
     </div>

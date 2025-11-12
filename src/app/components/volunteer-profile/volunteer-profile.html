@@ -43,7 +43,9 @@
         <div *ngIf="activeTab === 'profile'">
           <div class="d-flex justify-content-between align-items-center mb-4">
             <h4 class="fw-semibold mb-0">Thông tin cá nhân</h4>
-            <button class="btn btn-success" (click)="onSubmit()">
+            <button 
+              class="btn btn-success" 
+              (click)="onSubmit()">
               {{ volunteer?.maTNV ? 'Cập nhật hồ sơ' : 'Tạo hồ sơ' }}
             </button>
           </div>
@@ -85,51 +87,100 @@
             <div class="col-md-8">
               <div class="row g-3">
                 <div class="col-md-6">
-                  <label class="form-label">Họ Tên</label>
-                  <input type="text" formControlName="hoTen" class="form-control" placeholder="Nhập họ tên" />
+                  <label class="form-label">Họ Tên <span class="text-danger">*</span></label>
+                  <input 
+                    type="text" 
+                    formControlName="hoTen" 
+                    class="form-control" 
+                    [class.is-invalid]="isFieldInvalid('hoTen')"
+                    placeholder="Nhập họ tên" />
+                  <div class="invalid-feedback d-block" *ngIf="isFieldInvalid('hoTen')">
+                    {{ getFieldError('hoTen') }}
+                  </div>
                 </div>
                 <div class="col-md-6">
                   <label class="form-label">Email</label>
                   <div class="input-group">
                     <input type="email" formControlName="email" class="form-control" placeholder="Email" />
-                    <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#changeEmailModal" disabled>Đổi email</button>
+                    <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#changeEmailModal">Đổi email</button>
                   </div>
                   <small class="text-muted">Đổi email sẽ yêu cầu xác thực qua email mới.</small>
                 </div>
                 <div class="col-md-6">
                   <label class="form-label">CCCD</label>
-                  <input type="text" formControlName="cccd" class="form-control" placeholder="Nhập CCCD" />
+                  <input 
+                    type="text" 
+                    formControlName="cccd" 
+                    class="form-control" 
+                    placeholder="Nhập CCCD" />
                 </div>
                 <div class="col-md-6">
-                  <label class="form-label">SĐT</label>
-                  <input type="tel" formControlName="soDienThoai" class="form-control" placeholder="Nhập số điện thoại" />
+                  <label class="form-label">Số điện thoại</label>
+                  <input 
+                    type="tel" 
+                    formControlName="soDienThoai" 
+                    class="form-control" 
+                    [class.is-invalid]="isFieldInvalid('soDienThoai')"
+                    placeholder="Nhập số điện thoại (VD: 0912345678)" />
+                  <div class="invalid-feedback d-block" *ngIf="isFieldInvalid('soDienThoai')">
+                    {{ getFieldError('soDienThoai') }}
+                  </div>
                 </div>
                 <div class="col-md-6">
                   <label class="form-label">Ngày sinh</label>
-                  <input type="date" formControlName="ngaySinh" class="form-control" />
+                  <input 
+                    type="date" 
+                    formControlName="ngaySinh" 
+                    class="form-control" 
+                    [class.is-invalid]="isFieldInvalid('ngaySinh')" />
+                  <div class="invalid-feedback d-block" *ngIf="isFieldInvalid('ngaySinh')">
+                    {{ getFieldError('ngaySinh') }}
+                  </div>
                 </div>
                 <div class="col-md-6">
-                  <label class="form-label">Giới tính</label>
-                  <select formControlName="gioiTinh" class="form-select">
+                  <label class="form-label">Giới tính <span class="text-danger">*</span></label>
+                  <select 
+                    formControlName="gioiTinh" 
+                    class="form-select"
+                    [class.is-invalid]="isFieldInvalid('gioiTinh')">
                     <option value="">-- Chọn giới tính --</option>
                     <option value="Nam">Nam</option>
                     <option value="Nữ">Nữ</option>
                     <option value="Khác">Khác</option>
                   </select>
+                  <div class="invalid-feedback d-block" *ngIf="isFieldInvalid('gioiTinh')">
+                    {{ getFieldError('gioiTinh') }}
+                  </div>
                 </div>
 
                 <div class="col-12">
                   <label class="form-label">Địa chỉ</label>
-                  <input type="text" formControlName="diaChi" class="form-control" placeholder="Nhập địa chỉ" />
+                  <input 
+                    type="text" 
+                    formControlName="diaChi" 
+                    class="form-control" 
+                    [class.is-invalid]="isFieldInvalid('diaChi')"
+                    placeholder="Nhập địa chỉ" />
+                  <div class="invalid-feedback d-block" *ngIf="isFieldInvalid('diaChi')">
+                    {{ getFieldError('diaChi') }}
+                  </div>
                 </div>
                 <div class="col-12">
                   <label class="form-label">Giới thiệu bản thân</label>
-                  <textarea formControlName="gioiThieu" class="form-control" rows="3" placeholder="Giới thiệu về bản thân..."></textarea>
+                  <textarea 
+                    formControlName="gioiThieu" 
+                    class="form-control" 
+                    [class.is-invalid]="isFieldInvalid('gioiThieu')"
+                    rows="3" 
+                    placeholder="Giới thiệu về bản thân..."></textarea>
+                  <div class="invalid-feedback d-block" *ngIf="isFieldInvalid('gioiThieu')">
+                    {{ getFieldError('gioiThieu') }}
+                  </div>
                 </div>
 
                 <!-- Kỹ năng -->
-                <div class="col-12">
-                  <label class="form-label">Kỹ năng</label>
+                <div class="col-12 ky-nang-section">
+                  <label class="form-label">Kỹ năng <span class="text-danger">*</span></label>
                   <div class="row g-2">
                     <!-- Hiển thị kỹ năng đã chọn -->
                     <div class="col-12 mb-2" *ngIf="volunteer?.kyNangs && (volunteer?.kyNangs?.length ?? 0) > 0">
@@ -166,11 +217,14 @@
                       <button type="button" class="btn btn-outline-success" (click)="addKyNang()">+ Thêm kỹ năng</button>
                     </div>
                   </div>
+                  <div class="invalid-feedback d-block text-danger" *ngIf="hasKyNangError">
+                    {{ validateKyNang() }}
+                  </div>
                 </div>
 
                 <!-- Lĩnh vực -->
-                <div class="col-12">
-                  <label class="form-label">Lĩnh vực quan tâm</label>
+                <div class="col-12 linh-vuc-section">
+                  <label class="form-label">Lĩnh vực quan tâm <span class="text-danger">*</span></label>
                   <div class="row g-2">
                     <!-- Hiển thị lĩnh vực đã chọn -->
                     <div class="col-12 mb-2" *ngIf="volunteer?.linhVucs && (volunteer?.linhVucs?.length ?? 0) > 0">
@@ -206,6 +260,9 @@
                     <div class="col-12">
                       <button type="button" class="btn btn-outline-success" (click)="addLinhVuc()">+ Thêm lĩnh vực</button>
                     </div>
+                  </div>
+                  <div class="invalid-feedback d-block text-danger" *ngIf="hasLinhVucError">
+                    {{ validateLinhVuc() }}
                   </div>
                 </div>
               </div>
@@ -521,18 +578,44 @@
     <div class="modal-content">
       <div class="modal-header">
         <h5 class="modal-title">Đổi email</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        <button 
+          type="button" 
+          class="btn-close" 
+          data-bs-dismiss="modal" 
+          aria-label="Close"
+          [attr.disabled]="isChangingEmail ? '' : null"
+          [style.pointer-events]="isChangingEmail ? 'none' : 'auto'"></button>
       </div>
       <div class="modal-body">
         <div class="mb-3">
           <label class="form-label">Email mới</label>
-          <input type="email" class="form-control" [(ngModel)]="newEmail" [ngModelOptions]="{standalone: true}" placeholder="nhap-email@domain.com" />
+          <input 
+            type="email" 
+            class="form-control" 
+            [(ngModel)]="newEmail" 
+            [ngModelOptions]="{standalone: true}" 
+            [disabled]="isChangingEmail"
+            placeholder="nhap-email@domain.com" />
         </div>
         <small class="text-muted">Hệ thống sẽ gửi liên kết xác nhận tới email mới.</small>
       </div>
       <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
-        <button type="button" class="btn btn-primary" (click)="submitChangeEmail()">Gửi xác nhận</button>
+        <button 
+          type="button" 
+          class="btn btn-secondary" 
+          data-bs-dismiss="modal"
+          [disabled]="isChangingEmail">
+          Hủy
+        </button>
+        <button 
+          type="button" 
+          class="btn btn-primary" 
+          (click)="submitChangeEmail()"
+          [disabled]="isChangingEmail">
+          <span *ngIf="isChangingEmail" class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+          <span *ngIf="!isChangingEmail">Gửi xác nhận</span>
+          <span *ngIf="isChangingEmail">Đang gửi...</span>
+        </button>
       </div>
     </div>
   </div>

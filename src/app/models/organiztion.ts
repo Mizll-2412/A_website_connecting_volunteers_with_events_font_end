@@ -18,7 +18,8 @@ export interface ToChuc {
 export enum TrangThaiXacMinh {
   ChoDuyet = 0,
   DaDuyet = 1,
-  TuChoi = 2
+  TuChoi = 2,
+  ThuHoi = 3
 }
 
 export interface ToChucResponseDto {

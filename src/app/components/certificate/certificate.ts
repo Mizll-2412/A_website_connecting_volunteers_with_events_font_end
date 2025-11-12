@@ -7,6 +7,7 @@ import { Certificate } from '../../models/certificate';
 import { CertificateService } from '../../services/certificate.service';
 import { environment } from '../../../environments/environment';
 // import { saveAs } from 'file-saver';
+import { ToastService } from '../../services/toast.service';
 
 declare var bootstrap: any;
 
@@ -32,7 +33,8 @@ export class CertificateComponent implements OnInit {
   constructor(
     private http: HttpClient,
     private authService: AuthService,
-    private certificateService: CertificateService
+    private certificateService: CertificateService,
+    private toast: ToastService
   ) {}
   
   ngOnInit(): void {
@@ -130,14 +132,14 @@ export class CertificateComponent implements OnInit {
             // Nếu chỉ là base64, thêm prefix
             certificate.previewUrl = `data:image/png;base64,${dataUrl}`;
           } else {
-            alert('Format dữ liệu không hợp lệ');
+            this.toast.error('Format dữ liệu không hợp lệ');
             return;
           }
           this.certificateModal.show();
         },
         error: (err) => {
           console.error('Error loading certificate preview:', err);
-          alert('Không thể tải xem trước giấy chứng nhận: ' + (err.error?.message || 'Đã xảy ra lỗi'));
+          this.toast.error('Không thể tải xem trước giấy chứng nhận: ' + (err.error?.message || 'Đã xảy ra lỗi'));
         }
       });
     } else {
@@ -151,7 +153,7 @@ export class CertificateComponent implements OnInit {
       await this.certificateService.generatePdfFromCertificateData(certificate.maChungNhan);
     } catch (error: any) {
       console.error('Error downloading certificate:', error);
-      alert('Không thể tải xuống giấy chứng nhận: ' + (error?.message || 'Đã xảy ra lỗi'));
+      this.toast.error('Không thể tải xuống giấy chứng nhận: ' + (error?.message || 'Đã xảy ra lỗi'));
     }
   }
 }

@@ -247,3 +247,295 @@ body {
     position: static;
   }
 }
+
+/* ==================== NEW DESIGN STYLES ==================== */
+
+/* Registration Card New Design */
+.registration-card-new {
+  background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+  border-radius: 15px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
+  padding: 2rem;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  /* Removed sticky positioning as requested */
+}
+
+/* Recruitment Info Box */
+.recruitment-info-box {
+  background: linear-gradient(135deg, #f0f8ff 0%, #e6f3ff 100%);
+  border-radius: 12px;
+  padding: 1.5rem;
+  border: 2px solid rgba(33, 150, 243, 0.2);
+}
+
+.recruitment-numbers {
+  font-size: 1.5rem;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+}
+
+.recruitment-numbers .registered {
+  color: #2196f3;
+  font-size: 2rem;
+}
+
+.recruitment-numbers .total {
+  color: #666;
+  font-size: 1.8rem;
+}
+
+.recruitment-numbers .separator {
+  color: #999;
+  margin: 0 0.5rem;
+}
+
+.recruitment-numbers .label {
+  color: #666;
+  font-size: 1rem;
+  font-weight: 500;
+}
+
+/* Progress Bar */
+.recruitment-progress {
+  height: 12px;
+  border-radius: 10px;
+  background-color: #e9ecef;
+  overflow: hidden;
+}
+
+.recruitment-progress .progress-bar {
+  transition: width 0.6s ease;
+  border-radius: 10px;
+}
+
+/* Time Info Box */
+.time-info-box {
+  background-color: #f8f9fa;
+  border-radius: 10px;
+  padding: 1rem;
+  border-left: 4px solid;
+}
+
+.time-info-box:has(.text-info) {
+  border-left-color: #17a2b8;
+}
+
+.time-info-box:has(.text-success) {
+  border-left-color: #28a745;
+}
+
+/* Status Badges */
+.status-badges {
+  background-color: #fff;
+  border-radius: 10px;
+  padding: 1rem;
+  border: 1px solid #e9ecef;
+}
+
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  font-weight: 500;
+  font-size: 0.9rem;
+  transition: all 0.3s ease;
+}
+
+/* Badge Colors */
+.badge-success {
+  background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+  color: white;
+  box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);
+}
+
+.badge-info {
+  background: linear-gradient(135deg, #17a2b8 0%, #5bc0de 100%);
+  color: white;
+  box-shadow: 0 4px 12px rgba(23, 162, 184, 0.3);
+}
+
+.badge-warning {
+  background: linear-gradient(135deg, #ffc107 0%, #ff9800 100%);
+  color: white;
+  box-shadow: 0 4px 12px rgba(255, 193, 7, 0.3);
+}
+
+.badge-danger {
+  background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+  color: white;
+  box-shadow: 0 4px 12px rgba(220, 53, 69, 0.3);
+}
+
+.badge-secondary {
+  background: linear-gradient(135deg, #6c757d 0%, #5a6268 100%);
+  color: white;
+  box-shadow: 0 4px 12px rgba(108, 117, 125, 0.3);
+}
+
+/* Hover Effects */
+.status-badge:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
+}
+
+/* Responsive for new design */
+@media (max-width: 768px) {
+  .registration-card-new {
+    position: static;
+    margin-top: 2rem;
+  }
+  
+  .recruitment-numbers {
+    font-size: 1.2rem;
+  }
+  
+  .recruitment-numbers .registered {
+    font-size: 1.6rem;
+  }
+  
+  .recruitment-numbers .total {
+    font-size: 1.4rem;
+  }
+  
+  .status-badge {
+    font-size: 0.85rem;
+    padding: 0.4rem 0.8rem;
+  }
+}
+
+/* Stats Grid for Detailed Registration Info */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.5rem;
+}
+
+.stat-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 0.65rem 0.4rem;
+  border-radius: 8px;
+  gap: 0.4rem;
+  min-height: 75px;
+}
+
+.stat-box.approved {
+  background: #d1e7dd;
+  border: 1px solid #badbcc;
+}
+
+.stat-box.pending {
+  background: #fff3cd;
+  border: 1px solid #ffecb5;
+}
+
+.stat-box.total {
+  background: #cfe2ff;
+  border: 1px solid #b6d4fe;
+}
+
+.stat-icon {
+  font-size: 1.3rem;
+  line-height: 1;
+}
+
+.stat-box.approved .stat-icon {
+  color: #198754;
+}
+
+.stat-box.pending .stat-icon {
+  color: #ffc107;
+}
+
+.stat-box.total .stat-icon {
+  color: #0d6efd;
+}
+
+.stat-info {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.2rem;
+}
+
+.stat-value {
+  font-size: 1rem;
+  font-weight: bold;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.stat-label {
+  font-size: 0.7rem;
+  color: #666;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.countdown-text {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #0d6efd;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .stats-grid {
+    gap: 0.4rem;
+  }
+  
+  .stat-box {
+    padding: 0.5rem 0.3rem;
+    min-height: 70px;
+  }
+  
+  .stat-icon {
+    font-size: 1.1rem;
+  }
+  
+  .stat-value {
+    font-size: 0.9rem;
+  }
+  
+  .stat-label {
+    font-size: 0.65rem;
+  }
+}
+
+@media (max-width: 576px) {
+  .stats-grid {
+    grid-template-columns: 1fr;
+    gap: 0.5rem;
+  }
+  
+  .stat-box {
+    flex-direction: row;
+    justify-content: flex-start;
+    padding: 0.65rem 0.75rem;
+    min-height: auto;
+  }
+  
+  .stat-icon {
+    font-size: 1.5rem;
+  }
+  
+  .stat-info {
+    flex-direction: row;
+    align-items: center;
+    gap: 0.5rem;
+    flex: 1;
+  }
+  
+  .stat-value {
+    font-size: 1.1rem;
+  }
+  
+  .stat-label {
+    font-size: 0.75rem;
+  }
+}

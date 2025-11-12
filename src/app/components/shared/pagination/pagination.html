@@ -1,0 +1,68 @@
+<div class="pagination-wrapper" *ngIf="hasItems">
+  <div class="pagination-info">
+    <span class="pagination-text">
+      Hiển thị {{ startIndex }} - {{ endIndex }} trong tổng số {{ totalItems }} mục
+    </span>
+    <div class="items-per-page-selector">
+      <label for="itemsPerPage" class="items-per-page-label">Hiển thị:</label>
+      <select 
+        id="itemsPerPage" 
+        class="form-select form-select-sm"
+        [ngModel]="itemsPerPage"
+        (ngModelChange)="onItemsPerPageChange($event)"
+      >
+        <option *ngFor="let option of itemsPerPageOptions" [value]="option">
+          {{ option }}
+        </option>
+      </select>
+    </div>
+  </div>
+
+  <nav aria-label="Phân trang" *ngIf="hasItems">
+    <ul class="pagination">
+      <!-- First button -->
+      <li class="page-item" *ngIf="showFirstLast && currentPage > 1">
+        <a class="page-link" (click)="goToFirst()" aria-label="Trang đầu">
+          <i class="bi bi-chevron-double-left"></i>
+        </a>
+      </li>
+
+      <!-- Previous button -->
+      <li class="page-item" *ngIf="showPrevNext && currentPage > 1">
+        <a class="page-link" (click)="goToPrevious()" aria-label="Trang trước">
+          <i class="bi bi-chevron-left"></i>
+        </a>
+      </li>
+
+      <!-- Page numbers -->
+      <li 
+        class="page-item" 
+        *ngFor="let page of pages"
+        [class.active]="page === currentPage"
+      >
+        <a class="page-link" (click)="goToPage(page)">
+          {{ page }}
+        </a>
+      </li>
+
+      <!-- Next button -->
+      <li class="page-item" *ngIf="showPrevNext && currentPage < totalPages">
+        <a class="page-link" (click)="goToNext()" aria-label="Trang sau">
+          <i class="bi bi-chevron-right"></i>
+        </a>
+      </li>
+
+      <!-- Last button -->
+      <li class="page-item" *ngIf="showFirstLast && currentPage < totalPages">
+        <a class="page-link" (click)="goToLast()" aria-label="Trang cuối">
+          <i class="bi bi-chevron-double-right"></i>
+        </a>
+      </li>
+    </ul>
+  </nav>
+</div>
+
+<div class="pagination-empty" *ngIf="!hasItems">
+  <p class="text-muted">Không có dữ liệu để hiển thị</p>
+</div>
+

@@ -7,6 +7,8 @@ import { ToChuc, TrangThaiXacMinh, UpdateToChucDto } from '../../models/organizt
 import { AuthService } from '../../services/auth';
 import { environment } from '../../../environments/environment';
 import { getImageUrl } from '../../utils/image-url.util';
+import { ToastService } from '../../services/toast.service';
+import { ConfirmService } from '../../services/confirm.service';
 
 interface LegalDocument {
   maGiayTo: number;
@@ -33,6 +35,7 @@ export class OrganizationProfileComponent implements OnInit {
   legalDocDescription: string = '';
   legalDocName: string = ''; // Tên giấy tờ pháp lý
   selectedDocument: LegalDocument | null = null;
+  isSaving: boolean = false;
   
   // Form data
   tenToChuc: string = '';
@@ -50,7 +53,9 @@ export class OrganizationProfileComponent implements OnInit {
   constructor(
     private http: HttpClient,
     private auth: AuthService,
-    private sanitizer: DomSanitizer
+    private sanitizer: DomSanitizer,
+    private toastService: ToastService,
+    private confirm: ConfirmService
   ) {}
 
   ngOnInit(): void {
@@ -58,10 +63,10 @@ export class OrganizationProfileComponent implements OnInit {
   }
 
   loadOrganizationInfo(): void {
-    const userInfo = localStorage.getItem('user');
-    if (!userInfo) return;
+    // Sử dụng authService.getUser() để lấy user từ cả localStorage và sessionStorage
+    const user = this.auth.getUser();
+    if (!user || !user.maTaiKhoan) return;
 
-    const user = JSON.parse(userInfo);
     if (user.maTaiKhoan) {
       this.http.get<any>(`${this.apiUrl}/organization/by-account/${user.maTaiKhoan}`).subscribe({
         next: (response) => {
@@ -104,41 +109,147 @@ export class OrganizationProfileComponent implements OnInit {
     }
   }
 
+  // Validation methods
+  validateTenToChuc(): string {
+    if (!this.tenToChuc || this.tenToChuc.trim() === '') {
+      return 'Tên tổ chức là bắt buộc';
+    }
+    if (this.tenToChuc.trim().length < 2) {
+      return 'Tên tổ chức phải có ít nhất 2 ký tự';
+    }
+    if (this.tenToChuc.length > 200) {
+      return 'Tên tổ chức không được vượt quá 200 ký tự';
+    }
+    return '';
+  }
+
+  validateEmail(): string {
+    if (!this.email || this.email.trim() === '') {
+      return 'Email là bắt buộc';
+    }
+    const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailPattern.test(this.email)) {
+      return 'Email không hợp lệ. Ví dụ: example@domain.com';
+    }
+    return '';
+  }
+
+  validateSoDienThoai(): string {
+    if (this.soDienThoai && this.soDienThoai.trim() !== '') {
+      const phonePattern = /^(0|\+84)[3-9]\d{8}$/;
+      if (!phonePattern.test(this.soDienThoai)) {
+        return 'Số điện thoại không hợp lệ. Ví dụ: 0912345678 hoặc +84912345678';
+      }
+    }
+    return '';
+  }
+
+  validateDiaChi(): string {
+    if (this.diaChi && this.diaChi.length > 200) {
+      return 'Địa chỉ không được vượt quá 200 ký tự';
+    }
+    return '';
+  }
+
+  validateGioiThieu(): string {
+    if (this.gioiThieu && this.gioiThieu.length > 1000) {
+      return 'Giới thiệu không được vượt quá 1000 ký tự';
+    }
+    return '';
+  }
+
+  isFormValid(): boolean {
+    return !this.validateTenToChuc() && 
+           !this.validateEmail() && 
+           !this.validateSoDienThoai() && 
+           !this.validateDiaChi() && 
+           !this.validateGioiThieu();
+  }
+
   updateOrganization(): void {
     if (!this.organization?.maToChuc) return;
 
+    // Validate form
+    const tenToChucError = this.validateTenToChuc();
+    const emailError = this.validateEmail();
+    const soDienThoaiError = this.validateSoDienThoai();
+    const diaChiError = this.validateDiaChi();
+    const gioiThieuError = this.validateGioiThieu();
+
+    if (tenToChucError || emailError || soDienThoaiError || diaChiError || gioiThieuError) {
+      const errors = [tenToChucError, emailError, soDienThoaiError, diaChiError, gioiThieuError]
+        .filter(e => e !== '');
+      this.toastService.warning(errors[0] || 'Vui lòng kiểm tra lại thông tin');
+      
+      // Scroll đến field đầu tiên có lỗi
+      if (tenToChucError) {
+        const element = document.querySelector('[name="tenToChuc"]');
+        if (element) {
+          element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          (element as HTMLElement).focus();
+        }
+      } else if (emailError) {
+        const element = document.querySelector('[name="email"]');
+        if (element) {
+          element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          (element as HTMLElement).focus();
+        }
+      }
+      return;
+    }
+
     const formData = new FormData();
-    formData.append('tenToChuc', this.tenToChuc);
-    formData.append('email', this.email);
-    formData.append('soDienThoai', this.soDienThoai);
-    formData.append('diaChi', this.diaChi);
-    formData.append('gioiThieu', this.gioiThieu);
+    formData.append('tenToChuc', this.tenToChuc.trim());
+    formData.append('email', this.email.trim());
+    formData.append('soDienThoai', this.soDienThoai.trim());
+    formData.append('diaChi', this.diaChi.trim());
+    formData.append('gioiThieu', this.gioiThieu.trim());
     
     if (this.selectedAvatar) {
       formData.append('anhFile', this.selectedAvatar);
     }
 
+    this.isSaving = true;
+    // Lưu lại trạng thái xác minh hiện tại (phòng trường hợp API update không trả về)
+    const prevStatus = this.organization?.trangThaiXacMinh;
     this.http.put<any>(`${this.apiUrl}/organization/${this.organization.maToChuc}`, formData).subscribe({
       next: (response) => {
-        alert('Cập nhật thông tin thành công!');
+        this.toastService.success('Cập nhật thông tin thành công!');
         this.organization = response.data || response;
+        // Nếu response không trả về trạng thái xác minh, giữ nguyên trạng thái cũ
+        if ((this.organization as any)?.trangThaiXacMinh === undefined || (this.organization as any)?.trangThaiXacMinh === null) {
+          if (prevStatus !== undefined && prevStatus !== null) {
+            (this.organization as any).trangThaiXacMinh = prevStatus;
+          }
+        }
         this.selectedAvatar = null;
+        this.isSaving = false;
         
-        // Cập nhật localStorage và header
-        if (this.organization?.anhDaiDien) {
-          const stored = localStorage.getItem('user');
-          if (stored) {
-            const u = JSON.parse(stored);
+        // Cập nhật user info (sử dụng authService để tự động lưu vào đúng nơi)
+        const u = this.auth.getUser();
+        if (u) {
+          if (this.organization?.anhDaiDien) {
             u.anhDaiDien = this.organization.anhDaiDien;
             u.profileImage = getImageUrl(this.organization.anhDaiDien);
-            this.auth.updateUserInfo(u);
           }
+          // Đồng bộ hiển thị tên: header đọc user.hoTen nên set = tên tổ chức
+          if (this.organization?.tenToChuc) {
+            u.hoTen = this.organization.tenToChuc;
+          }
+          this.auth.updateUserInfo(u);
         }
       },
       error: (err) => {
-        console.error('Lỗi cập nhật:', err);
         const errorMsg = err.normalizedMessage || err.error?.message || 'Có lỗi xảy ra khi cập nhật';
-        alert(errorMsg);
+        console.error('Lỗi cập nhật hồ sơ tổ chức:', {
+          message: errorMsg,
+          status: err.status,
+          statusText: err.statusText,
+          error: err.error,
+          fullError: err
+        });
+        this.toastService.error(errorMsg);
+        this.isSaving = false;
       }
     });
   }
@@ -174,7 +285,7 @@ export class OrganizationProfileComponent implements OnInit {
 
   uploadLegalDocuments(): void {
     if (!this.organization?.maToChuc || this.selectedLegalDocs.length === 0) {
-      alert('Vui lòng chọn ít nhất một tệp');
+      this.toastService.warning('Vui lòng chọn ít nhất một tệp');
       return;
     }
 
@@ -196,7 +307,7 @@ export class OrganizationProfileComponent implements OnInit {
 
     this.http.post<any>(`${this.apiUrl}/GiayToPhapLy/upload`, formData).subscribe({
       next: (response) => {
-        alert('Tải lên giấy tờ pháp lý thành công');
+        this.toastService.success('Tải lên giấy tờ pháp lý thành công');
         this.selectedLegalDocs = [];
         this.legalDocDescription = '';
         this.legalDocName = '';
@@ -208,25 +319,27 @@ export class OrganizationProfileComponent implements OnInit {
       error: (err) => {
         console.error('Lỗi tải lên giấy tờ pháp lý:', err);
         const errorMsg = err.normalizedMessage || err.error?.message || 'Đã xảy ra lỗi';
-        alert('Lỗi tải lên giấy tờ pháp lý: ' + errorMsg);
+        this.toastService.error('Lỗi tải lên giấy tờ pháp lý: ' + errorMsg);
       }
     });
   }
 
   deleteLegalDocument(doc: LegalDocument): void {
     const docName = doc.tenGiayTo || this.getDocumentFileName(doc);
-    if (!confirm(`Bạn có chắc chắn muốn xóa giấy tờ "${docName}"?`)) return;
+    this.confirm.confirm(`Bạn có chắc chắn muốn xóa giấy tờ "${docName}"?`, { variant: 'danger', okText: 'Xóa' }).then(confirmed => {
+      if (!confirmed) return;
 
-    this.http.delete<any>(`${this.apiUrl}/GiayToPhapLy/${doc.maGiayTo}`).subscribe({
-      next: () => {
-        alert('Xóa giấy tờ thành công');
-        this.loadLegalDocuments();
-      },
-      error: (err) => {
-        console.error('Lỗi xóa giấy tờ:', err);
-        const errorMsg = err.normalizedMessage || err.error?.message || 'Đã xảy ra lỗi';
-        alert('Lỗi xóa giấy tờ: ' + errorMsg);
-      }
+      this.http.delete<any>(`${this.apiUrl}/GiayToPhapLy/${doc.maGiayTo}`).subscribe({
+        next: () => {
+          this.toastService.success('Xóa giấy tờ thành công');
+          this.loadLegalDocuments();
+        },
+        error: (err) => {
+          console.error('Lỗi xóa giấy tờ:', err);
+          const errorMsg = err.normalizedMessage || err.error?.message || 'Đã xảy ra lỗi';
+          this.toastService.error('Lỗi xóa giấy tờ: ' + errorMsg);
+        }
+      });
     });
   }
 
@@ -293,6 +406,9 @@ export class OrganizationProfileComponent implements OnInit {
 
   getVerificationStatusText(): string {
     if (!this.organization) return 'Không xác định';
+    if (this.organization.trangThaiXacMinh === null) {
+      return 'Chưa xác minh';
+    }
     switch (this.organization.trangThaiXacMinh) {
       case TrangThaiXacMinh.ChoDuyet:
         return 'Chờ duyệt';
@@ -300,6 +416,8 @@ export class OrganizationProfileComponent implements OnInit {
         return 'Đã xác minh';
       case TrangThaiXacMinh.TuChoi:
         return 'Bị từ chối';
+      case TrangThaiXacMinh.ThuHoi:
+        return 'Đã thu hồi';
       default:
         return 'Không xác định';
     }
@@ -314,6 +432,8 @@ export class OrganizationProfileComponent implements OnInit {
         return 'bg-success';
       case TrangThaiXacMinh.TuChoi:
         return 'bg-danger';
+      case TrangThaiXacMinh.ThuHoi:
+        return 'bg-secondary';
       default:
         return 'bg-secondary';
     }
@@ -323,24 +443,26 @@ export class OrganizationProfileComponent implements OnInit {
     if (!this.organization?.maToChuc) return;
 
     if (this.legalDocuments.length === 0) {
-      alert('Bạn cần tải lên ít nhất một giấy tờ pháp lý trước khi gửi yêu cầu xác minh');
+      this.toastService.warning('Bạn cần tải lên ít nhất một giấy tờ pháp lý trước khi gửi yêu cầu xác minh');
       return;
     }
 
-    if (!confirm('Bạn có chắc chắn muốn gửi yêu cầu xác minh?')) return;
+    this.confirm.confirm('Bạn có chắc chắn muốn gửi yêu cầu xác minh?', { okText: 'Gửi', cancelText: 'Hủy' }).then(confirmed => {
+      if (!confirmed) return;
 
-    this.http.post<any>(`${this.apiUrl}/organization/request-verification`, {
-      maToChuc: this.organization.maToChuc
-    }).subscribe({
-      next: (response) => {
-        alert('Gửi yêu cầu xác minh thành công! Vui lòng đợi admin xét duyệt.');
-        this.loadOrganizationInfo();
-      },
-      error: (err) => {
-        console.error('Lỗi gửi yêu cầu xác minh:', err);
-        const errorMsg = err.normalizedMessage || err.error?.message || 'Đã xảy ra lỗi';
-        alert('Lỗi: ' + errorMsg);
-      }
+      this.http.post<any>(`${this.apiUrl}/organization/request-verification`, {
+        maToChuc: this.organization?.maToChuc as number
+      }).subscribe({
+        next: (response) => {
+          this.toastService.success('Gửi yêu cầu xác minh thành công! Vui lòng đợi admin xét duyệt.');
+          this.loadOrganizationInfo();
+        },
+        error: (err) => {
+          console.error('Lỗi gửi yêu cầu xác minh:', err);
+          const errorMsg = err.normalizedMessage || err.error?.message || 'Đã xảy ra lỗi';
+          this.toastService.error('Lỗi: ' + errorMsg);
+        }
+      });
     });
   }
 }

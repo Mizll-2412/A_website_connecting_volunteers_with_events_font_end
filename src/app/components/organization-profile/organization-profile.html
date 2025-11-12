@@ -6,6 +6,7 @@
 
     <!-- Trạng thái xác minh -->
     <div class="alert" [ngClass]="{
+      'alert-secondary': organization.trangThaiXacMinh === null || organization.trangThaiXacMinh === 3,
       'alert-warning': organization.trangThaiXacMinh === 0,
       'alert-success': organization.trangThaiXacMinh === 1,
       'alert-danger': organization.trangThaiXacMinh === 2
@@ -15,10 +16,11 @@
           <i class="bi me-2" [ngClass]="{
             'bi-clock-history': organization.trangThaiXacMinh === 0,
             'bi-check-circle-fill': organization.trangThaiXacMinh === 1,
-            'bi-x-circle-fill': organization.trangThaiXacMinh === 2
+            'bi-x-circle-fill': organization.trangThaiXacMinh === 2,
+            'bi-shield-exclamation': organization.trangThaiXacMinh === 3
           }"></i>
           <strong>Trạng thái xác minh:</strong> {{ getVerificationStatusText() }}
-          <span *ngIf="organization.trangThaiXacMinh === 2 && organization.lyDoTuChoi">
+          <span *ngIf="(organization.trangThaiXacMinh === 2 || organization.trangThaiXacMinh === 3) && organization.lyDoTuChoi">
             - {{ organization.lyDoTuChoi }}
           </span>
         </div>
@@ -94,9 +96,14 @@
                   <input 
                     type="text" 
                     class="form-control" 
+                    [class.is-invalid]="validateTenToChuc()"
                     [(ngModel)]="tenToChuc"
                     name="tenToChuc"
+                    (blur)="validateTenToChuc()"
                     required>
+                  <div class="invalid-feedback d-block" *ngIf="validateTenToChuc()">
+                    {{ validateTenToChuc() }}
+                  </div>
                 </div>
 
                 <!-- Email -->
@@ -107,9 +114,14 @@
                   <input 
                     type="email" 
                     class="form-control" 
+                    [class.is-invalid]="validateEmail()"
                     [(ngModel)]="email"
                     name="email"
+                    (blur)="validateEmail()"
                     required>
+                  <div class="invalid-feedback d-block" *ngIf="validateEmail()">
+                    {{ validateEmail() }}
+                  </div>
                 </div>
 
                 <!-- Số điện thoại -->
@@ -118,8 +130,14 @@
                   <input 
                     type="tel" 
                     class="form-control" 
+                    [class.is-invalid]="validateSoDienThoai()"
                     [(ngModel)]="soDienThoai"
-                    name="soDienThoai">
+                    name="soDienThoai"
+                    (blur)="validateSoDienThoai()"
+                    placeholder="VD: 0912345678 hoặc +84912345678">
+                  <div class="invalid-feedback d-block" *ngIf="validateSoDienThoai()">
+                    {{ validateSoDienThoai() }}
+                  </div>
                 </div>
 
                 <!-- Địa chỉ -->
@@ -128,8 +146,13 @@
                   <input 
                     type="text" 
                     class="form-control" 
+                    [class.is-invalid]="validateDiaChi()"
                     [(ngModel)]="diaChi"
-                    name="diaChi">
+                    name="diaChi"
+                    (blur)="validateDiaChi()">
+                  <div class="invalid-feedback d-block" *ngIf="validateDiaChi()">
+                    {{ validateDiaChi() }}
+                  </div>
                 </div>
 
                 <!-- Giới thiệu -->
@@ -137,16 +160,25 @@
                   <label class="form-label fw-semibold">Giới thiệu về tổ chức</label>
                   <textarea 
                     class="form-control" 
+                    [class.is-invalid]="validateGioiThieu()"
                     rows="5"
                     [(ngModel)]="gioiThieu"
                     name="gioiThieu"
+                    (blur)="validateGioiThieu()"
                     placeholder="Mô tả về tổ chức của bạn..."></textarea>
+                  <div class="invalid-feedback d-block" *ngIf="validateGioiThieu()">
+                    {{ validateGioiThieu() }}
+                  </div>
                 </div>
 
                 <!-- Nút cập nhật -->
                 <div class="col-12 text-end">
-                  <button type="submit" class="btn btn-primary">
-                    <i class="bi bi-check-circle me-2"></i>Cập nhật thông tin
+                  <button 
+                    type="submit" 
+                    class="btn btn-primary" 
+                    [disabled]="isSaving || !isFormValid()">
+                    <span *ngIf="isSaving" class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                    <i class="bi bi-check-circle me-2" *ngIf="!isSaving"></i>Cập nhật thông tin
                   </button>
                 </div>
               </div>

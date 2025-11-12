@@ -13,6 +13,115 @@
       </div>
     </div>
 
+    <!-- Bộ lọc thời gian -->
+    <div class="card mb-4">
+      <div class="card-body">
+        <div class="row g-3 align-items-end">
+          <div class="col-md-3">
+            <label class="form-label small fw-semibold mb-2">Loại lọc</label>
+            <select class="form-select" [(ngModel)]="timeFilterType" (change)="onTimeFilterTypeChange()">
+              <option value="year">Theo năm</option>
+              <option value="quarter">Theo quý</option>
+              <option value="month">Theo tháng</option>
+              <option value="custom">Khoảng ngày cụ thể</option>
+            </select>
+          </div>
+
+          <!-- Lọc theo năm -->
+          <div class="col-md-3" *ngIf="timeFilterType === 'year'">
+            <label class="form-label small fw-semibold mb-2">Năm</label>
+            <select class="form-select" [(ngModel)]="selectedYear" (change)="applyTimeFilter()">
+              <option *ngFor="let year of availableYears" [value]="year">{{ year }}</option>
+            </select>
+          </div>
+
+          <!-- Lọc theo quý -->
+          <div class="col-md-2" *ngIf="timeFilterType === 'quarter'">
+            <label class="form-label small fw-semibold mb-2">Năm</label>
+            <select class="form-select" [(ngModel)]="selectedYear" (change)="applyTimeFilter()">
+              <option *ngFor="let year of availableYears" [value]="year">{{ year }}</option>
+            </select>
+          </div>
+          <div class="col-md-2" *ngIf="timeFilterType === 'quarter'">
+            <label class="form-label small fw-semibold mb-2">Quý</label>
+            <select class="form-select" [(ngModel)]="selectedQuarter" (change)="applyTimeFilter()">
+              <option value="1">Quý 1</option>
+              <option value="2">Quý 2</option>
+              <option value="3">Quý 3</option>
+              <option value="4">Quý 4</option>
+            </select>
+          </div>
+
+          <!-- Lọc theo tháng -->
+          <div class="col-md-2" *ngIf="timeFilterType === 'month'">
+            <label class="form-label small fw-semibold mb-2">Năm</label>
+            <select class="form-select" [(ngModel)]="selectedYear" (change)="applyTimeFilter()">
+              <option *ngFor="let year of availableYears" [value]="year">{{ year }}</option>
+            </select>
+          </div>
+          <div class="col-md-2" *ngIf="timeFilterType === 'month'">
+            <label class="form-label small fw-semibold mb-2">Tháng</label>
+            <select class="form-select" [(ngModel)]="selectedMonth" (change)="applyTimeFilter()">
+              <option value="1">Tháng 1</option>
+              <option value="2">Tháng 2</option>
+              <option value="3">Tháng 3</option>
+              <option value="4">Tháng 4</option>
+              <option value="5">Tháng 5</option>
+              <option value="6">Tháng 6</option>
+              <option value="7">Tháng 7</option>
+              <option value="8">Tháng 8</option>
+              <option value="9">Tháng 9</option>
+              <option value="10">Tháng 10</option>
+              <option value="11">Tháng 11</option>
+              <option value="12">Tháng 12</option>
+            </select>
+          </div>
+
+          <!-- Lọc theo khoảng ngày -->
+          <div class="col-md-4" *ngIf="timeFilterType === 'custom'">
+            <label class="form-label small fw-semibold mb-2">Khoảng thời gian</label>
+            <nz-range-picker
+              [(ngModel)]="dateRange"
+              (ngModelChange)="onDateRangeChange($event)"
+              nzFormat="dd/MM/yyyy"
+              [nzPlaceHolder]="['Từ ngày', 'Đến ngày']"
+              nzSize="default"
+              style="width: 100%;" />
+          </div>
+
+          <!-- Lọc theo số sao -->
+          <div class="col-md-2">
+            <label class="form-label small fw-semibold mb-2">Số sao tối thiểu</label>
+            <select class="form-select" [ngModel]="selectedMinScore" (ngModelChange)="onMinScoreChange($event)">
+              <option [ngValue]="null">Tất cả</option>
+              <option [ngValue]="1">1 sao trở lên</option>
+              <option [ngValue]="2">2 sao trở lên</option>
+              <option [ngValue]="3">3 sao trở lên</option>
+              <option [ngValue]="4">4 sao trở lên</option>
+              <option [ngValue]="5">5 sao</option>
+            </select>
+          </div>
+          <div class="col-md-2">
+            <label class="form-label small fw-semibold mb-2">Số sao tối đa</label>
+            <select class="form-select" [ngModel]="selectedMaxScore" (ngModelChange)="onMaxScoreChange($event)">
+              <option [ngValue]="null">Tất cả</option>
+              <option [ngValue]="1">1 sao</option>
+              <option [ngValue]="2">2 sao</option>
+              <option [ngValue]="3">3 sao</option>
+              <option [ngValue]="4">4 sao</option>
+              <option [ngValue]="5">5 sao</option>
+            </select>
+          </div>
+
+          <div class="col-md-auto">
+            <button class="btn btn-outline-secondary" (click)="clearTimeFilter()">
+              <i class="bi bi-x-circle me-1"></i>Xóa bộ lọc
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <div class="card">
     <div class="card-body">
       <ul class="nav nav-pills evaluation-tabs mb-4">

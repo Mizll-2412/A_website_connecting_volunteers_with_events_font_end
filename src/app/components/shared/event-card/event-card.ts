@@ -4,6 +4,7 @@ import { RouterModule } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { environment } from '../../../../environments/environment';
 import { getImageUrl } from '../../../utils/image-url.util';
+import { formatDateTime, formatDateOnly } from '../../../utils/date-format.util';
 
 @Component({
   selector: 'app-event-card',
@@ -104,7 +105,7 @@ export class EventCardComponent implements OnInit, OnChanges {
 
     if (now < start) return 'Sắp diễn ra';
     if (now >= start && now <= end) return 'Đang diễn ra';
-    return 'Đã kết thúc';
+    return 'Sự kiện đã kết thúc';
   }
 
   getEventStatusClass(event: any): string {
@@ -115,9 +116,8 @@ export class EventCardComponent implements OnInit, OnChanges {
   }
 
   formatDate(dateStr?: any): string {
-    if (!dateStr) return '';
-    const date = new Date(dateStr);
-    return date.toLocaleDateString('vi-VN');
+    // Sử dụng utility function thống nhất
+    return formatDateTime(dateStr);
   }
 
   getSkills(): any[] {
@@ -126,6 +126,24 @@ export class EventCardComponent implements OnInit, OnChanges {
 
   getFields(): any[] {
     return this.fields;
+  }
+
+  getRecruitmentPercentage(): number {
+    if (!this.event.soLuong || this.event.soLuong === 0) return 0;
+    const percentage = ((this.event.soLuongDaDangKy || 0) / this.event.soLuong) * 100;
+    return Math.min(percentage, 100); // Max 100%
+  }
+
+  getApprovedPercentage(): number {
+    if (!this.event.soLuong || this.event.soLuong === 0) return 0;
+    return Math.min(((this.event.soLuongDaDuyet || 0) / this.event.soLuong) * 100, 100);
+  }
+
+  getPendingPercentage(): number {
+    if (!this.event.soLuong || this.event.soLuong === 0) return 0;
+    const approved = this.getApprovedPercentage();
+    const pending = ((this.event.soLuongChoDuyet || 0) / this.event.soLuong) * 100;
+    return Math.min(pending, 100 - approved);
   }
 }
 

@@ -1,0 +1,208 @@
+.app-table-wrapper {
+  width: 100%;
+}
+
+.table-container {
+  position: relative;
+  background: #fff;
+  border-radius: 8px;
+  /* Cho phép cuộn ngang nếu bảng rộng */
+  overflow-x: auto;
+  overflow-y: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.app-table {
+  width: 100%;
+  /* Đặt min-width để kích hoạt scroll-x khi nhiều cột */
+  min-width: 720px;
+  border-collapse: collapse;
+  margin: 0;
+  font-size: 14px;
+}
+
+.app-table.size-small {
+  font-size: 12px;
+}
+
+.app-table.size-large {
+  font-size: 16px;
+}
+
+.app-table thead {
+  background: #fafafa;
+}
+
+.app-table thead th {
+  padding: 16px;
+  font-weight: 600;
+  color: rgba(0, 0, 0, 0.85);
+  border-bottom: 1px solid #f0f0f0;
+  text-align: left;
+  position: relative;
+  white-space: nowrap;
+}
+
+.app-table thead th.sortable {
+  cursor: pointer;
+  user-select: none;
+  transition: background-color 0.2s;
+}
+
+.app-table thead th.sortable:hover {
+  background: #f5f5f5;
+}
+
+.app-table thead th .th-content {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.app-table thead th .th-content i {
+  font-size: 12px;
+  color: #bfbfbf;
+  transition: color 0.2s;
+}
+
+.app-table thead th .th-content i.active {
+  color: #1890ff;
+}
+
+.app-table thead th.resizable {
+  position: relative;
+}
+
+.app-table thead th.resizing {
+  user-select: none;
+}
+
+.app-table thead th .resize-handle {
+  position: absolute;
+  top: 0;
+  right: -2px;
+  width: 4px;
+  height: 100%;
+  cursor: col-resize;
+  background: transparent;
+  z-index: 2;
+  transition: background-color 0.2s;
+  touch-action: none;
+}
+
+.app-table thead th .resize-handle:hover {
+  background: #1890ff;
+  width: 4px;
+}
+
+.app-table thead th.resizing .resize-handle {
+  background: #1890ff;
+  width: 4px;
+}
+
+.app-table thead th.resizing {
+  background: #f5f5f5;
+}
+
+.app-table tbody td {
+  padding: 16px;
+  border-bottom: 1px solid #f0f0f0;
+  color: rgba(0, 0, 0, 0.85);
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.app-table.bordered thead th,
+.app-table.bordered tbody td {
+  border-right: 1px solid #f0f0f0;
+}
+
+.app-table.bordered thead th:last-child,
+.app-table.bordered tbody td:last-child {
+  border-right: none;
+}
+
+.app-table.striped tbody tr:nth-child(even) {
+  background: #fafafa;
+}
+
+.app-table.hoverable tbody tr:hover {
+  background: #e6f7ff;
+}
+
+.app-table tbody tr.clickable {
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.app-table tbody tr.clickable:hover {
+  background: #e6f7ff;
+}
+
+.app-table .empty-cell {
+  padding: 48px 16px;
+  text-align: center;
+  border-bottom: none;
+}
+
+.app-table .empty-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  min-height: 200px;
+}
+
+.app-table .empty-content .empty-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(0, 0, 0, 0.25);
+  margin-bottom: 4px;
+  opacity: 0.6;
+}
+
+.app-table .empty-content .empty-icon svg {
+  width: 64px;
+  height: 64px;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.1));
+}
+
+.app-table .empty-content .empty-text {
+  margin: 0;
+  font-size: 14px;
+  color: rgba(0, 0, 0, 0.45);
+  font-weight: 400;
+  line-height: 1.5715;
+}
+
+.loading-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(255, 255, 255, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+}
+
+.table-container.loading {
+  min-height: 200px;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .app-table {
+    font-size: 12px;
+  }
+  
+  .app-table thead th,
+  .app-table tbody td {
+    padding: 12px 8px;
+  }
+}
+

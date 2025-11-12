@@ -1,10 +1,12 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { HttpClient } from '@angular/common/http';
+import { FormsModule } from '@angular/forms';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { AuthService } from '../../services/auth';
 import { EvaluationService, EvaluationResponseDto } from '../../services/evaluation.service';
 import { environment } from '../../../environments/environment';
+import { NzDatePickerModule } from 'ng-zorro-antd/date-picker';
 
 interface EventStats {
   totalEvents: number;
@@ -85,7 +87,7 @@ interface AdminEvaluationPreview {
 @Component({
   selector: 'app-statistics',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, FormsModule, NzDatePickerModule],
   templateUrl: './statistics.html',
   styleUrls: ['./statistics.css']
 })
@@ -102,6 +104,14 @@ export class Statistics implements OnInit {
   evaluationsError: string | null = null;
   isLoadingEvaluations = false;
   
+  // Time filter properties
+  timeFilterType: 'year' | 'quarter' | 'month' | 'custom' = 'year';
+  selectedYear: number = new Date().getFullYear();
+  selectedQuarter: number = 1;
+  selectedMonth: number = new Date().getMonth() + 1;
+  dateRange: [Date | null, Date | null] | null = null;
+  availableYears: number[] = [];
+  
   private apiUrl = `${environment.apiUrl}/statistics`;
   
   constructor(
@@ -113,12 +123,27 @@ export class Statistics implements OnInit {
   
   ngOnInit(): void {
     this.role = (this.authService.getRole() || '').toLowerCase();
+    this.initializeTimeFilter();
     this.loadStatistics();
+  }
+
+  private initializeTimeFilter(): void {
+    const currentYear = new Date().getFullYear();
+    // Tạo danh sách năm từ năm hiện tại trở về 5 năm trước
+    for (let i = 0; i < 6; i++) {
+      this.availableYears.push(currentYear - i);
+    }
+    this.selectedYear = currentYear;
+    this.selectedMonth = new Date().getMonth() + 1;
+    // Tính quý hiện tại
+    this.selectedQuarter = Math.floor((this.selectedMonth - 1) / 3) + 1;
   }
   
   loadStatistics(): void {
+    const params = this.buildTimeFilterParams();
+    
     // Lấy thống kê sự kiện (hiển thị cho mọi vai trò)
-    this.http.get<any>(`${this.apiUrl}/events`).subscribe({
+    this.http.get<any>(`${this.apiUrl}/events`, { params }).subscribe({
       next: (response) => {
         this.eventStats = this.mapEventStats(response);
         if (this.role !== 'admin') {
@@ -135,21 +160,21 @@ export class Statistics implements OnInit {
     
     // Chỉ Admin mới lấy các thống kê tổng quan/toàn hệ thống
     if (this.role === 'admin') {
-      this.http.get<any>(`${this.apiUrl}/organizations`).subscribe({
+      this.http.get<any>(`${this.apiUrl}/organizations`, { params }).subscribe({
         next: (response) => { this.organizationStats = this.mapOrganizationStats(response); },
         error: (err) => { console.error('Lỗi tải thống kê tổ chức:', err); }
       });
-      this.http.get<any>(`${this.apiUrl}/volunteers`).subscribe({
+      this.http.get<any>(`${this.apiUrl}/volunteers`, { params }).subscribe({
         next: (response) => { this.volunteerStats = this.mapVolunteerStats(response); },
         error: (err) => { console.error('Lỗi tải thống kê tình nguyện viên:', err); }
       });
-      this.http.get<any>(`${this.apiUrl}/overall`).subscribe({
+      this.http.get<any>(`${this.apiUrl}/overall`, { params }).subscribe({
         next: (response) => { 
           this.overallStats = this.mapOverallStats(response); 
         },
         error: (err) => { console.error('Lỗi tải thống kê tổng quan:', err); }
       });
-      this.http.get<any>(`${this.apiUrl}/ratings`).subscribe({
+      this.http.get<any>(`${this.apiUrl}/ratings`, { params }).subscribe({
         next: (response) => { 
           this.ratingStats = this.mapRatingStats(response); 
           this.isLoading = false; 
@@ -159,6 +184,108 @@ export class Statistics implements OnInit {
 
       this.loadLatestEvaluations();
     }
+  }
+
+  private buildTimeFilterParams(): HttpParams {
+    let params = new HttpParams();
+    const filterParams: any = {};
+
+    switch (this.timeFilterType) {
+      case 'year':
+        filterParams.Year = this.selectedYear;
+        break;
+      case 'quarter':
+        // Tính FromDate và ToDate từ quý
+        const quarterStartMonth = (this.selectedQuarter - 1) * 3 + 1;
+        const quarterEndMonth = this.selectedQuarter * 3;
+        filterParams.FromDate = this.formatDateForApi(new Date(this.selectedYear, quarterStartMonth - 1, 1));
+        // Lấy ngày cuối cùng của tháng cuối quý
+        const lastDayOfQuarter = new Date(this.selectedYear, quarterEndMonth, 0).getDate();
+        filterParams.ToDate = this.formatDateForApi(new Date(this.selectedYear, quarterEndMonth - 1, lastDayOfQuarter));
+        break;
+      case 'month':
+        filterParams.Year = this.selectedYear;
+        filterParams.Month = this.selectedMonth;
+        break;
+      case 'custom':
+        if (this.dateRange && this.dateRange[0] && this.dateRange[1]) {
+          filterParams.FromDate = this.formatDateForApi(this.dateRange[0]);
+          filterParams.ToDate = this.formatDateForApi(this.dateRange[1]);
+        }
+        break;
+    }
+
+    Object.keys(filterParams).forEach(key => {
+      if (filterParams[key] !== null && filterParams[key] !== undefined) {
+        params = params.set(key, filterParams[key].toString());
+      }
+    });
+
+    console.log('Filter params:', filterParams);
+    return params;
+  }
+
+  private formatDateForApi(date: Date): string {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  }
+
+  onTimeFilterTypeChange(): void {
+    // Reset các giá trị khi đổi loại filter
+    if (this.timeFilterType === 'custom') {
+      this.dateRange = null;
+      // Không gọi API ngay khi chuyển sang custom nếu chưa chọn ngày
+      return;
+    }
+    // Chỉ gọi API nếu có đủ thông tin
+    if (this.timeFilterType === 'year' && this.selectedYear) {
+      this.applyTimeFilter();
+    } else if (this.timeFilterType === 'quarter' && this.selectedYear && this.selectedQuarter) {
+      this.applyTimeFilter();
+    } else if (this.timeFilterType === 'month' && this.selectedYear && this.selectedMonth) {
+      this.applyTimeFilter();
+    }
+  }
+
+  onDateRangeChange(dates: [Date | null, Date | null] | null): void {
+    // Chỉ gọi API khi đã chọn đủ cả 2 ngày
+    if (dates && dates[0] && dates[1]) {
+      this.applyTimeFilter();
+    }
+  }
+
+  applyTimeFilter(): void {
+    // Kiểm tra validation trước khi gọi API
+    if (this.timeFilterType === 'custom' && (!this.dateRange || !this.dateRange[0] || !this.dateRange[1])) {
+      console.warn('Chưa chọn đủ khoảng ngày');
+      return;
+    }
+    if (this.timeFilterType === 'year' && !this.selectedYear) {
+      console.warn('Chưa chọn năm');
+      return;
+    }
+    if (this.timeFilterType === 'quarter' && (!this.selectedYear || !this.selectedQuarter)) {
+      console.warn('Chưa chọn đủ năm và quý');
+      return;
+    }
+    if (this.timeFilterType === 'month' && (!this.selectedYear || !this.selectedMonth)) {
+      console.warn('Chưa chọn đủ năm và tháng');
+      return;
+    }
+
+    this.isLoading = true;
+    this.loadStatistics();
+  }
+
+  clearTimeFilter(): void {
+    this.timeFilterType = 'year';
+    this.selectedYear = new Date().getFullYear();
+    this.selectedMonth = new Date().getMonth() + 1;
+    this.selectedQuarter = Math.floor((this.selectedMonth - 1) / 3) + 1;
+    this.dateRange = null;
+    this.applyTimeFilter();
   }
 
   navigateToEvaluations(): void {
@@ -293,7 +420,26 @@ export class Statistics implements OnInit {
     this.isLoadingEvaluations = true;
     this.evaluationsError = null;
 
-    this.evaluationService.getAllEvaluations().subscribe({
+    // Xây dựng filter từ time filter hiện tại
+    const filter: any = {};
+    if (this.timeFilterType === 'year' && this.selectedYear) {
+      filter.Year = this.selectedYear;
+    } else if (this.timeFilterType === 'month' && this.selectedYear && this.selectedMonth) {
+      filter.Year = this.selectedYear;
+      filter.Month = this.selectedMonth;
+    } else if (this.timeFilterType === 'quarter' && this.selectedYear && this.selectedQuarter) {
+      // Tính FromDate và ToDate từ quý
+      const quarterStartMonth = (this.selectedQuarter - 1) * 3 + 1;
+      const quarterEndMonth = this.selectedQuarter * 3;
+      const lastDayOfQuarter = new Date(this.selectedYear, quarterEndMonth, 0).getDate();
+      filter.FromDate = this.formatDateForApi(new Date(this.selectedYear, quarterStartMonth - 1, 1));
+      filter.ToDate = this.formatDateForApi(new Date(this.selectedYear, quarterEndMonth - 1, lastDayOfQuarter));
+    } else if (this.timeFilterType === 'custom' && this.dateRange && this.dateRange[0] && this.dateRange[1]) {
+      filter.FromDate = this.formatDateForApi(this.dateRange[0]);
+      filter.ToDate = this.formatDateForApi(this.dateRange[1]);
+    }
+
+    this.evaluationService.getAllEvaluations(filter).subscribe({
       next: (response) => {
         const evaluations = this.normalizeEvaluations(response);
         this.totalEvaluations = evaluations.length;

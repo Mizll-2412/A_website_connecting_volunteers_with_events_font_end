@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { map } from 'rxjs/operators';
 import { SuKienResponseDto } from '../models/event';
 import { environment } from '../../environments/environment';
 
@@ -12,8 +13,39 @@ export class EventService {
 
   constructor(private http: HttpClient) {}
 
+  // Backend đã trả về các trường formatted (ngayBatDauFormatted, etc.)
+  // nên không cần transform nữa, chỉ cần trả về data từ backend
+  private transformEventDates(event: any): any {
+    if (!event || typeof event !== 'object') return event;
+    // Trả về event nguyên vẹn, backend đã xử lý formatting
+    return event;
+  }
+
+  // Format datetime theo local timezone (không convert sang UTC)
+  // Backend sẽ nhận và lưu đúng giờ người dùng đã chọn
+  private formatDateTimeForBackend(dateInput: any): string {
+    const date = new Date(dateInput);
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    const seconds = String(date.getSeconds()).padStart(2, '0');
+    return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`;
+  }
+
   getAllSuKien(): Observable<SuKienResponseDto[]> {
-    return this.http.get<SuKienResponseDto[]>(`${this.apiUrl}`);
+    return this.http.get<any>(`${this.apiUrl}`).pipe(
+      map((resp: any) => {
+        if (resp && Array.isArray(resp.data)) {
+          return resp.data.map((e: any) => this.transformEventDates(e));
+        }
+        if (Array.isArray(resp)) {
+          return resp.map((e: any) => this.transformEventDates(e));
+        }
+        return [];
+      })
+    );
   }
 
   getAllEvents(): Observable<SuKienResponseDto[]> {
@@ -21,7 +53,12 @@ export class EventService {
   }
   
   getSuKienById(id: number): Observable<SuKienResponseDto> {
-    return this.http.get<SuKienResponseDto>(`${this.apiUrl}/${id}`);
+    return this.http.get<any>(`${this.apiUrl}/${id}`).pipe(
+      map((resp: any) => {
+        const data = resp && resp.data ? resp.data : resp;
+        return this.transformEventDates(data);
+      })
+    );
   }
 
   createSuKien(data: any, anhFile?: File): Observable<any> {
@@ -38,11 +75,19 @@ export class EventService {
       formData.append('soLuong', data.soLuong.toString());
     }
     
-    if (data.ngayBatDau) formData.append('ngayBatDau', new Date(data.ngayBatDau).toISOString());
-    if (data.ngayKetThuc) formData.append('ngayKetThuc', new Date(data.ngayKetThuc).toISOString());
+    // Format datetime theo local timezone (không convert sang UTC)
+    if (data.ngayBatDau) formData.append('ngayBatDau', this.formatDateTimeForBackend(data.ngayBatDau));
+    if (data.ngayKetThuc) formData.append('ngayKetThuc', this.formatDateTimeForBackend(data.ngayKetThuc));
     
-    if (data.tuyenBatDau) formData.append('tuyenBatDau', new Date(data.tuyenBatDau).toISOString());
-    if (data.tuyenKetThuc) formData.append('tuyenKetThuc', new Date(data.tuyenKetThuc).toISOString());
+    if (data.tuyenBatDau) formData.append('tuyenBatDau', this.formatDateTimeForBackend(data.tuyenBatDau));
+    if (data.tuyenKetThuc) formData.append('tuyenKetThuc', this.formatDateTimeForBackend(data.tuyenKetThuc));
+    
+    // Thêm 3 field mới: ngayDienRaBatDau, ngayDienRaKetThuc, thoiGianKhoaHuy
+    if (data.ngayDienRaBatDau) formData.append('ngayDienRaBatDau', this.formatDateTimeForBackend(data.ngayDienRaBatDau));
+    if (data.ngayDienRaKetThuc) formData.append('ngayDienRaKetThuc', this.formatDateTimeForBackend(data.ngayDienRaKetThuc));
+    if (data.thoiGianKhoaHuy !== null && data.thoiGianKhoaHuy !== undefined) {
+      formData.append('thoiGianKhoaHuy', data.thoiGianKhoaHuy.toString());
+    }
     
     if (data.trangThai) formData.append('trangThai', data.trangThai);
     
@@ -103,11 +148,19 @@ export class EventService {
       formData.append('soLuong', data.soLuong.toString());
     }
     
-    if (data.ngayBatDau) formData.append('ngayBatDau', new Date(data.ngayBatDau).toISOString());
-    if (data.ngayKetThuc) formData.append('ngayKetThuc', new Date(data.ngayKetThuc).toISOString());
+    // Format datetime theo local timezone (không convert sang UTC)
+    if (data.ngayBatDau) formData.append('ngayBatDau', this.formatDateTimeForBackend(data.ngayBatDau));
+    if (data.ngayKetThuc) formData.append('ngayKetThuc', this.formatDateTimeForBackend(data.ngayKetThuc));
     
-    if (data.tuyenBatDau) formData.append('tuyenBatDau', new Date(data.tuyenBatDau).toISOString());
-    if (data.tuyenKetThuc) formData.append('tuyenKetThuc', new Date(data.tuyenKetThuc).toISOString());
+    if (data.tuyenBatDau) formData.append('tuyenBatDau', this.formatDateTimeForBackend(data.tuyenBatDau));
+    if (data.tuyenKetThuc) formData.append('tuyenKetThuc', this.formatDateTimeForBackend(data.tuyenKetThuc));
+    
+    // Thêm 3 field mới: ngayDienRaBatDau, ngayDienRaKetThuc, thoiGianKhoaHuy
+    if (data.ngayDienRaBatDau) formData.append('ngayDienRaBatDau', this.formatDateTimeForBackend(data.ngayDienRaBatDau));
+    if (data.ngayDienRaKetThuc) formData.append('ngayDienRaKetThuc', this.formatDateTimeForBackend(data.ngayDienRaKetThuc));
+    if (data.thoiGianKhoaHuy !== null && data.thoiGianKhoaHuy !== undefined) {
+      formData.append('thoiGianKhoaHuy', data.thoiGianKhoaHuy.toString());
+    }
     
     if (data.trangThai) formData.append('trangThai', data.trangThai);
     
@@ -168,10 +221,30 @@ export class EventService {
   finishEvent(id: number): Observable<any> {
     return this.http.put(`${this.apiUrl}/${id}/finish`, {});
   }
+
+  // Đóng phiên tuyển dụng
+  closeRecruitment(id: number): Observable<any> {
+    return this.http.post(`${this.apiUrl}/${id}/close-recruitment`, {});
+  }
+  
+  // Mở lại phiên tuyển dụng
+  openRecruitment(id: number): Observable<any> {
+    return this.http.post(`${this.apiUrl}/${id}/open-recruitment`, {});
+  }
   
   // Thêm phương thức lấy sự kiện theo tổ chức
   getEventsByOrganization(organizationId: number): Observable<SuKienResponseDto[]> {
-    return this.http.get<SuKienResponseDto[]>(`${this.apiUrl}/organization/${organizationId}`);
+    return this.http.get<any>(`${this.apiUrl}/organization/${organizationId}`).pipe(
+      map((resp: any) => {
+        if (resp && Array.isArray(resp.data)) {
+          return resp.data.map((e: any) => this.transformEventDates(e));
+        }
+        if (Array.isArray(resp)) {
+          return resp.map((e: any) => this.transformEventDates(e));
+        }
+        return [];
+      })
+    );
   }
   
   // Đổi tên phương thức để khớp với event-management.ts

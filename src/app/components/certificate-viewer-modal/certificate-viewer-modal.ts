@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { environment } from '../../../environments/environment';
 import { CertificateService } from '../../services/certificate.service';
 import { jsPDF } from 'jspdf';
+import { ToastService } from '../../services/toast.service';
 
 interface TemplateField {
   key: string;
@@ -37,7 +38,8 @@ export class CertificateViewerModalComponent implements OnChanges {
   canvasHeight: number = 800;
 
   constructor(
-    private certificateService: CertificateService
+    private certificateService: CertificateService,
+    private toast: ToastService
   ) {}
 
   ngOnChanges(changes: SimpleChanges): void {
@@ -85,7 +87,10 @@ export class CertificateViewerModalComponent implements OnChanges {
       },
       error: (err: any) => {
         console.error('Lỗi tải chứng nhận:', err);
-        this.errorMessage = err.error?.message || err.message || 'Không thể tải chứng nhận';
+        // Sử dụng normalizedMessage từ error interceptor (đã được chuẩn hóa)
+        this.errorMessage = err.normalizedMessage || 
+          err.error?.message || 
+          'Không thể tải chứng nhận';
         this.isLoading = false;
       }
     });
@@ -180,7 +185,8 @@ export class CertificateViewerModalComponent implements OnChanges {
       
       if ((window as any).bootstrap) {
         const modal = new (window as any).bootstrap.Modal(modalEl, {
-          backdrop: true,
+          // Disable extra backdrop to tránh chồng backdrop khi mở trong modal cha
+          backdrop: false,
           keyboard: true,
           focus: true
         });
@@ -194,6 +200,16 @@ export class CertificateViewerModalComponent implements OnChanges {
         }, { once: true });
         
         modal.show();
+
+        // Fix nested modal z-index (viewer nằm trong modal chi tiết TNV)
+        try {
+          // Tăng z-index cho modal và backdrop để nổi lên trên
+          modalEl.style.zIndex = '1062';
+          const backdrops = document.querySelectorAll('.modal-backdrop');
+          backdrops.forEach((bd: Element) => {
+            (bd as HTMLElement).style.zIndex = '1061';
+          });
+        } catch {}
       }
     }, 100);
   }
@@ -248,14 +264,14 @@ export class CertificateViewerModalComponent implements OnChanges {
 
   downloadImage(): void {
     if (!this.canvas) {
-      alert('Canvas chưa được khởi tạo');
+      this.toast.error('Canvas chưa được khởi tạo');
       return;
     }
 
     // Export canvas thành PNG
     this.canvas.nativeElement.toBlob((blob: Blob | null) => {
       if (!blob) {
-        alert('Không thể tạo file ảnh');
+        this.toast.error('Không thể tạo file ảnh');
         return;
       }
 
@@ -275,7 +291,7 @@ export class CertificateViewerModalComponent implements OnChanges {
 
   downloadPDF(): void {
     if (!this.canvas) {
-      alert('Canvas chưa được khởi tạo');
+      this.toast.error('Canvas chưa được khởi tạo');
       return;
     }
 
@@ -302,7 +318,8 @@ export class CertificateViewerModalComponent implements OnChanges {
       pdf.save(`ChungNhan_${this.certificateId}.pdf`);
     } catch (error) {
       console.error('Lỗi tạo PDF:', error);
-      alert('Không thể tạo PDF: ' + (error instanceof Error ? error.message : 'Đã xảy ra lỗi'));
+      // Lỗi local (không phải HTTP), chỉ hiển thị message tiếng Việt
+      this.toast.error('Không thể tạo PDF. Vui lòng thử lại sau.');
     }
   }
 }

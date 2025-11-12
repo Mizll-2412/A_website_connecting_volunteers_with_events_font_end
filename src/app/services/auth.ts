@@ -96,12 +96,20 @@ export class AuthService {
   }
 
   isAuthenticated(): boolean {
-    const user = localStorage.getItem('user');
-    return !!user;
+    // Kiểm tra cả localStorage và sessionStorage
+    const localUser = localStorage.getItem('user');
+    const sessionUser = sessionStorage.getItem('user');
+    return !!(localUser || sessionUser);
   }
 
   getUsername(): string {
-    const user = localStorage.getItem('user');
+    // Kiểm tra localStorage trước
+    let user = localStorage.getItem('user');
+    if (!user) {
+      // Nếu không có trong localStorage, kiểm tra sessionStorage
+      user = sessionStorage.getItem('user');
+    }
+    
     if (user) {
       try {
         const userData = JSON.parse(user);
@@ -120,7 +128,13 @@ export class AuthService {
   }
 
   getRole(): string {
-    const user = localStorage.getItem('user');
+    // Kiểm tra localStorage trước
+    let user = localStorage.getItem('user');
+    if (!user) {
+      // Nếu không có trong localStorage, kiểm tra sessionStorage
+      user = sessionStorage.getItem('user');
+    }
+    
     if (user) {
       try {
         const data = JSON.parse(user);
@@ -132,28 +146,68 @@ export class AuthService {
     return '';
   }
 
-  saveToken(token: string): void {
-    localStorage.setItem('token', token);
+  saveToken(token: string, rememberMe: boolean = false): void {
+    if (rememberMe) {
+      // Lưu vào localStorage khi chọn "Ghi nhớ đăng nhập"
+      localStorage.setItem('token', token);
+      localStorage.setItem('tokenSavedAt', Date.now().toString());
+      // Xóa token khỏi sessionStorage nếu có
+      sessionStorage.removeItem('token');
+    } else {
+      // Lưu vào sessionStorage khi không chọn "Ghi nhớ đăng nhập"
+      sessionStorage.setItem('token', token);
+      // Xóa token khỏi localStorage nếu có
+      localStorage.removeItem('token');
+      localStorage.removeItem('tokenSavedAt');
+    }
   }
 
   getToken(): string | null {
-    return localStorage.getItem('token');
+    // Kiểm tra localStorage trước (cho rememberMe = true)
+    const localToken = localStorage.getItem('token');
+    if (localToken) {
+      return localToken;
+    }
+    // Nếu không có trong localStorage, kiểm tra sessionStorage
+    return sessionStorage.getItem('token');
   }
 
-  saveUser(user: any): void {
-    localStorage.setItem('user', JSON.stringify(user));
+  saveUser(user: any, rememberMe: boolean = false): void {
+    if (rememberMe) {
+      // Lưu vào localStorage khi chọn "Ghi nhớ đăng nhập"
+      localStorage.setItem('user', JSON.stringify(user));
+      // Xóa user khỏi sessionStorage nếu có
+      sessionStorage.removeItem('user');
+    } else {
+      // Lưu vào sessionStorage khi không chọn "Ghi nhớ đăng nhập"
+      sessionStorage.setItem('user', JSON.stringify(user));
+      // Xóa user khỏi localStorage nếu có
+      localStorage.removeItem('user');
+    }
     this.userInfoChanged.next(user);
   }
   
   // Cập nhật thông tin user và trigger notification
   updateUserInfo(user: any): void {
-    localStorage.setItem('user', JSON.stringify(user));
+    // Giữ nguyên nơi lưu trữ hiện tại (localStorage hoặc sessionStorage)
+    const localUser = localStorage.getItem('user');
+    if (localUser) {
+      localStorage.setItem('user', JSON.stringify(user));
+    } else {
+      sessionStorage.setItem('user', JSON.stringify(user));
+    }
     this.userInfoChanged.next(user);
   }
 
   getUser(): any {
-    const user = localStorage.getItem('user');
-    return user ? JSON.parse(user) : null;
+    // Kiểm tra localStorage trước
+    const localUser = localStorage.getItem('user');
+    if (localUser) {
+      return JSON.parse(localUser);
+    }
+    // Nếu không có trong localStorage, kiểm tra sessionStorage
+    const sessionUser = sessionStorage.getItem('user');
+    return sessionUser ? JSON.parse(sessionUser) : null;
   }
 
   // Đăng xuất cả ở client và server
@@ -174,10 +228,14 @@ export class AuthService {
     }
   }
 
-  // Xóa dữ liệu đăng nhập khỏi localStorage
+  // Xóa dữ liệu đăng nhập khỏi cả localStorage và sessionStorage
   private clearLocalStorage(): void {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
+    localStorage.removeItem('tokenSavedAt');
+    localStorage.removeItem('rememberMe');
+    sessionStorage.removeItem('token');
+    sessionStorage.removeItem('user');
   }
 
   isLoggedIn(): boolean {

@@ -11,12 +11,14 @@ import { EvaluationService, CreateEvaluationDto } from '../../services/evaluatio
 import { CertificateService } from '../../services/certificate.service';
 import { CertificateViewerModalComponent } from '../certificate-viewer-modal/certificate-viewer-modal';
 import { StarRatingComponent } from '../shared/star-rating/star-rating';
+import { PaginationComponent } from '../shared/pagination/pagination';
+import { ToastService } from '../../services/toast.service';
 import { environment } from '../../../environments/environment';
 
 @Component({
   selector: 'app-registration-list',
   standalone: true,
-  imports: [CommonModule, RouterModule, FormsModule, CertificateViewerModalComponent, StarRatingComponent],
+  imports: [CommonModule, RouterModule, FormsModule, CertificateViewerModalComponent, StarRatingComponent, PaginationComponent],
   templateUrl: './registration-list.html',
   styleUrls: ['./registration-list.css']
 })
@@ -62,6 +64,10 @@ export class RegistrationListComponent implements OnInit {
   showCertificateModal = false;
   selectedCertificateId: number | null = null;
   
+  // Pagination
+  currentPage: number = 1;
+  itemsPerPage: number = 10;
+  
   constructor(
     private authService: AuthService,
     private registrationService: RegistrationService,
@@ -71,7 +77,8 @@ export class RegistrationListComponent implements OnInit {
     private certificateService: CertificateService,
     private http: HttpClient,
     private router: Router,
-    private cdr: ChangeDetectorRef
+    private cdr: ChangeDetectorRef,
+    private toastService: ToastService
   ) {}
 
   ngOnInit() {
@@ -84,9 +91,9 @@ export class RegistrationListComponent implements OnInit {
     }
     
     if (this.isLoggedIn) {
-      const userInfo = localStorage.getItem('user');
-      if (userInfo) {
-        this.user = JSON.parse(userInfo);
+      // Sử dụng authService.getUser() để lấy user từ cả localStorage và sessionStorage
+      this.user = this.authService.getUser();
+      if (this.user) {
         this.loadVolunteerInfo();
       }
     }
@@ -278,23 +285,86 @@ export class RegistrationListComponent implements OnInit {
     this.filteredRegistrations = filtered;
   }
 
-  cancelRegistration(registration: any) {
-    if (!confirm('Bạn có chắc chắn muốn hủy đăng ký tham gia sự kiện này?')) return;
+  // Map lưu thông tin hủy đăng ký
+  cancellationInfoMap: Map<number, any> = new Map();
+
+  getCancellationInfo(registration: any): any {
+    if (!this.volunteer || !registration.maSuKien || registration.trangThai !== 1) {
+      return null;
+    }
     
-    this.registrationService.cancelRegistration(this.volunteer.maTNV, registration.maSuKien).subscribe({
-      next: (response) => {
-        console.log('Hủy đăng ký thành công:', response);
-        this.registrations = this.registrations.filter(r => 
-          r.maTNV !== registration.maTNV || r.maSuKien !== registration.maSuKien
-        );
-        this.applyFilters();
-        alert('Hủy đăng ký thành công!');
-      },
-      error: (err: HttpErrorResponse) => {
-        console.error('Lỗi khi hủy đăng ký:', err);
-        alert('Không thể hủy đăng ký. Vui lòng thử lại sau.');
-      }
-    });
+    // Nếu chưa có trong map, gọi API
+    if (!this.cancellationInfoMap.has(registration.maSuKien)) {
+      this.registrationService.canCancelRegistration(this.volunteer.maTNV, registration.maSuKien).subscribe({
+        next: (res) => {
+          this.cancellationInfoMap.set(registration.maSuKien, res);
+          this.cdr.detectChanges();
+        },
+        error: () => {
+          this.cancellationInfoMap.set(registration.maSuKien, {
+            canCancel: false,
+            reason: 'Không thể kiểm tra',
+            hoursRemaining: 0
+          });
+        }
+      });
+      return null; // Trả về null lần đầu, sẽ update sau
+    }
+    
+    return this.cancellationInfoMap.get(registration.maSuKien);
+  }
+
+  formatCountdown(hours: number): string {
+    if (hours <= 0) return 'Hết hạn';
+    
+    const days = Math.floor(hours / 24);
+    const remainingHours = Math.floor(hours % 24);
+    
+    let result = '';
+    if (days > 0) result += `${days}d `;
+    if (remainingHours > 0) result += `${remainingHours}h`;
+    
+    return result.trim() || '< 1h';
+  }
+
+  cancelRegistration(registration: any): void {
+    if (!this.volunteer || !registration.maSuKien) return;
+    
+    if (confirm(`Xác nhận hủy đăng ký sự kiện "${registration.event?.tenSuKien}"?`)) {
+      this.registrationService.cancelRegistration(this.volunteer.maTNV, registration.maSuKien).subscribe({
+        next: () => {
+          this.toastService.success('Đã hủy đăng ký thành công');
+          this.loadRegistrations(); // Reload list
+        },
+        error: (err) => {
+          console.error('Lỗi hủy đăng ký:', err);
+          this.toastService.error(err.error?.message || 'Không thể hủy đăng ký');
+        }
+      });
+    }
+  }
+
+  cancelRegistrationWithWarning(registration: any, cancelInfo: any): void {
+    if (!cancelInfo.canCancel) {
+      this.toastService.warning(cancelInfo.reason);
+      return;
+    }
+    
+    const timeLeft = this.formatCountdown(cancelInfo.hoursRemaining);
+    const message = `Xác nhận hủy đăng ký sự kiện "${registration.event?.tenSuKien}"?\n\nThời gian còn lại để hủy: ${timeLeft}\n\nSau thời gian này, bạn sẽ không thể hủy được nữa.`;
+    
+    if (confirm(message)) {
+      this.registrationService.cancelRegistration(this.volunteer.maTNV, registration.maSuKien).subscribe({
+        next: () => {
+          this.toastService.success('Đã hủy đăng ký thành công');
+          this.loadRegistrations(); // Reload list
+        },
+        error: (err) => {
+          console.error('Lỗi hủy đăng ký:', err);
+          this.toastService.error(err.error?.message || 'Không thể hủy đăng ký');
+        }
+      });
+    }
   }
 
   getStatusText(status: number): string {
@@ -371,12 +441,12 @@ export class RegistrationListComponent implements OnInit {
           this.registrations[index].ngayDangKy = new Date();
         }
         this.applyFilters();
-        alert('Đăng ký lại thành công!');
+        this.toastService.success('Đăng ký lại thành công!');
       },
       error: (err: HttpErrorResponse) => {
         console.error('Lỗi khi đăng ký lại:', err);
         const errorMsg = err.error?.message || 'Không thể đăng ký lại. Vui lòng thử lại sau.';
-        alert(errorMsg);
+        this.toastService.error(errorMsg);
       }
     });
   }
@@ -437,14 +507,14 @@ export class RegistrationListComponent implements OnInit {
 
   submitEvaluation(): void {
     if (!this.selectedRegistration || !this.selectedRegistration.event) {
-      alert('Không thể gửi đánh giá. Vui lòng thử lại.');
+      this.toastService.error('Không thể gửi đánh giá. Vui lòng thử lại.');
       return;
     }
 
     // Kiểm tra sự kiện đã kết thúc chưa
     const eventEndDate = new Date(this.selectedRegistration.event.ngayKetThuc);
     if (eventEndDate > new Date()) {
-      alert('Sự kiện chưa kết thúc. Bạn chỉ có thể đánh giá sau khi sự kiện kết thúc.');
+      this.toastService.warning('Sự kiện chưa kết thúc. Bạn chỉ có thể đánh giá sau khi sự kiện kết thúc.');
       return;
     }
 
@@ -457,13 +527,13 @@ export class RegistrationListComponent implements OnInit {
     };
     
     if (!evaluation.maNguoiDuocDanhGia) {
-      alert('Không thể lấy thông tin tổ chức. Vui lòng thử lại sau.');
+      this.toastService.error('Không thể lấy thông tin tổ chức. Vui lòng thử lại sau.');
       return;
     }
 
     this.evaluationService.createEvaluation(evaluation).subscribe({
       next: (response) => {
-        alert('Đánh giá thành công! Cảm ơn bạn đã đóng góp ý kiến.');
+        this.toastService.success('Đánh giá thành công! Cảm ơn bạn đã đóng góp ý kiến.');
         
         // Đóng modal
         const modalEl = document.getElementById('evaluationModal');
@@ -478,7 +548,7 @@ export class RegistrationListComponent implements OnInit {
       error: (err) => {
         console.error('Lỗi đánh giá:', err);
         const errorMsg = err.normalizedMessage || err.error?.message || 'Không thể gửi đánh giá';
-        alert(errorMsg);
+        this.toastService.error(errorMsg);
       }
     });
   }
@@ -496,7 +566,7 @@ export class RegistrationListComponent implements OnInit {
     const now = new Date();
     
     // Kiểm tra sự kiện đã kết thúc theo trạng thái hoặc ngày
-    if (event.trangThaiHienThi === 'Đã kết thúc' || event.trangThai === 'Đã kết thúc') {
+    if (event.trangThaiHienThi === 'Sự kiện đã kết thúc' || event.trangThaiHienThi === 'Đã kết thúc' || event.trangThai === 'Đã kết thúc' || event.trangThai === 'Sự kiện đã kết thúc') {
       return true;
     }
     
@@ -516,7 +586,7 @@ export class RegistrationListComponent implements OnInit {
     const now = new Date();
     
     // Kiểm tra theo trạng thái
-    if (event.trangThaiHienThi === 'Đã kết thúc' || event.trangThai === 'Đã kết thúc') {
+    if (event.trangThaiHienThi === 'Sự kiện đã kết thúc' || event.trangThaiHienThi === 'Đã kết thúc' || event.trangThai === 'Đã kết thúc' || event.trangThai === 'Sự kiện đã kết thúc') {
       return true;
     }
     
@@ -538,8 +608,34 @@ export class RegistrationListComponent implements OnInit {
     return this.filteredRegistrations.filter(reg => this.isEventFinished(reg));
   }
 
+  get paginatedActiveRegistrations(): any[] {
+    const startIndex = (this.currentPage - 1) * this.itemsPerPage;
+    const endIndex = startIndex + this.itemsPerPage;
+    return this.activeRegistrations.slice(startIndex, endIndex);
+  }
+
+  get paginatedFinishedRegistrations(): any[] {
+    const startIndex = (this.currentPage - 1) * this.itemsPerPage;
+    const endIndex = startIndex + this.itemsPerPage;
+    return this.finishedRegistrations.slice(startIndex, endIndex);
+  }
+
+  get currentRegistrations(): any[] {
+    return this.selectedTab === 'active' ? this.activeRegistrations : this.finishedRegistrations;
+  }
+
+  onPageChange(page: number): void {
+    this.currentPage = page;
+  }
+
+  onItemsPerPageChange(itemsPerPage: number): void {
+    this.itemsPerPage = itemsPerPage;
+    this.currentPage = 1;
+  }
+
   selectTab(tab: string): void {
     this.selectedTab = tab;
+    this.currentPage = 1; // Reset về trang đầu khi đổi tab
     
     // Lưu tab vào localStorage
     localStorage.setItem('registrationListActiveTab', tab);
@@ -547,7 +643,7 @@ export class RegistrationListComponent implements OnInit {
 
   viewEvaluation(registration: any): void {
     if (!registration.event?.maTaiKhoanToChuc || !this.user?.maTaiKhoan) {
-      alert('Không thể xem đánh giá');
+      this.toastService.error('Không thể xem đánh giá');
       return;
     }
     
@@ -566,12 +662,12 @@ export class RegistrationListComponent implements OnInit {
           if (response?.data) {
             this.viewEvaluationPreview(response.data, 'Đánh giá của bạn');
           } else {
-            alert('Không tìm thấy đánh giá');
+            this.toastService.warning('Không tìm thấy đánh giá');
           }
         },
         error: (err) => {
           console.error('Lỗi khi lấy đánh giá:', err);
-          alert('Không thể xem đánh giá');
+          this.toastService.error('Không thể xem đánh giá');
         }
       });
     }
@@ -636,7 +732,7 @@ export class RegistrationListComponent implements OnInit {
   viewEvaluationPreview(evaluation: any, title: string): void {
     if (!evaluation) {
       console.error('Không có đánh giá để hiển thị');
-      alert('Không tìm thấy đánh giá');
+      this.toastService.warning('Không tìm thấy đánh giá');
       return;
     }
     
@@ -677,20 +773,20 @@ export class RegistrationListComponent implements OnInit {
     if (evaluation) {
       this.viewEvaluationPreview(evaluation, 'Đánh giá từ tổ chức');
     } else {
-      alert('Tổ chức chưa đánh giá bạn cho sự kiện này');
+      this.toastService.info('Tổ chức chưa đánh giá bạn cho sự kiện này');
     }
   }
   
   // Gửi yêu cầu được đánh giá
   requestEvaluationFromOrganization(registration: any): void {
     if (!this.user?.maTaiKhoan) {
-      alert('Bạn cần đăng nhập để gửi yêu cầu');
+      this.toastService.warning('Bạn cần đăng nhập để gửi yêu cầu');
       return;
     }
     
     const eventData = registration.event;
     if (!eventData?.maTaiKhoanToChuc) {
-      alert('Không thể lấy thông tin tổ chức');
+      this.toastService.error('Không thể lấy thông tin tổ chức');
       return;
     }
     
@@ -716,11 +812,11 @@ export class RegistrationListComponent implements OnInit {
         // Đánh dấu đã gửi yêu cầu
         this.requestedEvaluationEvents.add(registration.maSuKien);
         this.saveRequestedEvaluations();
-        alert('Đã gửi yêu cầu đánh giá tới tổ chức thành công!');
+        this.toastService.success('Đã gửi yêu cầu đánh giá tới tổ chức thành công!');
       },
       error: (err) => {
         console.error('Lỗi gửi yêu cầu:', err);
-        alert('Không thể gửi yêu cầu: ' + (err.error?.message || 'Đã xảy ra lỗi'));
+        this.toastService.error('Không thể gửi yêu cầu: ' + (err.error?.message || 'Đã xảy ra lỗi'));
       }
     });
   }
@@ -749,7 +845,7 @@ export class RegistrationListComponent implements OnInit {
           const array = JSON.parse(data);
           this.requestedEvaluationEvents = new Set(array);
         } catch (e) {
-          console.error('Lỗi load requested evaluations:', e);
+          console.error('Lỗi khi tải đánh giá đã yêu cầu:', e);
         }
       }
     }
@@ -779,7 +875,7 @@ export class RegistrationListComponent implements OnInit {
           const array = JSON.parse(data);
           this.requestedCertificateEvents = new Set(array);
         } catch (e) {
-          console.error('Lỗi load requested certificates:', e);
+          console.error('Lỗi khi tải chứng nhận đã yêu cầu:', e);
         }
       }
     }
@@ -788,7 +884,7 @@ export class RegistrationListComponent implements OnInit {
   // Xem chứng nhận
   viewCertificate(registration: any): void {
     if (!registration.certificate?.maGiayChungNhan) {
-      alert('Không tìm thấy thông tin chứng nhận');
+      this.toastService.warning('Không tìm thấy thông tin chứng nhận');
       return;
     }
     
@@ -828,7 +924,7 @@ export class RegistrationListComponent implements OnInit {
   // Yêu cầu cấp giấy chứng nhận
   requestCertificate(registration: any): void {
     if (!this.user?.maTaiKhoan || !registration.event?.maTaiKhoanToChuc) {
-      alert('Không thể gửi yêu cầu. Vui lòng thử lại.');
+      this.toastService.error('Không thể gửi yêu cầu. Vui lòng thử lại.');
       return;
     }
     
@@ -848,11 +944,11 @@ export class RegistrationListComponent implements OnInit {
         // Lưu trạng thái đã gửi yêu cầu
         this.requestedCertificateEvents.add(registration.maSuKien);
         this.saveRequestedCertificates();
-        alert('Đã gửi yêu cầu cấp giấy chứng nhận tới tổ chức thành công!');
+        this.toastService.success('Đã gửi yêu cầu cấp giấy chứng nhận tới tổ chức thành công!');
       },
       error: (err) => {
         console.error('Lỗi gửi yêu cầu:', err);
-        alert('Không thể gửi yêu cầu: ' + (err.error?.message || 'Đã xảy ra lỗi'));
+        this.toastService.error('Không thể gửi yêu cầu: ' + (err.error?.message || 'Đã xảy ra lỗi'));
       }
     });
   }

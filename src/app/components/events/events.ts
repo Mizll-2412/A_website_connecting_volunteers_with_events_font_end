@@ -134,9 +134,9 @@ export class EventRegisteredComponent implements OnInit, OnDestroy {
       this.role = this.auth.getRole();
     }
 
-    const userInfo = localStorage.getItem('user');
-    if (userInfo) {
-      this.user = JSON.parse(userInfo);
+    // Sử dụng authService.getUser() để lấy user từ cả localStorage và sessionStorage
+    this.user = this.auth.getUser();
+    if (this.user) {
       this.loadVolunteerInfo();
     }
 

@@ -1,4 +1,4 @@
-<main class="container py-4">
+<main class="event-detail-container container py-4">
   <!-- Loading State -->
   <div *ngIf="isLoading" class="text-center my-5">
     <div class="spinner-border text-primary" role="status">
@@ -16,94 +16,165 @@
   </div>
 
   <!-- Event Detail Content -->
-  <div *ngIf="!isLoading && event">
-    <!-- Back Button -->
-    <button class="btn btn-outline-secondary mb-3" (click)="backToList()">
-      <i class="bi bi-arrow-left"></i> Quay lại danh sách
-    </button>
-
-    <!-- Event Header -->
-    <div class="event-header">
-      <div class="d-flex justify-content-between align-items-start">
-        <div>
-          <h1 class="mb-2">{{ event.tenSuKien }}</h1>
-          <span class="badge" [ngClass]="getEventStatusClass()">
-            {{ getEventStatusText() }}
-          </span>
-        </div>
-        <div class="action-buttons" *ngIf="canEditOrDelete()">
-          <button class="btn btn-light" (click)="editEvent()">
-            <i class="bi bi-pencil"></i> Sửa
-          </button>
-          <button class="btn btn-warning" (click)="finishEvent()" *ngIf="canFinishEvent()">
-            <i class="bi bi-flag"></i> Kết thúc
-          </button>
-          <button class="btn btn-danger" (click)="deleteEvent()">
-            <i class="bi bi-trash"></i> Xóa
-          </button>
-        </div>
+  <div *ngIf="!isLoading && event" class="event-detail-page">
+    <!-- Toolbar -->
+    <div class="page-toolbar">
+      <button class="btn btn-light border d-flex align-items-center gap-2" (click)="backToList()">
+        <i class="bi bi-arrow-left"></i>
+        <span>Quay lại danh sách</span>
+      </button>
+      <div class="action-buttons" *ngIf="canEditOrDelete()">
+        <button class="btn btn-outline-secondary" (click)="editEvent()">
+          <i class="bi bi-pencil"></i> Sửa
+        </button>
+        <button class="btn btn-outline-warning" (click)="finishEvent()" *ngIf="canFinishEvent()">
+          <i class="bi bi-flag"></i> Kết thúc
+        </button>
+        <button class="btn btn-outline-danger" (click)="deleteEvent()">
+          <i class="bi bi-trash"></i> Xóa
+        </button>
       </div>
     </div>
 
-    <!-- Event Image -->
-    <img [src]="event.hinhAnh ? getImageUrl(event.hinhAnh) : 'assets/event-default.jpg'" 
-         class="event-image" 
-         alt="{{ event.tenSuKien }}">
-
-    <!-- Event Information -->
-    <div class="row mb-4">
-      <div class="col-md-8">
-        <div class="card mb-3">
-          <div class="card-header">
-            <h5 class="mb-0"><i class="bi bi-info-circle"></i> Thông tin chi tiết</h5>
+    <!-- Event Hero -->
+    <section
+      class="event-hero shadow-sm"
+      [ngStyle]="{
+        'background-image': event.hinhAnh
+          ? 'linear-gradient(135deg, rgba(12, 19, 79, 0.75), rgba(69, 104, 220, 0.7)), url(' + getImageUrl(event.hinhAnh) + ')'
+          : 'linear-gradient(135deg, rgba(12, 19, 79, 0.75), rgba(69, 104, 220, 0.7)), url(assets/event-default.jpg)'
+      }"
+    >
+      <div class="event-hero__content">
+        <div>
+          <div class="event-status">
+            <span class="status-chip" [ngClass]="getEventStatusClass()">
+              {{ getEventStatusText() }}
+            </span>
+            <span class="status-chip subtle" *ngIf="event.tenToChuc">
+              <i class="bi bi-building me-1"></i>{{ event.tenToChuc }}
+            </span>
           </div>
-          <div class="card-body">
-            <h6>Mô tả</h6>
-            <p class="text-muted">{{ event.noiDung || 'Chưa có mô tả' }}</p>
-            
-            <hr>
-            
-            <dl class="row mb-0">
-              <dt class="col-sm-4"><i class="bi bi-geo-alt"></i> Địa điểm</dt>
-              <dd class="col-sm-8">{{ event.diaChi }}</dd>
-              
-              <dt class="col-sm-4"><i class="bi bi-calendar-event"></i> Ngày bắt đầu</dt>
-              <dd class="col-sm-8">{{ formatDate(event.ngayBatDau) }}</dd>
-              
-              <dt class="col-sm-4"><i class="bi bi-calendar-check"></i> Ngày kết thúc</dt>
-              <dd class="col-sm-8">{{ formatDate(event.ngayKetThuc) }}</dd>
-              
-              <dt class="col-sm-4"><i class="bi bi-calendar-plus"></i> Bắt đầu tuyển</dt>
-              <dd class="col-sm-8">{{ event.tuyenBatDau ? formatDate(event.tuyenBatDau) : 'Chưa cập nhật' }}</dd>
-              
-              <dt class="col-sm-4"><i class="bi bi-calendar-x"></i> Kết thúc tuyển</dt>
-              <dd class="col-sm-8">{{ event.tuyenKetThuc ? formatDate(event.tuyenKetThuc) : 'Chưa cập nhật' }}</dd>
-            </dl>
+          <h1 class="event-title">{{ event.tenSuKien }}</h1>
+          <div class="event-meta">
+            <div class="meta-item">
+              <i class="bi bi-geo-alt"></i>
+              <span>{{ event.diaChi }}</span>
+            </div>
+            <div class="meta-item">
+              <i class="bi bi-calendar-event"></i>
+              <span>{{ formatDate(event.ngayBatDau) }} - {{ formatDate(event.ngayKetThuc) }}</span>
+            </div>
           </div>
         </div>
-
-        <!-- Volunteers List -->
-        <div class="card">
-          <div class="card-header d-flex justify-content-between align-items-center">
-            <h5 class="mb-0"><i class="bi bi-people"></i> Danh sách tình nguyện viên</h5>
-            <button class="btn btn-sm btn-success" 
-                    (click)="openCertificateModal()"
-                    *ngIf="getEventStatusText() === 'Đã kết thúc' && eventVolunteers.length > 0">
-              <i class="bi bi-award"></i> Cấp chứng nhận
-            </button>
+        <div class="event-hero__metrics">
+          <div class="metric-card">
+            <span class="metric-value">{{ getRequiredSlots() }}</span>
+            <span class="metric-label">Cần tuyển</span>
           </div>
-          <div class="card-body">
-            <div *ngIf="isLoadingVolunteers" class="text-center py-3">
+          <div class="metric-card">
+            <span class="metric-value">{{ getRegisteredSlots() }}</span>
+            <span class="metric-label">Đã đăng ký</span>
+          </div>
+          <div class="metric-card">
+            <span class="metric-value">{{ getRemainingSlots() }}</span>
+            <span class="metric-label">Còn lại</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Event Content -->
+    <div class="row gy-4 mt-0 mt-lg-2">
+      <div class="col-lg-8">
+        <section class="event-section card border-0 shadow-sm">
+          <div class="card-body p-4">
+            <div class="section-header">
+              <div class="section-icon">
+                <i class="bi bi-info-circle"></i>
+              </div>
+              <div>
+                <h2 class="section-title">Thông tin chi tiết</h2>
+                <p class="section-subtitle">Tổng quan những dữ liệu quan trọng của sự kiện</p>
+              </div>
+            </div>
+
+            <p class="event-description">
+              {{ event.noiDung || 'Chưa có mô tả cho sự kiện này.' }}
+            </p>
+
+            <div class="detail-grid">
+              <div class="detail-item">
+                <span class="detail-label">
+                  <i class="bi bi-calendar-event"></i> Ngày bắt đầu
+                </span>
+                <span class="detail-value">{{ formatDate(event.ngayBatDau) }}</span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label">
+                  <i class="bi bi-calendar-check"></i> Ngày kết thúc
+                </span>
+                <span class="detail-value">{{ formatDate(event.ngayKetThuc) }}</span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label">
+                  <i class="bi bi-calendar-plus"></i> Bắt đầu tuyển
+                </span>
+                <span class="detail-value">
+                  {{ event.tuyenBatDau ? formatDate(event.tuyenBatDau) : 'Chưa cập nhật' }}
+                </span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label">
+                  <i class="bi bi-calendar-x"></i> Kết thúc tuyển
+                </span>
+                <span class="detail-value">
+                  {{ event.tuyenKetThuc ? formatDate(event.tuyenKetThuc) : 'Chưa cập nhật' }}
+                </span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="event-section card border-0 shadow-sm mt-4">
+          <div class="card-body p-4">
+            <div class="section-header align-items-center">
+              <div class="section-icon">
+                <i class="bi bi-people"></i>
+              </div>
+              <div>
+                <h2 class="section-title mb-1">Danh sách tình nguyện viên</h2>
+                <p class="section-subtitle mb-0">
+                  Theo dõi tiến độ phê duyệt và đánh giá tình nguyện viên tham gia
+                </p>
+              </div>
+              <div class="ms-auto">
+                <button
+                  class="btn btn-success btn-sm d-flex align-items-center gap-2"
+                  (click)="openCertificateModal()"
+                  *ngIf="(getEventStatusText() === 'Sự kiện đã kết thúc' || getEventStatusText() === 'Đã kết thúc') && eventVolunteers.length > 0"
+                >
+                  <i class="bi bi-award"></i>
+                  <span>Cấp chứng nhận</span>
+                </button>
+              </div>
+            </div>
+
+            <div *ngIf="isLoadingVolunteers" class="loading-state">
               <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
               <span class="ms-2">Đang tải danh sách...</span>
             </div>
 
-            <div *ngIf="!isLoadingVolunteers && eventVolunteers.length === 0" class="alert alert-info">
-              <i class="bi bi-info-circle"></i> Chưa có tình nguyện viên nào đăng ký
+            <div
+              *ngIf="!isLoadingVolunteers && eventVolunteers.length === 0"
+              class="empty-state alert alert-info d-flex align-items-center gap-2"
+            >
+              <i class="bi bi-info-circle"></i>
+              <span>Chưa có tình nguyện viên nào đăng ký.</span>
             </div>
 
             <div *ngIf="!isLoadingVolunteers && eventVolunteers.length > 0" class="table-responsive">
-              <table class="table table-hover">
+              <table class="table table-modern align-middle">
                 <thead>
                   <tr>
                     <th>#</th>
@@ -118,73 +189,109 @@
                 <tbody>
                   <tr *ngFor="let volunteer of eventVolunteers; let i = index">
                     <td>{{ i + 1 }}</td>
-                    <td>{{ volunteer.hoTen }}</td>
+                    <td>
+                      <div class="volunteer-name">
+                        <i class="bi bi-person-circle"></i>
+                        <span>{{ volunteer.hoTen }}</span>
+                      </div>
+                    </td>
                     <td>{{ volunteer.soDienThoai }}</td>
                     <td>{{ volunteer.email }}</td>
                     <td>{{ volunteer.diaChi }}</td>
                     <td>
-                      <span class="badge" [ngClass]="{
-                        'bg-success': volunteer.trangThai === 1,
-                        'bg-warning': volunteer.trangThai === 0,
-                        'bg-danger': volunteer.trangThai === 2
-                      }">
-                        {{ volunteer.trangThai === 1 ? 'Đã duyệt' : (volunteer.trangThai === 0 ? 'Chờ duyệt' : 'Từ chối') }}
+                      <span
+                        class="badge status-pill"
+                        [ngClass]="{
+                          'bg-success-subtle text-success': volunteer.trangThai === 1,
+                          'bg-warning-subtle text-warning': volunteer.trangThai === 0,
+                          'bg-danger-subtle text-danger': volunteer.trangThai === 2
+                        }"
+                      >
+                        {{
+                          volunteer.trangThai === 1
+                            ? 'Đã duyệt'
+                            : volunteer.trangThai === 0
+                            ? 'Chờ duyệt'
+                            : 'Từ chối'
+                        }}
                       </span>
                     </td>
                     <td>
-                      <button *ngIf="canEvaluateVolunteer(volunteer)" 
-                              class="btn btn-sm btn-outline-primary" 
-                              (click)="openEvaluateVolunteer(volunteer)">
-                        <i class="bi bi-star"></i> Đánh giá
-                      </button>
-                      <span *ngIf="evaluatedVolunteerIds.has(volunteer.maTNV)" 
-                            class="badge bg-success">
-                        <i class="bi bi-check-circle"></i> Đã đánh giá
-                      </span>
+                      <div class="d-flex align-items-center gap-2">
+                        <button
+                          *ngIf="canEvaluateVolunteer(volunteer)"
+                          class="btn btn-outline-primary btn-sm"
+                          (click)="openEvaluateVolunteer(volunteer)"
+                        >
+                          <i class="bi bi-star"></i> Đánh giá
+                        </button>
+                        <span
+                          *ngIf="evaluatedVolunteerIds.has(volunteer.maTNV)"
+                          class="badge bg-success-subtle text-success"
+                        >
+                          <i class="bi bi-check-circle"></i> Đã đánh giá
+                        </span>
+                      </div>
                     </td>
                   </tr>
                 </tbody>
               </table>
             </div>
           </div>
-        </div>
+        </section>
       </div>
 
       <!-- Sidebar -->
-      <div class="col-md-4">
-        <!-- Statistics -->
-        <div class="card mb-3">
-          <div class="card-header">
-            <h5 class="mb-0"><i class="bi bi-bar-chart"></i> Thống kê</h5>
-          </div>
-          <div class="card-body">
-            <div class="stat-box mb-3">
-              <h3>{{ getRequiredSlots() }}</h3>
-              <p>Số lượng cần tuyển</p>
+      <div class="col-lg-4">
+        <section class="event-section card border-0 shadow-sm">
+          <div class="card-body p-4">
+            <div class="section-header">
+              <div class="section-icon gradient">
+                <i class="bi bi-graph-up"></i>
+              </div>
+              <div>
+                <h2 class="section-title">Thống kê nhanh</h2>
+                <p class="section-subtitle">Tổng hợp tình hình tuyển dụng</p>
+              </div>
             </div>
-            <div class="stat-box">
-              <h3>{{ getRegisteredSlots() }}</h3>
-              <p>Đã đăng ký</p>
-            </div>
-            <div class="stat-box mt-3">
-              <h3>{{ getRemainingSlots() }}</h3>
-              <p>Còn lại</p>
-            </div>
-          </div>
-        </div>
 
-        <!-- Organization Info -->
-        <div class="card" *ngIf="event.tenToChuc">
-          <div class="card-header">
-            <h5 class="mb-0"><i class="bi bi-building"></i> Tổ chức</h5>
+            <div class="stat-grid">
+              <div class="stat-item">
+                <span class="stat-title">Tổng số ca</span>
+                <span class="stat-value">{{ getRequiredSlots() }}</span>
+              </div>
+              <div class="stat-item">
+                <span class="stat-title">Đã đăng ký</span>
+                <span class="stat-value text-primary">{{ getRegisteredSlots() }}</span>
+              </div>
+              <div class="stat-item">
+                <span class="stat-title">Còn lại</span>
+                <span class="stat-value text-warning">{{ getRemainingSlots() }}</span>
+              </div>
+            </div>
           </div>
-          <div class="card-body">
-            <p class="mb-1"><strong>{{ event.tenToChuc }}</strong></p>
-            <p class="text-muted mb-0" *ngIf="event.diaChiToChuc">
-              <i class="bi bi-geo-alt"></i> {{ event.diaChiToChuc }}
-            </p>
+        </section>
+
+        <section class="event-section card border-0 shadow-sm mt-4" *ngIf="event.tenToChuc">
+          <div class="card-body p-4">
+            <div class="section-header">
+              <div class="section-icon gradient">
+                <i class="bi bi-building"></i>
+              </div>
+              <div>
+                <h2 class="section-title">Tổ chức phụ trách</h2>
+                <p class="section-subtitle">Thông tin liên hệ nhanh</p>
+              </div>
+            </div>
+
+            <div class="org-card">
+              <h3 class="org-name">{{ event.tenToChuc }}</h3>
+              <p class="org-address" *ngIf="event.diaChiToChuc">
+                <i class="bi bi-geo-alt me-2"></i>{{ event.diaChiToChuc }}
+              </p>
+            </div>
           </div>
-        </div>
+        </section>
       </div>
     </div>
   </div>

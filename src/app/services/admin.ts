@@ -70,9 +70,10 @@ export class AdminService {
     return this.http.get(`${environment.apiUrl}/statistics/organizations`);
   }
 
-  verifyOrganization(id: number, daXacMinh: boolean, lyDoTuChoi?: string): Observable<any> {
+  verifyOrganization(id: number, action: 'approve' | 'reject' | 'revoke', lyDoTuChoi?: string): Observable<any> {
     return this.http.put(`${this.apiUrl}/organizations/${id}/verify`, { 
-      daXacMinh,
+      daXacMinh: action === 'approve',
+      hanhDong: action,
       lyDoTuChoi: lyDoTuChoi || ''
     });
   }

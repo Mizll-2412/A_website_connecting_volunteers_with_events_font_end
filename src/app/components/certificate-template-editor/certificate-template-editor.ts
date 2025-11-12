@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { CertificateService } from '../../services/certificate.service';
 import { environment } from '../../../environments/environment';
+import { ToastService } from '../../services/toast.service';
 
 interface TemplateField {
   key: string;
@@ -100,7 +101,8 @@ export class CertificateTemplateEditorComponent implements OnInit, OnDestroy {
   constructor(
     private route: ActivatedRoute,
     private router: Router,
-    private certificateService: CertificateService
+    private certificateService: CertificateService,
+    private toast: ToastService
   ) {}
   
   ngOnInit(): void {
@@ -201,6 +203,37 @@ export class CertificateTemplateEditorComponent implements OnInit, OnDestroy {
   private updateCursor(cursor: 'default' | 'grab' | 'grabbing'): void {
     if (this.canvas?.nativeElement) {
       this.canvas.nativeElement.style.cursor = cursor;
+    }
+    // Cập nhật cursor cho container khi panning
+    if (this.canvasWrapper?.nativeElement?.parentElement) {
+      this.canvasWrapper.nativeElement.parentElement.style.cursor = cursor;
+    }
+  }
+
+  onContainerMouseDown(event: MouseEvent): void {
+    // Chỉ xử lý nếu click vào container (vùng màu xám), không phải canvas hoặc wrapper
+    const target = event.target as HTMLElement;
+    if (target === this.canvas?.nativeElement || 
+        target === this.canvasWrapper?.nativeElement ||
+        this.canvasWrapper?.nativeElement?.contains(target) ||
+        this.canvas?.nativeElement?.contains(target)) {
+      // Nếu click vào canvas hoặc wrapper, để canvas xử lý
+      return;
+    }
+    
+    // Kiểm tra chuột phải để pan canvas khi click vào vùng màu xám
+    if (event.button === 2 || event.which === 3) {
+      event.preventDefault(); // Ngăn context menu
+      this.isPanning = true;
+      this.panStart = {
+        x: event.clientX - this.panOffset.x,
+        y: event.clientY - this.panOffset.y
+      };
+      this.updateCursor('grabbing');
+      // Thêm event listener trên document để bắt mouse move và mouse up khi đang pan
+      document.addEventListener('mousemove', this.handleDocumentPanMove);
+      document.addEventListener('mouseup', this.handleDocumentPanUp);
+      document.addEventListener('contextmenu', this.preventContextMenu);
     }
   }
 
@@ -713,7 +746,7 @@ export class CertificateTemplateEditorComponent implements OnInit, OnDestroy {
     
     // Validate file type
     if (!file.type.startsWith('image/')) {
-      alert('Vui lòng chọn file ảnh (JPG, PNG, ...)');
+      this.toast.warning('Vui lòng chọn file ảnh (JPG, PNG, ...)');
       return;
     }
     

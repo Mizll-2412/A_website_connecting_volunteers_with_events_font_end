@@ -54,6 +54,30 @@
   transform: translateY(-2px);
 }
 
+.evaluation-card .evaluation-content {
+  font-size: 0.98rem;
+  font-weight: 600;
+  color: #111827;
+  padding: 12px 14px;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  background: #fcfdff;
+  position: relative;
+  box-shadow: 0 2px 10px rgba(2, 6, 23, 0.03);
+}
+
+.evaluation-card .evaluation-content::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  border-top-left-radius: 10px;
+  border-bottom-left-radius: 10px;
+  background: linear-gradient(180deg, #0d6efd, #22c55e);
+}
+
 .evaluation-meta {
   display: flex;
   justify-content: space-between;
@@ -76,6 +100,64 @@
   color: #64748b;
 }
 
+/* Scrollable filter list */
+.filter-list {
+  max-height: 240px;
+  overflow: auto;
+  border: 1px solid #eef2f7;
+  border-radius: 10px;
+  padding: 10px 12px;
+  background: #fbfdff;
+}
+
+/* New: stats & badges */
+.stat-card {
+  background: #ffffff;
+  border: 1px solid #edf2f7;
+  border-radius: 14px;
+  padding: 14px 16px;
+  box-shadow: 0 10px 24px rgba(2, 6, 23, 0.06);
+  height: 100%;
+}
+
+.stat-icon {
+  width: 42px;
+  height: 42px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+}
+
+.stat-label {
+  font-size: 0.8rem;
+  color: #6b7280;
+}
+
+.stat-value {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: #111827;
+  line-height: 1.1;
+}
+
+.stat-split {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.role-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  font-size: 0.9rem;
+}
+
 @media (max-width: 767.98px) {
   .admin-evaluations {
     padding-left: 1.25rem;
@@ -90,5 +172,30 @@
     flex-direction: column;
     align-items: flex-start;
   }
+}
+
+:host ::ng-deep .ant-picker {
+  width: 100% !important;
+  height: 42px !important;
+}
+
+:host ::ng-deep .ant-picker-input {
+  height: 36px !important;
+}
+
+:host ::ng-deep .ant-picker-range {
+  width: 100% !important;
+}
+
+:host ::ng-deep .ant-picker-dropdown {
+  z-index: 1050 !important;
+}
+
+:host ::ng-deep .ant-picker-panel-container {
+  z-index: 1050 !important;
+}
+
+:host ::ng-deep .ant-picker-panel {
+  z-index: 1050 !important;
 }
 

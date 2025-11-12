@@ -1,0 +1,11 @@
+<!-- Shared Event Form Modal -->
+<app-event-form-modal
+  [(visible)]="showEventModal"
+  [isEditing]="isEditingEvent"
+  [eventData]="eventFormData"
+  [showOrganizationSelector]="false"
+  [defaultOrganizationId]="organization?.maToChuc"
+  (saved)="onEventModalSaved()"
+  (cancelled)="onEventModalCancelled()"
+></app-event-form-modal>
+

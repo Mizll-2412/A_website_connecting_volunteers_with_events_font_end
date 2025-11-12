@@ -1,8 +1,93 @@
-<div class="container-fluid py-4">
+<div class="container-fluid p-0">
   <div class="row mb-4">
     <div class="col-12">
       <h2 class="mb-0">Thống kê hệ thống</h2>
       <p class="text-muted">Tổng quan về hoạt động của hệ thống</p>
+    </div>
+  </div>
+
+  <!-- Bộ lọc thời gian -->
+  <div class="card mb-4">
+    <div class="card-body">
+      <div class="row g-3 align-items-end">
+        <div class="col-md-3">
+          <label class="form-label small fw-semibold mb-2">Loại lọc</label>
+          <select class="form-select" [(ngModel)]="timeFilterType" (change)="onTimeFilterTypeChange()">
+            <option value="year">Theo năm</option>
+            <option value="quarter">Theo quý</option>
+            <option value="month">Theo tháng</option>
+            <option value="custom">Khoảng ngày cụ thể</option>
+          </select>
+        </div>
+
+        <!-- Lọc theo năm -->
+        <div class="col-md-3" *ngIf="timeFilterType === 'year'">
+          <label class="form-label small fw-semibold mb-2">Năm</label>
+          <select class="form-select" [(ngModel)]="selectedYear" (change)="applyTimeFilter()">
+            <option *ngFor="let year of availableYears" [value]="year">{{ year }}</option>
+          </select>
+        </div>
+
+        <!-- Lọc theo quý -->
+        <div class="col-md-2" *ngIf="timeFilterType === 'quarter'">
+          <label class="form-label small fw-semibold mb-2">Năm</label>
+          <select class="form-select" [(ngModel)]="selectedYear" (change)="applyTimeFilter()">
+            <option *ngFor="let year of availableYears" [value]="year">{{ year }}</option>
+          </select>
+        </div>
+        <div class="col-md-2" *ngIf="timeFilterType === 'quarter'">
+          <label class="form-label small fw-semibold mb-2">Quý</label>
+          <select class="form-select" [(ngModel)]="selectedQuarter" (change)="applyTimeFilter()">
+            <option value="1">Quý 1</option>
+            <option value="2">Quý 2</option>
+            <option value="3">Quý 3</option>
+            <option value="4">Quý 4</option>
+          </select>
+        </div>
+
+        <!-- Lọc theo tháng -->
+        <div class="col-md-2" *ngIf="timeFilterType === 'month'">
+          <label class="form-label small fw-semibold mb-2">Năm</label>
+          <select class="form-select" [(ngModel)]="selectedYear" (change)="applyTimeFilter()">
+            <option *ngFor="let year of availableYears" [value]="year">{{ year }}</option>
+          </select>
+        </div>
+        <div class="col-md-2" *ngIf="timeFilterType === 'month'">
+          <label class="form-label small fw-semibold mb-2">Tháng</label>
+          <select class="form-select" [(ngModel)]="selectedMonth" (change)="applyTimeFilter()">
+            <option value="1">Tháng 1</option>
+            <option value="2">Tháng 2</option>
+            <option value="3">Tháng 3</option>
+            <option value="4">Tháng 4</option>
+            <option value="5">Tháng 5</option>
+            <option value="6">Tháng 6</option>
+            <option value="7">Tháng 7</option>
+            <option value="8">Tháng 8</option>
+            <option value="9">Tháng 9</option>
+            <option value="10">Tháng 10</option>
+            <option value="11">Tháng 11</option>
+            <option value="12">Tháng 12</option>
+          </select>
+        </div>
+
+        <!-- Lọc theo khoảng ngày -->
+        <div class="col-md-4" *ngIf="timeFilterType === 'custom'">
+          <label class="form-label small fw-semibold mb-2">Khoảng thời gian</label>
+          <nz-range-picker
+            [(ngModel)]="dateRange"
+            (ngModelChange)="onDateRangeChange($event)"
+            nzFormat="dd/MM/yyyy"
+            [nzPlaceHolder]="['Từ ngày', 'Đến ngày']"
+            nzSize="default"
+            style="width: 100%;" />
+        </div>
+
+        <div class="col-md-auto">
+          <button class="btn btn-outline-secondary" (click)="clearTimeFilter()">
+            <i class="bi bi-x-circle me-1"></i>Xóa bộ lọc
+          </button>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -191,65 +276,6 @@
       <div class="col-md-6">
         <div class="card">
           <div class="card-header bg-white">
-            <h5 class="mb-0">Thống kê tổ chức</h5>
-          </div>
-          <div class="card-body">
-            <div class="row">
-              <div class="col-md-6">
-                <div class="pie-chart-container">
-                  <!-- Placeholder for pie chart -->
-                  <div class="pie-chart" [ngStyle]="getOrganizationPieStyle()">
-                    <div class="pie-center">{{ organizationStats?.totalOrganizations || 0 }}</div>
-                  </div>
-                </div>
-                <div class="mt-3">
-                  <h6 class="fw-semibold">Theo lĩnh vực</h6>
-                  <ul class="list-unstyled mb-0">
-                    <li *ngFor="let item of getEntriesWithPercentage(organizationStats?.organizationsByField, organizationStats?.totalOrganizations || 0)" class="d-flex justify-content-between mb-1">
-                      <span>{{ item.key }}</span>
-                      <span>{{ item.value }} ({{ item.percentage }}%)</span>
-                    </li>
-                    <li *ngIf="getRecordEntries(organizationStats?.organizationsByField).length === 0" class="text-muted">Không có dữ liệu</li>
-                  </ul>
-                </div>
-              </div>
-              <div class="col-md-6">
-                <div class="d-flex align-items-center mb-2">
-                  <div class="stat-indicator bg-success me-2"></div>
-                  <span>Đã xác minh: {{ organizationStats?.verifiedOrganizations || 0 }}</span>
-                </div>
-                <div class="d-flex align-items-center mb-2">
-                  <div class="stat-indicator bg-warning me-2"></div>
-                  <span>Đang chờ: {{ organizationStats?.pendingVerificationOrganizations || 0 }}</span>
-                </div>
-                <div class="d-flex align-items-center mb-2">
-                  <div class="stat-indicator bg-secondary me-2"></div>
-                  <span>Chưa xác minh: {{ getUnverifiedOrganizations() }}</span>
-                </div>
-                <div class="d-flex align-items-center mb-2">
-                  <div class="stat-indicator bg-info me-2"></div>
-                  <span>Tổng: {{ organizationStats?.totalOrganizations || 0 }}</span>
-                </div>
-                <div class="d-flex align-items-center mb-2">
-                  <div class="stat-indicator bg-primary me-2"></div>
-                  <span>Điểm trung bình: {{ formatAverage(organizationStats?.averageRating, 1) }}/5</span>
-                </div>
-                <div class="d-flex align-items-center mb-2">
-                  <div class="stat-indicator bg-dark me-2"></div>
-                  <span>Sự kiện/Tổ chức: {{ formatAverage(organizationStats?.averageEventsPerOrganization, 2) }}</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Thống kê tình nguyện viên -->
-    <div class="row g-4 mb-4">
-      <div class="col-md-6">
-        <div class="card">
-          <div class="card-header bg-white">
             <h5 class="mb-0">Thống kê tình nguyện viên</h5>
           </div>
           <div class="card-body">
@@ -342,6 +368,66 @@
                 <div *ngIf="getRecordEntries(volunteerStats?.volunteersByAge).length === 0" class="text-muted">Không có dữ liệu</div>
               </div>
             </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Thống kê tình nguyện viên -->
+    <div class="row g-4 mb-4">
+      
+      <div class="col-md-6">
+        <div class="card">
+          <div class="card-header bg-white">
+            <h5 class="mb-0">Thống kê tổ chức</h5>
+          </div>
+          <div class="card-body">
+            <div class="row">
+              <div class="col-md-6">
+                <div class="pie-chart-container">
+                  <!-- Placeholder for pie chart -->
+                  <div class="pie-chart" [ngStyle]="getOrganizationPieStyle()">
+                    <div class="pie-center">{{ organizationStats?.totalOrganizations || 0 }}</div>
+                  </div>
+                </div>
+                <div class="mt-3">
+                  <h6 class="fw-semibold">Theo lĩnh vực</h6>
+                  <ul class="list-unstyled mb-0">
+                    <li *ngFor="let item of getEntriesWithPercentage(organizationStats?.organizationsByField, organizationStats?.totalOrganizations || 0)" class="d-flex justify-content-between mb-1">
+                      <span>{{ item.key }}</span>
+                      <span>{{ item.value }} ({{ item.percentage }}%)</span>
+                    </li>
+                    <li *ngIf="getRecordEntries(organizationStats?.organizationsByField).length === 0" class="text-muted">Không có dữ liệu</li>
+                  </ul>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="d-flex align-items-center mb-2">
+                  <div class="stat-indicator bg-success me-2"></div>
+                  <span>Đã xác minh: {{ organizationStats?.verifiedOrganizations || 0 }}</span>
+                </div>
+                <div class="d-flex align-items-center mb-2">
+                  <div class="stat-indicator bg-warning me-2"></div>
+                  <span>Đang chờ: {{ organizationStats?.pendingVerificationOrganizations || 0 }}</span>
+                </div>
+                <div class="d-flex align-items-center mb-2">
+                  <div class="stat-indicator bg-secondary me-2"></div>
+                  <span>Chưa xác minh: {{ getUnverifiedOrganizations() }}</span>
+                </div>
+                <div class="d-flex align-items-center mb-2">
+                  <div class="stat-indicator bg-info me-2"></div>
+                  <span>Tổng: {{ organizationStats?.totalOrganizations || 0 }}</span>
+                </div>
+                <div class="d-flex align-items-center mb-2">
+                  <div class="stat-indicator bg-primary me-2"></div>
+                  <span>Điểm trung bình: {{ formatAverage(organizationStats?.averageRating, 1) }}/5</span>
+                </div>
+                <div class="d-flex align-items-center mb-2">
+                  <div class="stat-indicator bg-dark me-2"></div>
+                  <span>Sự kiện/Tổ chức: {{ formatAverage(organizationStats?.averageEventsPerOrganization, 2) }}</span>
+                </div>
+              </div>
             </div>
           </div>
         </div>

@@ -31,6 +31,16 @@ export class TinhNguyenVienService {
     return this.http.put(`${this.apiUrl}/${id}`, data);
   }
 
+  // Cập nhật dùng FormData (multipart/form-data)
+  updateVolunteerForm(id: number, formData: FormData): Observable<any> {
+    return this.http.put(`${this.apiUrl}/${id}`, formData);
+  }
+
+  // Xóa tình nguyện viên
+  deleteVolunteer(id: number): Observable<any> {
+    return this.http.delete(`${this.apiUrl}/${id}`);
+  }
+
   // Cách gọi khác cho các phương thức đã tồn tại
   layTatCaTinhNguyenVien(): Observable<any> {
     return this.getAllVolunteers();

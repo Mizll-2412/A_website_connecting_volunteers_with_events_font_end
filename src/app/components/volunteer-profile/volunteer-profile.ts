@@ -14,6 +14,7 @@ import { CertificateViewerModalComponent } from '../certificate-viewer-modal/cer
 import { StarRatingComponent } from '../shared/star-rating/star-rating';
 import { environment } from '../../../environments/environment';
 import { getImageUrl } from '../../utils/image-url.util';
+import { ToastService } from '../../services/toast.service';
 
 // Sử dụng interface từ models/volunteer.ts
 
@@ -33,6 +34,7 @@ export class VolunteerProfileComponent implements OnInit {
   selectedMenuItem: string = 'profile';
   activeTab: string = 'profile'; // Tab hiện tại
   newEmail: string = '';
+  isChangingEmail: boolean = false; // Trạng thái đang xử lý đổi email
   
   allKyNangs: KyNang[] = [];
   allLinhVucs: LinhVuc[] = [];
@@ -89,7 +91,8 @@ export class VolunteerProfileComponent implements OnInit {
     private skillService: SkillService,
     private evaluationService: EvaluationService,
     private certificateService: CertificateService,
-    private cdr: ChangeDetectorRef
+    private cdr: ChangeDetectorRef,
+    private toast: ToastService
   ) {}
 
   ngOnInit(): void {
@@ -122,21 +125,132 @@ export class VolunteerProfileComponent implements OnInit {
 
   initForm(): void {
     this.registrationForm = this.fb.group({
-      hoTen: [''],
+      hoTen: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(100)]],
       cccd: [''],
-      soDienThoai: [''],
+      soDienThoai: ['', [Validators.pattern(/^(0|\+84)[3-9]\d{8}$/)]],
       email: [{value: '', disabled: true}], // Disable email field vì chỉ có thể đổi qua modal
-      ngaySinh: [''],
-      gioiTinh: [''],
-      diaChi: [''],
-      gioiThieu: ['']
+      ngaySinh: ['', [this.dateValidator.bind(this)]],
+      gioiTinh: ['', [Validators.required]],
+      diaChi: ['', [Validators.maxLength(200)]],
+      gioiThieu: ['', [Validators.maxLength(1000)]]
     });
   }
 
+  // Custom validator cho ngày sinh
+  dateValidator(control: any): {[key: string]: any} | null {
+    if (!control.value) {
+      return null; // Không bắt buộc
+    }
+    
+    const selectedDate = new Date(control.value);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    // Kiểm tra ngày hợp lệ
+    if (isNaN(selectedDate.getTime())) {
+      return { invalidDate: true };
+    }
+    
+    // Kiểm tra không được là tương lai
+    if (selectedDate > today) {
+      return { futureDate: true };
+    }
+    
+    // Kiểm tra tuổi hợp lý (ít nhất 16 tuổi, tối đa 100 tuổi)
+    const age = today.getFullYear() - selectedDate.getFullYear();
+    const monthDiff = today.getMonth() - selectedDate.getMonth();
+    const dayDiff = today.getDate() - selectedDate.getDate();
+    const actualAge = monthDiff < 0 || (monthDiff === 0 && dayDiff < 0) ? age - 1 : age;
+    
+    if (actualAge < 16) {
+      return { tooYoung: true };
+    }
+    
+    if (actualAge > 100) {
+      return { tooOld: true };
+    }
+    
+    return null;
+  }
+
+  // Helper methods để kiểm tra lỗi validation
+  getFieldError(fieldName: string): string {
+    const control = this.registrationForm.get(fieldName);
+    if (control && control.invalid && control.touched) {
+      if (control.errors?.['required']) {
+        return `${this.getFieldLabel(fieldName)} là bắt buộc`;
+      }
+      if (control.errors?.['minlength']) {
+        return `${this.getFieldLabel(fieldName)} phải có ít nhất ${control.errors['minlength'].requiredLength} ký tự`;
+      }
+      if (control.errors?.['maxlength']) {
+        return `${this.getFieldLabel(fieldName)} không được vượt quá ${control.errors['maxlength'].requiredLength} ký tự`;
+      }
+      if (control.errors?.['pattern']) {
+        if (fieldName === 'soDienThoai') {
+          return 'Số điện thoại không hợp lệ. Ví dụ: 0912345678 hoặc +84912345678';
+        }
+        return `${this.getFieldLabel(fieldName)} không đúng định dạng`;
+      }
+      if (control.errors?.['invalidDate']) {
+        return 'Ngày sinh không hợp lệ';
+      }
+      if (control.errors?.['futureDate']) {
+        return 'Ngày sinh không được là tương lai';
+      }
+      if (control.errors?.['tooYoung']) {
+        return 'Bạn phải ít nhất 16 tuổi';
+      }
+      if (control.errors?.['tooOld']) {
+        return 'Ngày sinh không hợp lệ';
+      }
+    }
+    return '';
+  }
+
+  getFieldLabel(fieldName: string): string {
+    const labels: {[key: string]: string} = {
+      'hoTen': 'Họ tên',
+      'cccd': 'CCCD',
+      'soDienThoai': 'Số điện thoại',
+      'email': 'Email',
+      'ngaySinh': 'Ngày sinh',
+      'gioiTinh': 'Giới tính',
+      'diaChi': 'Địa chỉ',
+      'gioiThieu': 'Giới thiệu'
+    };
+    return labels[fieldName] || fieldName;
+  }
+
+  isFieldInvalid(fieldName: string): boolean {
+    const control = this.registrationForm.get(fieldName);
+    return !!(control && control.invalid && control.touched);
+  }
+
+  // Validation cho kỹ năng và lĩnh vực
+  validateKyNang(): string {
+    const validKyNangs = this.selectedKyNangs.filter(id => id !== null);
+    if (validKyNangs.length === 0) {
+      return 'Vui lòng chọn ít nhất một kỹ năng';
+    }
+    return '';
+  }
+
+  validateLinhVuc(): string {
+    const validLinhVucs = this.selectedLinhVucs.filter(id => id !== null);
+    if (validLinhVucs.length === 0) {
+      return 'Vui lòng chọn ít nhất một lĩnh vực';
+    }
+    return '';
+  }
+
+  hasKyNangError: boolean = false;
+  hasLinhVucError: boolean = false;
+
   loadUserInfo(): void {
-    const userInfo = localStorage.getItem('user');
-    if (userInfo) {
-      this.user = JSON.parse(userInfo);
+    // Sử dụng authService.getUser() để lấy user từ cả localStorage và sessionStorage
+    this.user = this.auth.getUser();
+    if (this.user) {
       this.loadVolunteerInfo();
     } else {
       this.router.navigate(['/login']);
@@ -155,10 +269,10 @@ export class VolunteerProfileComponent implements OnInit {
         // XỬ LÝ NGÀY SINH NGAY SAU KHI NHẬN DATA TỪ API
         if (this.volunteer?.ngaySinh) {
           this.volunteer.ngaySinh = this.formatDateForInput(this.volunteer.ngaySinh);
-          console.log('Processed ngaySinh:', this.volunteer.ngaySinh);
+          console.log('Đã xử lý ngaySinh:', this.volunteer.ngaySinh);
         }
 
-        console.log('Volunteer data:', this.volunteer);
+        console.log('Dữ liệu tình nguyện viên:', this.volunteer);
         this.populateForm();
 
         if (this.volunteer?.anhDaiDien) {
@@ -254,7 +368,7 @@ export class VolunteerProfileComponent implements OnInit {
         const skills = response.data || response;
         if (this.volunteer) {
           this.volunteer.kyNangs = skills;
-          console.log('Loaded volunteer skills:', skills);
+          console.log('Đã tải kỹ năng tình nguyện viên:', skills);
         }
       },
       error: (err) => console.error('Lỗi tải kỹ năng tình nguyện viên:', err)
@@ -267,7 +381,7 @@ export class VolunteerProfileComponent implements OnInit {
         const fields = response.data || response;
         if (this.volunteer) {
           this.volunteer.linhVucs = fields;
-          console.log('Loaded volunteer fields:', fields);
+          console.log('Đã tải lĩnh vực tình nguyện viên:', fields);
         }
       },
       error: (err) => console.error('Lỗi tải lĩnh vực tình nguyện viên:', err)
@@ -312,7 +426,7 @@ export class VolunteerProfileComponent implements OnInit {
 
       return '';
     } catch (error) {
-      console.error('Error formatting date:', error, 'Input value:', dateValue);
+      console.error('Lỗi khi định dạng ngày:', error, 'Giá trị đầu vào:', dateValue);
       return '';
     }
   }
@@ -321,7 +435,7 @@ export class VolunteerProfileComponent implements OnInit {
   populateForm(): void {
     if (!this.volunteer) return;
 
-    console.log('Populating form with data:', this.volunteer);
+    console.log('Điền form với dữ liệu:', this.volunteer);
 
     // Format ngày sinh - đảm bảo format đúng trước khi set
     let formattedNgaySinh = '';
@@ -330,7 +444,7 @@ export class VolunteerProfileComponent implements OnInit {
       this.volunteer.ngaySinh = this.formatDateForInput(this.volunteer.ngaySinh);
       formattedNgaySinh = this.volunteer.ngaySinh;
     }
-    console.log('Formatted ngaySinh:', formattedNgaySinh);
+    console.log('NgaySinh đã định dạng:', formattedNgaySinh);
 
     // Set tất cả giá trị form
     this.registrationForm.patchValue({
@@ -353,8 +467,8 @@ export class VolunteerProfileComponent implements OnInit {
     // Trigger change detection
     this.cdr.detectChanges();
 
-    console.log('Form values after population:', this.registrationForm.value);
-    console.log('ngaySinh control value:', this.registrationForm.get('ngaySinh')?.value);
+    console.log('Giá trị form sau khi điền:', this.registrationForm.value);
+    console.log('Giá trị control ngaySinh:', this.registrationForm.get('ngaySinh')?.value);
   }
 
   loadKyNangs(): void {
@@ -392,13 +506,15 @@ export class VolunteerProfileComponent implements OnInit {
   onKyNangChange(index: number, event: Event): void {
     const value = (event.target as HTMLSelectElement).value;
     this.selectedKyNangs[index] = value ? Number(value) : null;
-    console.log(`Kỹ năng ${index + 1} changed to:`, this.selectedKyNangs[index]);
-    console.log('Current selectedKyNangs:', this.selectedKyNangs);
+    console.log(`Kỹ năng ${index + 1} đã thay đổi thành:`, this.selectedKyNangs[index]);
+    console.log('Kỹ năng đã chọn hiện tại:', this.selectedKyNangs);
+    // Reset error khi có thay đổi
+    this.hasKyNangError = false;
   }
 
   addKyNang(): void {
     if (this.selectedKyNangs.length >= 10) {
-      alert('Bạn chỉ có thể thêm tối đa 10 kỹ năng');
+      this.toast.warning('Bạn chỉ có thể thêm tối đa 10 kỹ năng');
       return;
     }
     this.selectedKyNangs.push(null);
@@ -408,7 +524,7 @@ export class VolunteerProfileComponent implements OnInit {
   async createNewKyNang(index: number): Promise<void> {
     const text = this.newKyNangText[index]?.trim();
     if (!text) {
-      alert('Vui lòng nhập tên kỹ năng');
+      this.toast.warning('Vui lòng nhập tên kỹ năng');
       return;
     }
     
@@ -416,6 +532,7 @@ export class VolunteerProfileComponent implements OnInit {
     if (existing) {
       this.selectedKyNangs[index] = existing.maKyNang;
       this.newKyNangText[index] = '';
+      this.hasKyNangError = false;
       return;
     }
     
@@ -425,29 +542,39 @@ export class VolunteerProfileComponent implements OnInit {
       this.allKyNangs.push(newSkill);
       this.selectedKyNangs[index] = newSkill.maKyNang;
       this.newKyNangText[index] = '';
+      this.hasKyNangError = false;
     } catch (error: any) {
       console.error('Lỗi khi tạo kỹ năng mới:', error);
-      alert(error.error?.message || 'Không thể tạo kỹ năng mới. Vui lòng thử lại.');
+      this.toast.error(error.error?.message || 'Không thể tạo kỹ năng mới. Vui lòng thử lại.');
     }
   }
 
   removeKyNang(idx: number): void {
-    // Cho phép xóa hết kỹ năng
+    // Kiểm tra nếu đang xóa kỹ năng cuối cùng
+    const validKyNangs = this.selectedKyNangs.filter(id => id !== null);
+    if (validKyNangs.length === 1 && this.selectedKyNangs[idx] !== null) {
+      this.toast.warning('Bạn phải có ít nhất một kỹ năng. Vui lòng thêm kỹ năng mới trước khi xóa kỹ năng này.');
+      return;
+    }
+    
     this.selectedKyNangs.splice(idx, 1);
     this.newKyNangText.splice(idx, 1);
+    this.hasKyNangError = false;
   }
 
   // Xử lý khi chọn lĩnh vực
   onLinhVucChange(index: number, event: Event): void {
     const value = (event.target as HTMLSelectElement).value;
     this.selectedLinhVucs[index] = value ? Number(value) : null;
-    console.log(`Lĩnh vực ${index + 1} changed to:`, this.selectedLinhVucs[index]);
-    console.log('Current selectedLinhVucs:', this.selectedLinhVucs);
+    console.log(`Lĩnh vực ${index + 1} đã thay đổi thành:`, this.selectedLinhVucs[index]);
+    console.log('Lĩnh vực đã chọn hiện tại:', this.selectedLinhVucs);
+    // Reset error khi có thay đổi
+    this.hasLinhVucError = false;
   }
 
   addLinhVuc(): void {
     if (this.selectedLinhVucs.length >= 10) {
-      alert('Bạn chỉ có thể thêm tối đa 10 lĩnh vực');
+      this.toast.warning('Bạn chỉ có thể thêm tối đa 10 lĩnh vực');
       return;
     }
     this.selectedLinhVucs.push(null);
@@ -457,7 +584,7 @@ export class VolunteerProfileComponent implements OnInit {
   async createNewLinhVuc(index: number): Promise<void> {
     const text = this.newLinhVucText[index]?.trim();
     if (!text) {
-      alert('Vui lòng nhập tên lĩnh vực');
+      this.toast.warning('Vui lòng nhập tên lĩnh vực');
       return;
     }
     
@@ -465,6 +592,7 @@ export class VolunteerProfileComponent implements OnInit {
     if (existing) {
       this.selectedLinhVucs[index] = existing.maLinhVuc;
       this.newLinhVucText[index] = '';
+      this.hasLinhVucError = false;
       return;
     }
     
@@ -474,16 +602,24 @@ export class VolunteerProfileComponent implements OnInit {
       this.allLinhVucs.push(newField);
       this.selectedLinhVucs[index] = newField.maLinhVuc;
       this.newLinhVucText[index] = '';
+      this.hasLinhVucError = false;
     } catch (error: any) {
       console.error('Lỗi khi tạo lĩnh vực mới:', error);
-      alert(error.error?.message || 'Không thể tạo lĩnh vực mới. Vui lòng thử lại.');
+      this.toast.error(error.error?.message || 'Không thể tạo lĩnh vực mới. Vui lòng thử lại.');
     }
   }
 
   removeLinhVuc(idx: number): void {
-    // Cho phép xóa hết lĩnh vực
+    // Kiểm tra nếu đang xóa lĩnh vực cuối cùng
+    const validLinhVucs = this.selectedLinhVucs.filter(id => id !== null);
+    if (validLinhVucs.length === 1 && this.selectedLinhVucs[idx] !== null) {
+      this.toast.warning('Bạn phải có ít nhất một lĩnh vực. Vui lòng thêm lĩnh vực mới trước khi xóa lĩnh vực này.');
+      return;
+    }
+    
     this.selectedLinhVucs.splice(idx, 1);
     this.newLinhVucText.splice(idx, 1);
+    this.hasLinhVucError = false;
   }
 
   onFileSelected(event: Event): void {
@@ -500,11 +636,67 @@ export class VolunteerProfileComponent implements OnInit {
   }
 
   async onSubmit(): Promise<void> {
-    // Không kiểm tra form invalid nữa
-    // if (this.registrationForm.invalid) {
-    //   alert('Vui lòng điền đầy đủ thông tin bắt buộc');
-    //   return;
-    // }
+    // Đánh dấu tất cả các field là touched để hiển thị lỗi
+    Object.keys(this.registrationForm.controls).forEach(key => {
+      const control = this.registrationForm.get(key);
+      if (control && !control.disabled) {
+        control.markAsTouched();
+      }
+    });
+
+    // Validate kỹ năng và lĩnh vực
+    const kyNangError = this.validateKyNang();
+    const linhVucError = this.validateLinhVuc();
+    this.hasKyNangError = !!kyNangError;
+    this.hasLinhVucError = !!linhVucError;
+
+    // Kiểm tra validation form và kỹ năng/lĩnh vực
+    if (this.registrationForm.invalid || kyNangError || linhVucError) {
+      const errors: string[] = [];
+      if (this.registrationForm.invalid) {
+        errors.push('Vui lòng điền đầy đủ và đúng thông tin bắt buộc');
+      }
+      if (kyNangError) {
+        errors.push(kyNangError);
+      }
+      if (linhVucError) {
+        errors.push(linhVucError);
+      }
+      this.toast.warning(errors[0] || 'Vui lòng kiểm tra lại thông tin');
+      
+      // Scroll đến field đầu tiên có lỗi
+      if (this.registrationForm.invalid) {
+        const firstError = Object.keys(this.registrationForm.controls).find(key => {
+          const control = this.registrationForm.get(key);
+          return control && control.invalid && !control.disabled;
+        });
+        if (firstError) {
+          const element = document.querySelector(`[formControlName="${firstError}"]`);
+          if (element) {
+            element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            (element as HTMLElement).focus();
+            return;
+          }
+        }
+      }
+      
+      // Scroll đến kỹ năng hoặc lĩnh vực nếu có lỗi
+      if (kyNangError) {
+        const element = document.querySelector('.ky-nang-section');
+        if (element) {
+          element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+        return;
+      }
+      if (linhVucError) {
+        const element = document.querySelector('.linh-vuc-section');
+        if (element) {
+          element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+        return;
+      }
+      return;
+    }
 
     if (!this.volunteer?.maTNV) {
       await this.createVolunteer();
@@ -539,22 +731,23 @@ export class VolunteerProfileComponent implements OnInit {
         if (this.selectedFile && this.volunteer?.maTNV) {
           await this.uploadAvatar(this.volunteer.maTNV);
         }
-        // Đồng bộ avatar vào localStorage để header cập nhật
-        if (this.volunteer?.anhDaiDien) {
-          const stored = localStorage.getItem('user');
-          if (stored) {
-            const u = JSON.parse(stored);
+        // Đồng bộ tên và avatar vào user info để header cập nhật (sử dụng authService để tự động lưu vào đúng nơi)
+        const u = this.auth.getUser();
+        if (u) {
+          if (this.volunteer?.anhDaiDien) {
             u.anhDaiDien = this.volunteer.anhDaiDien;
             u.profileImage = getImageUrl(this.volunteer.anhDaiDien);
-            localStorage.setItem('user', JSON.stringify(u));
           }
+          // Cập nhật họ tên
+          u.hoTen = this.volunteer?.hoTen || createDto.hoTen || u.hoTen;
+          this.auth.updateUserInfo(u);
         }
         
-        alert('Tạo hồ sơ thành công!');
+        this.toast.success('Tạo hồ sơ thành công!');
         this.loadVolunteerInfo();
       },
       error: (err) => {
-        alert(err.error?.message || 'Có lỗi xảy ra khi tạo hồ sơ');
+        this.toast.error(err.error?.message || 'Có lỗi xảy ra khi tạo hồ sơ');
         console.error('Lỗi tạo hồ sơ:', err);
       }
     });
@@ -599,31 +792,41 @@ export class VolunteerProfileComponent implements OnInit {
 
     this.http.put<any>(`${this.apiUrl}/${this.volunteer.maTNV}`, formData).subscribe({
       next: (response) => {
-        alert('Cập nhật thành công!');
+        this.toast.success('Cập nhật thành công!');
         this.volunteer = response.data;
 
         // XỬ LÝ NGÀY SINH TỪ RESPONSE NGAY LẬP TỨC - format trước khi populate form
         if (this.volunteer?.ngaySinh) {
           this.volunteer.ngaySinh = this.formatDateForInput(this.volunteer.ngaySinh);
-          console.log('Formatted ngaySinh after update:', this.volunteer.ngaySinh);
+          console.log('NgaySinh đã định dạng sau khi cập nhật:', this.volunteer.ngaySinh);
         }
 
         this.selectedFile = null;
         this.populateForm();
 
-        if (this.volunteer?.anhDaiDien) {
-          const stored = localStorage.getItem('user');
-          if (stored) {
-            const u = JSON.parse(stored);
+        // Đồng bộ tên và avatar vào user info để header cập nhật (sử dụng authService để tự động lưu vào đúng nơi)
+        const u = this.auth.getUser();
+        if (u) {
+          if (this.volunteer?.anhDaiDien) {
             u.anhDaiDien = this.volunteer.anhDaiDien;
             u.profileImage = getImageUrl(this.volunteer.anhDaiDien);
-            this.auth.updateUserInfo(u);
           }
+          // Lấy tên từ dữ liệu mới hoặc form
+          const newName = this.volunteer?.hoTen || formValue.hoTen || u.hoTen;
+          u.hoTen = newName;
+          this.auth.updateUserInfo(u);
         }
       },
       error: (err) => {
-        alert(err.error?.message || 'Có lỗi xảy ra khi cập nhật');
-        console.error('Lỗi cập nhật:', err);
+        const errorMessage = err.normalizedMessage || err.error?.message || 'Có lỗi xảy ra khi cập nhật';
+        console.error('Lỗi cập nhật hồ sơ tình nguyện viên:', {
+          message: errorMessage,
+          status: err.status,
+          statusText: err.statusText,
+          error: err.error,
+          fullError: err
+        });
+        this.toast.error(errorMessage);
       }
     });
   }
@@ -669,14 +872,23 @@ export class VolunteerProfileComponent implements OnInit {
   }
 
   submitChangeEmail(): void {
-    if (!this.newEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(this.newEmail)) {
-      alert('Vui lòng nhập email hợp lệ.');
+    // Ngăn gửi nhiều request cùng lúc
+    if (this.isChangingEmail) {
       return;
     }
+
+    if (!this.newEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(this.newEmail)) {
+      this.toast.warning('Vui lòng nhập email hợp lệ.');
+      return;
+    }
+
+    this.isChangingEmail = true;
     const payload: ChangeEmailRequest = { newEmail: this.newEmail };
+    
     this.auth.requestChangeEmail(payload).subscribe({
       next: (res) => {
-        alert(res.message || 'Đã gửi email xác nhận đổi email.');
+        this.isChangingEmail = false;
+        this.toast.success(res.message || 'Đã gửi email xác nhận đổi email.');
         this.newEmail = '';
         const modalEl = document.getElementById('changeEmailModal');
         if ((window as any).bootstrap && modalEl) {
@@ -685,7 +897,8 @@ export class VolunteerProfileComponent implements OnInit {
         }
       },
       error: (err) => {
-        alert(err.error?.message || err.normalizedMessage || 'Không thể gửi email xác nhận.');
+        this.isChangingEmail = false;
+        this.toast.error(err.error?.message || err.normalizedMessage || 'Không thể gửi email xác nhận.');
       }
     });
   }
@@ -749,7 +962,7 @@ export class VolunteerProfileComponent implements OnInit {
           }
           
           // Nếu không có ngayKetThuc, kiểm tra trạng thái
-          if (eventData.trangThaiHienThi === 'Đã kết thúc' || eventData.trangThai === 'Đã kết thúc') {
+          if (eventData.trangThaiHienThi === 'Sự kiện đã kết thúc' || eventData.trangThaiHienThi === 'Đã kết thúc' || eventData.trangThai === 'Đã kết thúc' || eventData.trangThai === 'Sự kiện đã kết thúc') {
             return true;
           }
           
@@ -861,11 +1074,11 @@ export class VolunteerProfileComponent implements OnInit {
     
     if (!evaluation) {
       console.error('Không có đánh giá để hiển thị');
-      alert('Không tìm thấy đánh giá');
+      this.toast.error('Không tìm thấy đánh giá');
       return;
     }
     
-    console.log('Opening evaluation preview:', evaluation);
+    console.log('Mở xem trước đánh giá:', evaluation);
     this.selectedEvaluationForPreview = evaluation;
     this.evaluationPreviewTitle = title;
     this.showEvaluationPreviewModal = true;
@@ -908,11 +1121,11 @@ export class VolunteerProfileComponent implements OnInit {
     }
     
     if (!reg) {
-      console.error('Không có registration data');
+      console.error('Không có dữ liệu đăng ký');
       return;
     }
     
-    console.log('Opening evaluation modal for:', reg);
+    console.log('Mở modal đánh giá cho:', reg);
     this.selectedEventForEvaluation = reg;
     this.evaluationRating = 5;
     this.evaluationComment = '';
@@ -945,13 +1158,13 @@ export class VolunteerProfileComponent implements OnInit {
   
   submitEvaluation(): void {
     if (!this.selectedEventForEvaluation || !this.user?.maTaiKhoan) {
-      alert('Không thể gửi đánh giá. Vui lòng thử lại.');
+      this.toast.error('Không thể gửi đánh giá. Vui lòng thử lại.');
       return;
     }
 
     const eventData = this.selectedEventForEvaluation.event || this.selectedEventForEvaluation.suKien;
     if (!eventData?.maTaiKhoanToChuc) {
-      alert('Không thể lấy thông tin tổ chức. Vui lòng thử lại sau.');
+      this.toast.error('Không thể lấy thông tin tổ chức. Vui lòng thử lại sau.');
       return;
     }
 
@@ -965,14 +1178,14 @@ export class VolunteerProfileComponent implements OnInit {
 
     this.evaluationService.createEvaluation(evaluation).subscribe({
       next: () => {
-        alert('Đánh giá thành công! Cảm ơn bạn đã đóng góp ý kiến.');
+        this.toast.success('Đánh giá thành công! Cảm ơn bạn đã đóng góp ý kiến.');
         this.closeEvaluationModal();
         // Reload đánh giá
         this.loadOrganizationInfoAndEvaluations();
       },
       error: (err) => {
         console.error('Lỗi đánh giá:', err);
-        alert(err.error?.message || 'Không thể gửi đánh giá');
+        this.toast.error(err.error?.message || 'Không thể gửi đánh giá');
       }
     });
   }
@@ -984,13 +1197,13 @@ export class VolunteerProfileComponent implements OnInit {
     }
     
     if (!this.user?.maTaiKhoan) {
-      alert('Bạn cần đăng nhập để gửi yêu cầu');
+      this.toast.warning('Bạn cần đăng nhập để gửi yêu cầu');
       return;
     }
     
     const eventData = reg.event || reg.suKien;
     if (!eventData?.maTaiKhoanToChuc) {
-      alert('Không thể lấy thông tin tổ chức');
+      this.toast.error('Không thể lấy thông tin tổ chức');
       return;
     }
     
@@ -1017,11 +1230,11 @@ export class VolunteerProfileComponent implements OnInit {
         this.requestedEvaluationEvents.add(reg.maSuKien);
         // Lưu vào localStorage để persist
         this.saveRequestedEvaluations();
-        alert('Đã gửi yêu cầu đánh giá tới tổ chức thành công!');
+        this.toast.success('Đã gửi yêu cầu đánh giá tới tổ chức thành công!');
       },
       error: (err) => {
         console.error('Lỗi gửi yêu cầu:', err);
-        alert('Không thể gửi yêu cầu: ' + (err.error?.message || 'Đã xảy ra lỗi'));
+        this.toast.error('Không thể gửi yêu cầu: ' + (err.error?.message || 'Đã xảy ra lỗi'));
       }
     });
   }
@@ -1104,7 +1317,7 @@ export class VolunteerProfileComponent implements OnInit {
   // Xem chứng nhận
   viewCertificate(certificate: any): void {
     if (!certificate.maGiayChungNhan) {
-      alert('Không thể xem chứng nhận này');
+      this.toast.error('Không thể xem chứng nhận này');
       return;
   }
 
@@ -1180,20 +1393,20 @@ export class VolunteerProfileComponent implements OnInit {
       this.selectedCertificateId = cert.maGiayChungNhan;
       this.showCertificateModal = true;
     } else {
-      alert('Không tìm thấy chứng nhận cho sự kiện này');
+      this.toast.error('Không tìm thấy chứng nhận cho sự kiện này');
     }
   }
   
   // Yêu cầu cấp chứng nhận từ sự kiện
   requestCertificateFromEvent(reg: any): void {
     if (!this.user?.maTaiKhoan) {
-      alert('Bạn cần đăng nhập để gửi yêu cầu');
+      this.toast.warning('Bạn cần đăng nhập để gửi yêu cầu');
       return;
     }
     
     const eventData = reg.event || reg.suKien;
     if (!eventData?.maTaiKhoanToChuc) {
-      alert('Không thể lấy thông tin tổ chức');
+      this.toast.error('Không thể lấy thông tin tổ chức');
       return;
     }
     
@@ -1213,11 +1426,11 @@ export class VolunteerProfileComponent implements OnInit {
         // Lưu trạng thái đã gửi yêu cầu
         this.requestedCertificateEvents.add(reg.maSuKien);
         this.saveRequestedCertificates();
-        alert('Đã gửi yêu cầu cấp giấy chứng nhận tới tổ chức thành công!');
+        this.toast.success('Đã gửi yêu cầu cấp giấy chứng nhận tới tổ chức thành công!');
       },
       error: (err) => {
         console.error('Lỗi gửi yêu cầu:', err);
-        alert('Không thể gửi yêu cầu: ' + (err.error?.message || 'Đã xảy ra lỗi'));
+        this.toast.error('Không thể gửi yêu cầu: ' + (err.error?.message || 'Đã xảy ra lỗi'));
       }
     });
   }
