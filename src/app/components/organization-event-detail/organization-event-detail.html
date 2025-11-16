@@ -688,8 +688,13 @@
 
             <!-- Danh sách TNV chưa cấp chứng nhận - Chỉ hiển thị khi đã chọn mẫu chứng nhận -->
             <div *ngIf="selectedCertificateTemplate">
+              <!-- Cảnh báo nếu sự kiện chưa kết thúc -->
+              <div *ngIf="!isEventEnded()" class="alert alert-warning mb-3 border-0 shadow-sm">
+                <i class="bi bi-exclamation-triangle-fill me-2" style="color: #f59e0b;"></i>
+                <strong>Cảnh báo:</strong> Chỉ có thể cấp chứng nhận khi sự kiện đã kết thúc.
+              </div>
               <!-- Cảnh báo nếu mẫu chưa có template config hoặc file -->
-              <div *ngIf="!canIssueCertificate()" class="alert alert-warning mb-3 border-0 shadow-sm">
+              <div *ngIf="isEventEnded() && !canIssueCertificate()" class="alert alert-warning mb-3 border-0 shadow-sm">
                 <i class="bi bi-exclamation-triangle-fill me-2" style="color: #f59e0b;"></i>
                 <strong>Cảnh báo:</strong> Mẫu chứng nhận này chưa có template config hoặc file. Vui lòng tạo template config hoặc upload file cho mẫu này trước khi cấp chứng nhận.
               </div>
@@ -698,8 +703,8 @@
               <div *ngIf="approvedRegistrationsNotIssued.length > 0" class="mb-3 d-flex flex-wrap gap-2 align-items-center">
                 <button class="btn btn-success" 
                         (click)="bulkIssueCertificates()"
-                        [disabled]="selectedVolunteersForCert.size === 0 || isIssuingCertificates || !canIssueCertificate()"
-                        [title]="!canIssueCertificate() ? 'Mẫu chứng nhận chưa có template config hoặc file' : ''">
+                        [disabled]="selectedVolunteersForCert.size === 0 || isIssuingCertificates || !canIssueCertificate() || !isEventEnded()"
+                        [title]="!isEventEnded() ? 'Chỉ có thể cấp chứng nhận khi sự kiện đã kết thúc' : (!canIssueCertificate() ? 'Mẫu chứng nhận chưa có template config hoặc file' : '')">
                   <i class="bi bi-send-fill me-2" style="color: #ffffff;"></i>
                   Cấp chứng nhận hàng loạt ({{ selectedVolunteersForCert.size }})
                 </button>

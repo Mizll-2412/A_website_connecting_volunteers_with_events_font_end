@@ -14,6 +14,7 @@ import { VolunteerProfileViewerComponent } from '../volunteer-profile-viewer/vol
 import { environment } from '../../../environments/environment';
 import { getImageUrl as getImageUrlUtil } from '../../utils/image-url.util';
 import { ToastService } from '../../services/toast.service';
+import { fuzzyMatch } from '../../utils/fuzzy-search.util';
 
 interface Volunteer {
   maTNV: number;
@@ -29,7 +30,8 @@ interface Volunteer {
   linhVucs?: any[]; // Deprecated: sử dụng getVolunteerFields() thay thế
   kyNangIds?: number[]; // IDs từ API
   linhVucIds?: number[]; // IDs từ API
-  danhGiaTrungBinh?: number;
+  danhGiaTrungBinh?: number; // Tên cũ từ API
+  diemTrungBinh?: number; // Tên mới từ API
 }
 
 @Component({
@@ -358,14 +360,14 @@ export class FeaturedProfilesComponent implements OnInit {
   applyFilters(): void {
     let results = [...this.volunteers];
     
-    // Lọc theo từ khóa tìm kiếm
+    // Lọc theo từ khóa tìm kiếm với fuzzy matching
     if (this.searchQuery && this.searchQuery.trim()) {
-      const keyword = this.searchQuery.toLowerCase().trim();
+      const keyword = this.searchQuery.trim();
       results = results.filter(vol => 
-        vol.hoTen?.toLowerCase().includes(keyword) || 
-        vol.email?.toLowerCase().includes(keyword) || 
-        vol.diaChi?.toLowerCase().includes(keyword) ||
-        vol.gioiThieu?.toLowerCase().includes(keyword)
+        fuzzyMatch(vol.hoTen || '', keyword) || 
+        fuzzyMatch(vol.email || '', keyword) || 
+        fuzzyMatch(vol.diaChi || '', keyword) ||
+        fuzzyMatch(vol.gioiThieu || '', keyword)
       );
     }
     
@@ -386,6 +388,13 @@ export class FeaturedProfilesComponent implements OnInit {
         return this.selectedFields.some(fieldId => fieldIds.includes(fieldId));
       });
     }
+    
+    // Sắp xếp theo điểm đánh giá trung bình giảm dần (nhiều sao lên đầu)
+    results.sort((a, b) => {
+      const ratingA = (a as any).diemTrungBinh || a.danhGiaTrungBinh || 0;
+      const ratingB = (b as any).diemTrungBinh || b.danhGiaTrungBinh || 0;
+      return ratingB - ratingA;
+    });
     
     // Cập nhật danh sách đã lọc và tính toán phân trang
     this.filteredVolunteers = results;
@@ -459,8 +468,15 @@ export class FeaturedProfilesComponent implements OnInit {
 
   getStarRating(rating: number | undefined): string[] {
     if (!rating) rating = 0;
-    const fullStars = Math.floor(rating);
-    const halfStar = rating % 1 >= 0.5;
+    
+    // Làm tròn đến 0.5 gần nhất để hiển thị sao nửa hợp lý hơn
+    // Ví dụ: 4.25 → 4.5 (hiển thị sao nửa), 4.75 → 5.0 (làm tròn lên)
+    const roundedRating = Math.round(rating * 2) / 2;
+    
+    const fullStars = Math.floor(roundedRating);
+    const decimalPart = roundedRating % 1;
+    // Hiển thị sao nửa nếu phần thập phân >= 0.25 (để bao gồm cả 0.25, 0.5, 0.75)
+    const halfStar = decimalPart >= 0.25 && decimalPart < 1;
     const emptyStars = 5 - fullStars - (halfStar ? 1 : 0);
     
     return [

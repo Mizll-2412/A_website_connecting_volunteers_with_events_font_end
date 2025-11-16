@@ -15,13 +15,14 @@ import { StarRatingComponent } from '../shared/star-rating/star-rating';
 import { environment } from '../../../environments/environment';
 import { getImageUrl } from '../../utils/image-url.util';
 import { ToastService } from '../../services/toast.service';
+import { NzSelectModule } from 'ng-zorro-antd/select';
 
 // Sử dụng interface từ models/volunteer.ts
 
 @Component({
   selector: 'app-volunteer-profile',
   standalone: true,
-  imports: [CommonModule, RouterModule, ReactiveFormsModule, FormsModule, CertificateViewerModalComponent, StarRatingComponent],
+  imports: [CommonModule, RouterModule, ReactiveFormsModule, FormsModule, CertificateViewerModalComponent, StarRatingComponent, NzSelectModule],
   templateUrl: './volunteer-profile.html',
   styleUrls: ['./volunteer-profile.css']
 })
@@ -39,13 +40,16 @@ export class VolunteerProfileComponent implements OnInit {
   allKyNangs: KyNang[] = [];
   allLinhVucs: LinhVuc[] = [];
   
-  selectedKyNangs: (number | null)[] = [];
+  selectedKyNangs: (number | string)[] = [];
+  selectedLinhVucs: (number | string)[] = [];
   
-  selectedLinhVucs: (number | null)[] = [];
-  
-  // Text input cho lĩnh vực và kỹ năng mới
+  // Text input cho lĩnh vực và kỹ năng mới (không còn cần thiết với nz-select tags)
   newLinhVucText: string[] = [];
   newKyNangText: string[] = [];
+  
+  // Search text cho nz-select
+  kyNangSearchText: string = '';
+  linhVucSearchText: string = '';
 
   apiUrl = `${environment.apiUrl}/tinhnguyenvien`;
   apiKyNangUrl = `${environment.apiUrl}/kynang`;
@@ -127,7 +131,7 @@ export class VolunteerProfileComponent implements OnInit {
     this.registrationForm = this.fb.group({
       hoTen: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(100)]],
       cccd: [''],
-      soDienThoai: ['', [Validators.pattern(/^(0|\+84)[3-9]\d{8}$/)]],
+      soDienThoai: ['', [Validators.required, Validators.pattern(/^(0|\+84)[3-9]\d{8}$/)]],
       email: [{value: '', disabled: true}], // Disable email field vì chỉ có thể đổi qua modal
       ngaySinh: ['', [this.dateValidator.bind(this)]],
       gioiTinh: ['', [Validators.required]],
@@ -229,7 +233,7 @@ export class VolunteerProfileComponent implements OnInit {
 
   // Validation cho kỹ năng và lĩnh vực
   validateKyNang(): string {
-    const validKyNangs = this.selectedKyNangs.filter(id => id !== null);
+    const validKyNangs = this.selectedKyNangs.filter(id => typeof id === 'number');
     if (validKyNangs.length === 0) {
       return 'Vui lòng chọn ít nhất một kỹ năng';
     }
@@ -237,7 +241,7 @@ export class VolunteerProfileComponent implements OnInit {
   }
 
   validateLinhVuc(): string {
-    const validLinhVucs = this.selectedLinhVucs.filter(id => id !== null);
+    const validLinhVucs = this.selectedLinhVucs.filter(id => typeof id === 'number');
     if (validLinhVucs.length === 0) {
       return 'Vui lòng chọn ít nhất một lĩnh vực';
     }
@@ -489,136 +493,105 @@ export class VolunteerProfileComponent implements OnInit {
     });
   }
 
-  getAvailableKyNangs(currentIndex: number): KyNang[] {
-    const selectedIds = this.selectedKyNangs
-      .filter((id, idx) => id !== null && idx !== currentIndex);
+  // Xử lý khi thay đổi kỹ năng với nz-select
+  async onKyNangSelectChange(values: (number | string)[]): Promise<void> {
+    // Xử lý các giá trị mới (có thể là string nếu là tag mới)
+    const processedValues: number[] = [];
+    const newTexts: string[] = [];
     
-    return this.allKyNangs.filter(kn => !selectedIds.includes(kn.maKyNang));
-  }
-
-  getAvailableLinhVucs(currentIndex: number): LinhVuc[] {
-    const selectedIds = this.selectedLinhVucs
-      .filter((id, idx) => id !== null && idx !== currentIndex);
+    for (const value of values) {
+      if (typeof value === 'number') {
+        processedValues.push(value);
+      } else if (typeof value === 'string') {
+        // Đây là text mới, cần tạo mới
+        const text = value.trim();
+        if (!text) continue;
+        
+        // Kiểm tra xem đã tồn tại chưa
+        const existing = this.allKyNangs.find(kn => kn.tenKyNang?.toLowerCase() === text.toLowerCase());
+        if (existing) {
+          processedValues.push(existing.maKyNang);
+        } else {
+          // Lưu text mới để tạo sau
+          newTexts.push(text);
+        }
+      }
+    }
     
-    return this.allLinhVucs.filter(lv => !selectedIds.includes(lv.maLinhVuc));
-  }
-
-  onKyNangChange(index: number, event: Event): void {
-    const value = (event.target as HTMLSelectElement).value;
-    this.selectedKyNangs[index] = value ? Number(value) : null;
-    console.log(`Kỹ năng ${index + 1} đã thay đổi thành:`, this.selectedKyNangs[index]);
-    console.log('Kỹ năng đã chọn hiện tại:', this.selectedKyNangs);
-    // Reset error khi có thay đổi
+    // Tạo mới các kỹ năng mới
+    for (const text of newTexts) {
+      try {
+        const response: any = await this.skillService.createSkill({ tenKyNang: text }).toPromise();
+        const newSkill = response.data || response;
+        this.allKyNangs.push(newSkill);
+        processedValues.push(newSkill.maKyNang);
+      } catch (error: any) {
+        console.error('Lỗi khi tạo kỹ năng mới:', error);
+        this.toast.error(error.error?.message || 'Không thể tạo kỹ năng mới. Vui lòng thử lại.');
+      }
+    }
+    
+    // Chỉ cập nhật nếu có thay đổi để tránh vòng lặp
+    if (JSON.stringify(this.selectedKyNangs.sort()) !== JSON.stringify(processedValues.sort())) {
+      this.selectedKyNangs = processedValues;
+    }
     this.hasKyNangError = false;
   }
 
-  addKyNang(): void {
-    if (this.selectedKyNangs.length >= 10) {
-      this.toast.warning('Bạn chỉ có thể thêm tối đa 10 kỹ năng');
-      return;
-    }
-    this.selectedKyNangs.push(null);
-    this.newKyNangText.push('');
-  }
-  
-  async createNewKyNang(index: number): Promise<void> {
-    const text = this.newKyNangText[index]?.trim();
-    if (!text) {
-      this.toast.warning('Vui lòng nhập tên kỹ năng');
-      return;
+  // Xử lý khi thay đổi lĩnh vực với nz-select
+  async onLinhVucSelectChange(values: (number | string)[]): Promise<void> {
+    // Xử lý các giá trị mới (có thể là string nếu là tag mới)
+    const processedValues: number[] = [];
+    const newTexts: string[] = [];
+    
+    for (const value of values) {
+      if (typeof value === 'number') {
+        processedValues.push(value);
+      } else if (typeof value === 'string') {
+        // Đây là text mới, cần tạo mới
+        const text = value.trim();
+        if (!text) continue;
+        
+        // Kiểm tra xem đã tồn tại chưa
+        const existing = this.allLinhVucs.find(lv => lv.tenLinhVuc?.toLowerCase() === text.toLowerCase());
+        if (existing) {
+          processedValues.push(existing.maLinhVuc);
+        } else {
+          // Lưu text mới để tạo sau
+          newTexts.push(text);
+        }
+      }
     }
     
-    const existing = this.allKyNangs.find(kn => kn.tenKyNang?.toLowerCase() === text.toLowerCase());
-    if (existing) {
-      this.selectedKyNangs[index] = existing.maKyNang;
-      this.newKyNangText[index] = '';
-      this.hasKyNangError = false;
-      return;
+    // Tạo mới các lĩnh vực mới
+    for (const text of newTexts) {
+      try {
+        const response: any = await this.fieldService.createField({ tenLinhVuc: text }).toPromise();
+        const newField = response.data || response;
+        this.allLinhVucs.push(newField);
+        processedValues.push(newField.maLinhVuc);
+      } catch (error: any) {
+        console.error('Lỗi khi tạo lĩnh vực mới:', error);
+        this.toast.error(error.error?.message || 'Không thể tạo lĩnh vực mới. Vui lòng thử lại.');
+      }
     }
     
-    try {
-      const response: any = await this.skillService.createSkill({ tenKyNang: text }).toPromise();
-      const newSkill = response.data || response;
-      this.allKyNangs.push(newSkill);
-      this.selectedKyNangs[index] = newSkill.maKyNang;
-      this.newKyNangText[index] = '';
-      this.hasKyNangError = false;
-    } catch (error: any) {
-      console.error('Lỗi khi tạo kỹ năng mới:', error);
-      this.toast.error(error.error?.message || 'Không thể tạo kỹ năng mới. Vui lòng thử lại.');
+    // Chỉ cập nhật nếu có thay đổi để tránh vòng lặp
+    if (JSON.stringify(this.selectedLinhVucs.sort()) !== JSON.stringify(processedValues.sort())) {
+      this.selectedLinhVucs = processedValues;
     }
-  }
-
-  removeKyNang(idx: number): void {
-    // Kiểm tra nếu đang xóa kỹ năng cuối cùng
-    const validKyNangs = this.selectedKyNangs.filter(id => id !== null);
-    if (validKyNangs.length === 1 && this.selectedKyNangs[idx] !== null) {
-      this.toast.warning('Bạn phải có ít nhất một kỹ năng. Vui lòng thêm kỹ năng mới trước khi xóa kỹ năng này.');
-      return;
-    }
-    
-    this.selectedKyNangs.splice(idx, 1);
-    this.newKyNangText.splice(idx, 1);
-    this.hasKyNangError = false;
-  }
-
-  // Xử lý khi chọn lĩnh vực
-  onLinhVucChange(index: number, event: Event): void {
-    const value = (event.target as HTMLSelectElement).value;
-    this.selectedLinhVucs[index] = value ? Number(value) : null;
-    console.log(`Lĩnh vực ${index + 1} đã thay đổi thành:`, this.selectedLinhVucs[index]);
-    console.log('Lĩnh vực đã chọn hiện tại:', this.selectedLinhVucs);
-    // Reset error khi có thay đổi
     this.hasLinhVucError = false;
   }
 
-  addLinhVuc(): void {
-    if (this.selectedLinhVucs.length >= 10) {
-      this.toast.warning('Bạn chỉ có thể thêm tối đa 10 lĩnh vực');
-      return;
-    }
-    this.selectedLinhVucs.push(null);
-    this.newLinhVucText.push('');
-  }
-  
-  async createNewLinhVuc(index: number): Promise<void> {
-    const text = this.newLinhVucText[index]?.trim();
-    if (!text) {
-      this.toast.warning('Vui lòng nhập tên lĩnh vực');
-      return;
-    }
-    
-    const existing = this.allLinhVucs.find(lv => lv.tenLinhVuc?.toLowerCase() === text.toLowerCase());
-    if (existing) {
-      this.selectedLinhVucs[index] = existing.maLinhVuc;
-      this.newLinhVucText[index] = '';
-      this.hasLinhVucError = false;
-      return;
-    }
-    
-    try {
-      const response: any = await this.fieldService.createField({ tenLinhVuc: text }).toPromise();
-      const newField = response.data || response;
-      this.allLinhVucs.push(newField);
-      this.selectedLinhVucs[index] = newField.maLinhVuc;
-      this.newLinhVucText[index] = '';
-      this.hasLinhVucError = false;
-    } catch (error: any) {
-      console.error('Lỗi khi tạo lĩnh vực mới:', error);
-      this.toast.error(error.error?.message || 'Không thể tạo lĩnh vực mới. Vui lòng thử lại.');
-    }
+  // Xóa tất cả kỹ năng đã chọn
+  clearAllKyNangs(): void {
+    this.selectedKyNangs = [];
+    this.hasKyNangError = false;
   }
 
-  removeLinhVuc(idx: number): void {
-    // Kiểm tra nếu đang xóa lĩnh vực cuối cùng
-    const validLinhVucs = this.selectedLinhVucs.filter(id => id !== null);
-    if (validLinhVucs.length === 1 && this.selectedLinhVucs[idx] !== null) {
-      this.toast.warning('Bạn phải có ít nhất một lĩnh vực. Vui lòng thêm lĩnh vực mới trước khi xóa lĩnh vực này.');
-      return;
-    }
-    
-    this.selectedLinhVucs.splice(idx, 1);
-    this.newLinhVucText.splice(idx, 1);
+  // Xóa tất cả lĩnh vực đã chọn
+  clearAllLinhVucs(): void {
+    this.selectedLinhVucs = [];
     this.hasLinhVucError = false;
   }
 
@@ -719,8 +692,8 @@ export class VolunteerProfileComponent implements OnInit {
       gioiTinh: formData.gioiTinh,
       diaChi: formData.diaChi,
       gioiThieu: formData.gioiThieu,
-      kyNangIds: this.selectedKyNangs.filter(id => id !== null) as number[],
-      linhVucIds: this.selectedLinhVucs.filter(id => id !== null) as number[]
+      kyNangIds: this.selectedKyNangs.filter(id => typeof id === 'number') as number[],
+      linhVucIds: this.selectedLinhVucs.filter(id => typeof id === 'number') as number[]
     };
 
     this.http.post<any>(this.apiUrl, createDto).subscribe({
@@ -776,14 +749,14 @@ export class VolunteerProfileComponent implements OnInit {
     formData.append('diaChi', formValue.diaChi || '');
     formData.append('gioiThieu', formValue.gioiThieu || '');
 
-    const kyNangIds = this.selectedKyNangs.filter(id => id !== null);
+    const kyNangIds = this.selectedKyNangs.filter(id => typeof id === 'number') as number[];
     kyNangIds.forEach((id, index) => {
-      formData.append(`kyNangIds[${index}]`, id!.toString());
+      formData.append(`kyNangIds[${index}]`, id.toString());
     });
 
-    const linhVucIds = this.selectedLinhVucs.filter(id => id !== null);
+    const linhVucIds = this.selectedLinhVucs.filter(id => typeof id === 'number') as number[];
     linhVucIds.forEach((id, index) => {
-      formData.append(`linhVucIds[${index}]`, id!.toString());
+      formData.append(`linhVucIds[${index}]`, id.toString());
     });
 
     if (this.selectedFile) {
@@ -903,25 +876,61 @@ export class VolunteerProfileComponent implements OnInit {
     });
   }
   
-  // Phương thức để xác định class CSS cho badge cấp bậc
-  getRankBadgeClass(): string {
-    if (!this.volunteer?.capBac) return 'bg-secondary';
+  // Phương thức để tự động xác định tên cấp bậc dựa trên điểm số
+  getRankName(): string {
+    const rating = this.volunteer?.diemTrungBinh || 0;
+    const tongSuKien = this.volunteer?.tongSuKienThamGia || 0;
     
-    const rank = this.volunteer.capBac.toLowerCase();
-    
-    if (rank.includes('đồng') || rank.includes('bronze')) {
-      return 'badge-bronze';
-    } else if (rank.includes('bạc') || rank.includes('silver')) {
-      return 'badge-silver';
-    } else if (rank.includes('vàng') || rank.includes('gold')) {
-      return 'badge-gold';
-    } else if (rank.includes('bạch kim') || rank.includes('platinum')) {
-      return 'badge-platinum';
-    } else if (rank.includes('kim cương') || rank.includes('diamond')) {
-      return 'badge-diamond';
+    // Xác định cấp bậc dựa trên điểm số (giống logic backend)
+    if (rating >= 4.5) {
+      return 'Tình nguyện viên Kim Cương';
+    } else if (rating >= 4) {
+      return 'Tình nguyện viên Vàng';
+    } else if (rating >= 3) {
+      return 'Tình nguyện viên Bạc';
+    } else if (rating >= 2 && tongSuKien >= 1) {
+      return 'Tình nguyện viên Đồng';
+    } else {
+      return 'Tình nguyện viên Mới';
     }
+  }
+
+  // Phương thức để xác định class CSS cho badge cấp bậc dựa trên điểm số
+  getRankBadgeClass(): string {
+    const rating = this.volunteer?.diemTrungBinh || 0;
+    const tongSuKien = this.volunteer?.tongSuKienThamGia || 0;
     
-    return 'bg-success'; // Mặc định
+    // Xác định class dựa trên điểm số
+    if (rating >= 4.5) {
+      return 'badge-diamond';
+    } else if (rating >= 4) {
+      return 'badge-gold';
+    } else if (rating >= 3) {
+      return 'badge-silver';
+    } else if (rating >= 2 && tongSuKien >= 1) {
+      return 'badge-bronze';
+    } else {
+      return 'bg-secondary';
+    }
+  }
+
+  // Phương thức để lấy mô tả về rank dựa trên điểm số thực tế
+  getRankDescription(): string {
+    const rating = this.volunteer?.diemTrungBinh || 0;
+    const tongSuKien = this.volunteer?.tongSuKienThamGia || 0;
+    
+    // Xác định cấp bậc dựa trên điểm số (giống logic backend)
+    if (rating >= 4.5) {
+      return `Tình nguyện viên Kim Cương: Có đánh giá trung bình từ 4.5 đến 5 sao (Hiện tại: ${rating.toFixed(1)}/5)`;
+    } else if (rating >= 4) {
+      return `Tình nguyện viên Vàng: Có đánh giá trung bình từ 4 sao (Hiện tại: ${rating.toFixed(1)}/5)`;
+    } else if (rating >= 3) {
+      return `Tình nguyện viên Bạc: Có đánh giá trung bình từ 3 sao (Hiện tại: ${rating.toFixed(1)}/5)`;
+    } else if (rating >= 2 && tongSuKien >= 1) {
+      return `Tình nguyện viên Đồng: Đã tham gia ít nhất 1 sự kiện và có đánh giá trung bình từ 2 sao (Hiện tại: ${rating.toFixed(1)}/5, ${tongSuKien} sự kiện)`;
+    } else {
+      return `Tình nguyện viên Mới: Tình nguyện viên mới tham gia hệ thống (Hiện tại: ${rating.toFixed(1)}/5)`;
+    }
   }
 
   // Chuyển tab

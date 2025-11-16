@@ -181,8 +181,8 @@ export class VolunteerProfileViewerComponent implements OnInit {
         this.activeEvents = registrations.filter((reg: any) => {
           if (!reg.event || !reg.event.ngayKetThuc) return false;
           const endDate = new Date(reg.event.ngayKetThuc);
-          // Bao gồm cả trạng thái chờ duyệt (0) và đã duyệt (1)
-          return endDate >= now && (reg.trangThai === 0 || reg.trangThai === 1);
+          // Chỉ hiển thị sự kiện đã duyệt (1) và chưa kết thúc
+          return endDate >= now && reg.trangThai === 1;
         });
         
         this.finishedEvents = registrations.filter((reg: any) => {

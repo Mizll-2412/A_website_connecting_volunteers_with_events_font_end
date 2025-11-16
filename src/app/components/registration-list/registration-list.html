@@ -192,38 +192,55 @@
                   <span *ngIf="!(reg.trangThai === 1 && isEventFinished(reg))" class="text-muted small">-</span>
                 </td>
                 <td>
-                  <!-- Hủy đăng ký với countdown warning -->
-                  <div *ngIf="(reg.trangThai === 0 || reg.trangThai === 1) && !isEventFinished(reg)">
-                    <!-- Chờ duyệt - luôn hủy được -->
-                    <button *ngIf="reg.trangThai === 0"
-                            class="btn btn-sm btn-outline-danger"
-                            (click)="cancelRegistration(reg)"
-                            title="Hủy đơn chờ duyệt">
-                      <i class="bi bi-x-circle me-1"></i>Hủy
-                    </button>
+                  <div class="d-flex flex-column gap-1">
+                    <!-- Xem chi tiết sự kiện -->
+                    <a *ngIf="reg.maSuKien" 
+                       [routerLink]="['/su-kien', reg.maSuKien]" 
+                       class="btn btn-sm btn-outline-primary"
+                       title="Xem chi tiết sự kiện">
+                      <i class="bi bi-eye me-1"></i>Xem chi tiết
+                    </a>
                     
-                    <!-- Đã duyệt - kiểm tra countdown -->
-                    <div *ngIf="reg.trangThai === 1">
-                      <div *ngIf="getCancellationInfo(reg) as cancelInfo">
-                        <button *ngIf="cancelInfo.canCancel"
-                                class="btn btn-sm btn-warning"
-                                (click)="cancelRegistrationWithWarning(reg, cancelInfo)"
-                                title="Hủy đăng ký">
-                          <i class="bi bi-exclamation-triangle me-1"></i>Hủy
-                        </button>
-                        <div *ngIf="cancelInfo.canCancel && cancelInfo.hoursRemaining > 0"
-                             class="small text-warning mt-1">
-                          <i class="bi bi-clock"></i> {{ formatCountdown(cancelInfo.hoursRemaining) }}
+                    <!-- Hủy đăng ký với countdown warning -->
+                    <div *ngIf="(reg.trangThai === 0 || reg.trangThai === 1) && !isEventFinished(reg)">
+                      <!-- Chờ duyệt - luôn hủy được -->
+                      <button *ngIf="reg.trangThai === 0"
+                              class="btn btn-sm btn-outline-danger"
+                              (click)="cancelRegistration(reg)"
+                              title="Hủy đơn chờ duyệt">
+                        <i class="bi bi-x-circle me-1"></i>Hủy
+                      </button>
+                      
+                      <!-- Đã duyệt - kiểm tra countdown -->
+                      <div *ngIf="reg.trangThai === 1">
+                        <div *ngIf="getCancellationInfo(reg) as cancelInfo">
+                          <button *ngIf="cancelInfo.canCancel"
+                                  class="btn btn-sm btn-warning"
+                                  (click)="cancelRegistrationWithWarning(reg, cancelInfo)"
+                                  title="Hủy đăng ký">
+                            <i class="bi bi-exclamation-triangle me-1"></i>Hủy
+                          </button>
+                          <div *ngIf="cancelInfo.canCancel && cancelInfo.hoursRemaining > 0"
+                               class="small text-warning mt-1">
+                            <i class="bi bi-clock"></i> {{ formatCountdown(cancelInfo.hoursRemaining) }}
+                          </div>
+                          <span *ngIf="!cancelInfo.canCancel" 
+                                class="badge bg-secondary"
+                                [title]="cancelInfo.reason">
+                            Đã khóa
+                          </span>
                         </div>
-                        <span *ngIf="!cancelInfo.canCancel" 
-                              class="badge bg-secondary"
-                              [title]="cancelInfo.reason">
-                          Đã khóa
-                        </span>
                       </div>
                     </div>
+                    
+                    <!-- Đăng ký lại nếu bị từ chối -->
+                    <button *ngIf="reg.trangThai === 2 && canReRegister(reg)"
+                            class="btn btn-sm btn-outline-success"
+                            (click)="reRegister(reg)"
+                            title="Đăng ký lại sự kiện">
+                      <i class="bi bi-arrow-clockwise me-1"></i>Đăng ký lại
+                    </button>
                   </div>
-                  <span *ngIf="!(reg.trangThai === 0 || reg.trangThai === 1) || isEventFinished(reg)" class="text-muted small">-</span>
                 </td>
               </tr>
               <tr *ngIf="selectedTab === 'active' && activeRegistrations.length === 0">

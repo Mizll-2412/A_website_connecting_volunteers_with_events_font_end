@@ -126,7 +126,7 @@
 
                 <!-- Số điện thoại -->
                 <div class="col-md-6">
-                  <label class="form-label fw-semibold">Số điện thoại</label>
+                  <label class="form-label fw-semibold">Số điện thoại <span class="text-danger">*</span></label>
                   <input 
                     type="tel" 
                     class="form-control" 
@@ -134,6 +134,7 @@
                     [(ngModel)]="soDienThoai"
                     name="soDienThoai"
                     (blur)="validateSoDienThoai()"
+                    required
                     placeholder="VD: 0912345678 hoặc +84912345678">
                   <div class="invalid-feedback d-block" *ngIf="validateSoDienThoai()">
                     {{ validateSoDienThoai() }}

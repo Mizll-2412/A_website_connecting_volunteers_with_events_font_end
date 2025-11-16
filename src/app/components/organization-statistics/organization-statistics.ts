@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { ToChucService } from '../../services/organization';
+import { EventService } from '../../services/event';
 import { EvaluationService, EvaluationResponseDto } from '../../services/evaluation.service';
 import { AuthService } from '../../services/auth';
 import { environment } from '../../../environments/environment';
@@ -73,6 +74,8 @@ export class OrganizationStatistics implements OnInit {
   evaluationError: string | null = null;
   latestEvaluations: EvaluationSummary[] = [];
   totalEvaluations = 0;
+  eventsWithPendingRegistrations: Array<{ eventId: number; eventName: string; pendingCount: number }> = [];
+  isLoadingPendingEvents = false;
   
   // Time filter properties
   timeFilterType: 'year' | 'quarter' | 'month' | 'custom' = 'year';
@@ -87,6 +90,7 @@ export class OrganizationStatistics implements OnInit {
   constructor(
     private http: HttpClient,
     private toChucService: ToChucService,
+    private eventService: EventService,
     private evaluationService: EvaluationService,
     private router: Router,
     private auth: AuthService
@@ -181,12 +185,81 @@ export class OrganizationStatistics implements OnInit {
       next: (response) => {
         this.stats = this.mapStats(response);
         this.isLoading = false;
+        // Load sự kiện có TNV chờ duyệt sau khi load stats
+        this.loadEventsWithPendingRegistrations();
       },
       error: (err) => {
         console.error('Lỗi tải thống kê tổ chức:', err);
         this.isLoading = false;
       }
     });
+  }
+
+  loadEventsWithPendingRegistrations(): void {
+    if (!this.organizationId) return;
+    
+    this.isLoadingPendingEvents = true;
+    this.eventsWithPendingRegistrations = [];
+    
+    // Lấy tất cả sự kiện của tổ chức
+    this.eventService.getEventsByOrganization(this.organizationId).subscribe({
+      next: (eventsResponse: any) => {
+        const events = eventsResponse.data || eventsResponse || [];
+        
+        if (events.length === 0) {
+          this.isLoadingPendingEvents = false;
+          return;
+        }
+        
+        // Lấy danh sách đơn đăng ký chờ duyệt cho từng sự kiện
+        const eventIds = events.map((e: any) => e.maSuKien).filter((id: any) => id);
+        let loadedCount = 0;
+        
+        eventIds.forEach((eventId: number) => {
+          // Lấy đơn đăng ký của sự kiện
+          this.http.get<any>(`${environment.apiUrl}/dondangky/event/${eventId}`).subscribe({
+            next: (regResponse: any) => {
+              const registrations = regResponse.data || regResponse || [];
+              // Đếm số đơn chờ duyệt (trangThai = 0)
+              const pendingCount = registrations.filter((r: any) => r.trangThai === 0).length;
+              
+              if (pendingCount > 0) {
+                const event = events.find((e: any) => e.maSuKien === eventId);
+                if (event) {
+                  this.eventsWithPendingRegistrations.push({
+                    eventId: eventId,
+                    eventName: event.tenSuKien || `Sự kiện #${eventId}`,
+                    pendingCount: pendingCount
+                  });
+                }
+              }
+              
+              loadedCount++;
+              if (loadedCount === eventIds.length) {
+                // Sắp xếp theo số lượng chờ duyệt giảm dần
+                this.eventsWithPendingRegistrations.sort((a, b) => b.pendingCount - a.pendingCount);
+                this.isLoadingPendingEvents = false;
+              }
+            },
+            error: (err) => {
+              console.error(`Lỗi khi tải đơn đăng ký cho sự kiện ${eventId}:`, err);
+              loadedCount++;
+              if (loadedCount === eventIds.length) {
+                this.isLoadingPendingEvents = false;
+              }
+            }
+          });
+        });
+      },
+      error: (err) => {
+        console.error('Lỗi khi tải danh sách sự kiện:', err);
+        this.isLoadingPendingEvents = false;
+      }
+    });
+  }
+
+  navigateToEvent(eventId: number): void {
+    this.router.navigate(['/manage-org', eventId]);
   }
 
   private buildTimeFilterParams(): any {

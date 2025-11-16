@@ -104,15 +104,44 @@
   font-weight: 600;
 }
 
-.volunteer-rating .star {
-  color: #f39c12;
-  margin-right: 2px;
+.volunteer-rating {
+  font-size: 0.9rem;
+}
+
+.volunteer-rating .star-full,
+.volunteer-rating .bi-star-fill.star-full {
+  color: #ffc107 !important;
+}
+
+.volunteer-rating .star-half,
+.volunteer-rating .bi-star-half.star-half {
+  color: #ffc107 !important;
+}
+
+.volunteer-rating .star-empty,
+.volunteer-rating .bi-star.star-empty {
+  color: #dee2e6 !important;
+}
+
+/* Style cho modal */
+.star-full,
+.bi-star-fill.star-full {
+  color: #ffc107 !important;
+}
+
+.star-half,
+.bi-star-half.star-half {
+  color: #ffc107 !important;
+}
+
+.star-empty,
+.bi-star.star-empty {
+  color: #dee2e6 !important;
 }
 
 .rating-number {
-  color: #7f8c8d;
   font-size: 0.9rem;
-  margin-left: 5px;
+  line-height: 1.2;
 }
 
 .volunteer-bio {

@@ -1,6 +1,8 @@
 import { Component, OnDestroy, OnInit, ViewChild, AfterViewInit, TemplateRef, ChangeDetectorRef } from '@angular/core';
 import { User } from '../../models/user';
-import { RouterLink, RouterModule, Router } from '@angular/router';
+import { RouterLink, RouterModule, Router, NavigationEnd } from '@angular/router';
+import { Subscription } from 'rxjs';
+import { filter } from 'rxjs/operators';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AuthService } from '../../services/auth';
@@ -83,7 +85,7 @@ interface EventData {
   templateUrl: './event-management.html',
   styleUrls: ['./event-management.css']
 })
-export class EventManagementComponent implements OnInit, AfterViewInit {
+export class EventManagementComponent implements OnInit, AfterViewInit, OnDestroy {
   private statusTemplateRef?: TemplateRef<any>;
   private actionsTemplateRef?: TemplateRef<any>;
   private finishedStatusTemplateRef?: TemplateRef<any>;
@@ -257,6 +259,9 @@ export class EventManagementComponent implements OnInit, AfterViewInit {
   selectedSampleFile: File | null = null;
   isLoadingSamples: boolean = false;
 
+  // Router subscription để theo dõi navigation
+  private routerSubscription?: Subscription;
+
   @ViewChild(VolunteerProfileViewerComponent) volunteerProfileViewer?: VolunteerProfileViewerComponent;
 
   constructor(
@@ -281,11 +286,44 @@ export class EventManagementComponent implements OnInit, AfterViewInit {
     
     this.isLoggedIn = this.auth.isAuthenticated();
     
-    // Đọc tab đã lưu từ localStorage (không đọc tab động như 'event-detail')
-    const savedTab = localStorage.getItem('eventManagementActiveTab');
-    if (savedTab && ['events', 'finished-events', 'certificate-samples', 'create-event'].includes(savedTab)) {
-      this.selectedTab = savedTab;
+    // Phát hiện refresh vs navigation
+    // Kiểm tra xem có phải là refresh bằng cách kiểm tra navigation type
+    const navEntries = performance.getEntriesByType('navigation') as PerformanceNavigationTiming[];
+    const isPageReload = navEntries.length > 0 && navEntries[0].type === 'reload';
+    
+    // Hoặc kiểm tra bằng sessionStorage flag (được set khi beforeunload)
+    const wasRefreshing = sessionStorage.getItem('manageOrgWasRefreshing') === 'true';
+    
+    if (isPageReload || wasRefreshing) {
+      // Nếu là refresh (F5) -> giữ nguyên tab đã lưu
+      const savedTab = localStorage.getItem('eventManagementActiveTab');
+      if (savedTab && ['events', 'finished-events', 'certificate-samples', 'create-event'].includes(savedTab)) {
+        this.selectedTab = savedTab;
+      } else {
+        this.selectedTab = 'events';
+        localStorage.setItem('eventManagementActiveTab', 'events');
+      }
+      // Xóa flag sau khi sử dụng
+      sessionStorage.removeItem('manageOrgWasRefreshing');
+    } else {
+      // Nếu điều hướng từ trang khác -> reset về tab mặc định
+      this.selectedTab = 'events';
+      localStorage.setItem('eventManagementActiveTab', 'events');
     }
+    
+    // Lắng nghe beforeunload để đánh dấu refresh (chỉ khi ở trang này)
+    window.addEventListener('beforeunload', this.handleBeforeUnload);
+    
+    // Lắng nghe router events để xóa flag khi điều hướng đi
+    this.routerSubscription = this.router.events
+      .pipe(filter(event => event instanceof NavigationEnd))
+      .subscribe((event: any) => {
+        // Nếu điều hướng ra khỏi trang manage-org, xóa flag refresh
+        if (!event.url.includes('/manage-org')) {
+          sessionStorage.removeItem('manageOrgWasRefreshing');
+          window.removeEventListener('beforeunload', this.handleBeforeUnload);
+        }
+      });
     
     if (this.isLoggedIn) {
       this.username = this.auth.getUsername();
@@ -315,6 +353,23 @@ export class EventManagementComponent implements OnInit, AfterViewInit {
     this.assignActiveEventTemplates();
     this.assignFinishedEventTemplates();
     this.cdr.detectChanges();
+  }
+
+  ngOnDestroy(): void {
+    // Xóa event listener khi component bị destroy
+    window.removeEventListener('beforeunload', this.handleBeforeUnload);
+    // Hủy subscription
+    if (this.routerSubscription) {
+      this.routerSubscription.unsubscribe();
+    }
+  }
+
+  // Handler cho beforeunload event để phát hiện refresh
+  private handleBeforeUnload = (): void => {
+    // Chỉ set flag nếu đang ở trang manage-org
+    if (window.location.pathname.includes('/manage-org') && !window.location.pathname.includes('/manage-org/')) {
+      sessionStorage.setItem('manageOrgWasRefreshing', 'true');
+    }
   }
   
   loadSkills(): void {

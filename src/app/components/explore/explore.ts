@@ -6,6 +6,7 @@ import { EventService } from '../../services/event';
 import { ToChucService } from '../../services/organization';
 import { EventCardComponent } from '../shared/event-card/event-card';
 import { OrganizationCardComponent } from '../shared/organization-card/organization-card';
+import { fuzzyMatch } from '../../utils/fuzzy-search.util';
 import { getImageUrl, getOrgDefaultImage as getOrgDefaultImageUtil } from '../../utils/image-url.util';
 
 declare var bootstrap: any;
@@ -109,31 +110,92 @@ export class ExploreComponent implements OnInit {
     });
   }
 
+  // Helper function để kiểm tra sự kiện đã hết hạn tuyển
+  isEventRecruitmentExpired(event: any): boolean {
+    const now = new Date();
+    const recruitEnd = event?.tuyenKetThuc ? new Date(event.tuyenKetThuc) : null;
+    return recruitEnd !== null && recruitEnd < now;
+  }
+
+  // Helper function để kiểm tra sự kiện đã kết thúc
+  isEventEnded(event: any): boolean {
+    const now = new Date();
+    if (event?.trangThai === 'Đã kết thúc' || event?.trangThai === 'Sự kiện đã kết thúc') {
+      return true;
+    }
+    const endDate = event?.ngayKetThuc ? new Date(event.ngayKetThuc) : null;
+    return endDate !== null && endDate < now;
+  }
+
+  // Helper function để kiểm tra sự kiện còn hoạt động (đang tuyển hoặc đang diễn ra)
+  isEventActive(event: any): boolean {
+    const now = new Date();
+    const startDate = event?.ngayBatDau ? new Date(event.ngayBatDau) : null;
+    const endDate = event?.ngayKetThuc ? new Date(event.ngayKetThuc) : null;
+    const recruitStart = event?.tuyenBatDau ? new Date(event.tuyenBatDau) : null;
+    const recruitEnd = event?.tuyenKetThuc ? new Date(event.tuyenKetThuc) : null;
+    
+    // Kiểm tra đang diễn ra
+    if (startDate && endDate && startDate <= now && now <= endDate) {
+      return true;
+    }
+    
+    // Kiểm tra đang tuyển (chưa hết hạn tuyển)
+    if (recruitStart && recruitEnd && recruitStart <= now && now <= recruitEnd) {
+      return true;
+    }
+    
+    return false;
+  }
+
   setTab(tab: 'all' | 'events' | 'orgs'): void {
     this.activeTab = tab;
   }
 
   applyFilter(): void {
-    const q = (this.searchTerm || '').trim().toLowerCase();
+    const q = (this.searchTerm || '').trim();
+    
+    // Không lọc bỏ sự kiện - hiển thị tất cả, nhưng sắp xếp theo ưu tiên
+    let eventsToFilter = [...this.events];
+    
+    // Sắp xếp: Sự kiện còn hoạt động (đang tuyển/đang diễn ra) lên trên, sau đó là sự kiện đã kết thúc/hết hạn
+    // Trong mỗi nhóm, sắp xếp theo ngày tạo giảm dần (mới nhất lên đầu)
+    eventsToFilter = eventsToFilter.sort((a: any, b: any) => {
+      const isActiveA = this.isEventActive(a);
+      const isActiveB = this.isEventActive(b);
+      
+      // Nhóm 1 (ưu tiên): Sự kiện còn hoạt động
+      // Nhóm 2: Sự kiện đã kết thúc/hết hạn
+      if (isActiveA && !isActiveB) return -1; // A lên trên
+      if (!isActiveA && isActiveB) return 1;  // B lên trên
+      
+      // Cùng nhóm: sắp xếp theo ngày tạo giảm dần (mới nhất trước)
+      const dateA = a?.ngayTao ? new Date(a.ngayTao).getTime() : 0;
+      const dateB = b?.ngayTao ? new Date(b.ngayTao).getTime() : 0;
+      return dateB - dateA;
+    });
+    
     if (!q) {
-      this.filteredEvents = [...this.events];
+      this.filteredEvents = eventsToFilter;
       this.filteredOrgs = [...this.organizations];
       return;
     }
-    this.filteredEvents = this.events.filter((e: any) => {
+    
+    // Áp dụng tìm kiếm trên danh sách đã sắp xếp
+    this.filteredEvents = eventsToFilter.filter((e: any) => {
       return (
-        (e.tenSuKien || '').toLowerCase().includes(q) ||
-        (e.noiDung || '').toLowerCase().includes(q) ||
-        (e.diaChi || '').toLowerCase().includes(q) ||
-        (e.tenToChuc || '').toLowerCase().includes(q) ||
-        (e.organization?.tenToChuc || '').toLowerCase().includes(q)
+        fuzzyMatch(e.tenSuKien || '', q) ||
+        fuzzyMatch(e.noiDung || '', q) ||
+        fuzzyMatch(e.diaChi || '', q) ||
+        fuzzyMatch(e.tenToChuc || '', q) ||
+        fuzzyMatch(e.organization?.tenToChuc || '', q)
       );
     });
     this.filteredOrgs = this.organizations.filter((o: any) => {
       return (
-        (o.tenToChuc || '').toLowerCase().includes(q) ||
-        (o.email || '').toLowerCase().includes(q) ||
-        (o.diaChi || '').toLowerCase().includes(q)
+        fuzzyMatch(o.tenToChuc || '', q) ||
+        fuzzyMatch(o.email || '', q) ||
+        fuzzyMatch(o.diaChi || '', q)
       );
     });
   }

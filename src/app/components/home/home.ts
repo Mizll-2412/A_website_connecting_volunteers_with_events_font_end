@@ -211,13 +211,75 @@ export class Home implements OnInit, OnDestroy {
     return shuffled;
   }
   
+  // Helper function để xác định trạng thái sự kiện
+  getEventStatus(event: any): string {
+    if (event?.trangThaiHienThi) {
+      return event.trangThaiHienThi;
+    }
+    
+    if (event?.trangThai === 'Đã kết thúc' || event?.trangThai === 'Sự kiện đã kết thúc') {
+      return 'Sự kiện đã kết thúc';
+    }
+    
+    const now = new Date();
+    const startDate = event?.ngayBatDau ? new Date(event.ngayBatDau) : null;
+    const endDate = event?.ngayKetThuc ? new Date(event.ngayKetThuc) : null;
+    const recruitStart = event?.tuyenBatDau ? new Date(event.tuyenBatDau) : null;
+    const recruitEnd = event?.tuyenKetThuc ? new Date(event.tuyenKetThuc) : null;
+    
+    if (endDate && endDate < now) {
+      return 'Sự kiện đã kết thúc';
+    }
+    
+    if (startDate && startDate <= now && endDate && now <= endDate) {
+      return 'Đang diễn ra';
+    }
+    
+    if (recruitStart && recruitEnd && recruitStart <= now && now <= recruitEnd) {
+      return 'Đang tuyển';
+    }
+    
+    return 'Sắp diễn ra';
+  }
+
+  // Helper function để kiểm tra sự kiện đã hết hạn tuyển
+  isEventRecruitmentExpired(event: any): boolean {
+    const now = new Date();
+    const recruitEnd = event?.tuyenKetThuc ? new Date(event.tuyenKetThuc) : null;
+    return recruitEnd !== null && recruitEnd < now;
+  }
+
+  // Helper function để kiểm tra sự kiện đã kết thúc
+  isEventEnded(event: any): boolean {
+    const now = new Date();
+    if (event?.trangThai === 'Đã kết thúc' || event?.trangThai === 'Sự kiện đã kết thúc') {
+      return true;
+    }
+    const endDate = event?.ngayKetThuc ? new Date(event.ngayKetThuc) : null;
+    return endDate !== null && endDate < now;
+  }
+
   // Load random data cho homepage
   loadRandomData(): void {
     // Load random events
     this.eventS.getAllSuKien().subscribe({
       next: (data: any) => {
         const events = Array.isArray(data) ? data : (data?.data || data?.items || []);
-        this.randomEvents = this.shuffleArray(events).slice(0, 5);
+        
+        // Lọc bỏ sự kiện đã kết thúc và đã hết hạn tuyển
+        const activeEvents = events.filter((event: any) => {
+          return !this.isEventEnded(event) && !this.isEventRecruitmentExpired(event);
+        });
+        
+        // Sắp xếp theo ngày tạo giảm dần (sự kiện mới nhất lên đầu)
+        const sortedEvents = activeEvents.sort((a: any, b: any) => {
+          const dateA = a?.ngayTao ? new Date(a.ngayTao).getTime() : 0;
+          const dateB = b?.ngayTao ? new Date(b.ngayTao).getTime() : 0;
+          return dateB - dateA; // Sắp xếp giảm dần (mới nhất trước)
+        });
+        
+        // Lấy 5 sự kiện đầu tiên sau khi đã sắp xếp
+        this.randomEvents = sortedEvents.slice(0, 5);
       },
       error: (err) => {
         console.error('Lỗi tải sự kiện:', err);

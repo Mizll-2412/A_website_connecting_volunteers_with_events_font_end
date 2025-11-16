@@ -221,12 +221,19 @@
             <!-- Font Size -->
             <div class="mb-3">
               <label class="form-label small">Cỡ chữ</label>
-              <select 
-                class="form-select form-select-sm"
-                [(ngModel)]="selectedField.fontSize"
-                (ngModelChange)="onFieldStyleChange()">
-                <option *ngFor="let size of fontSizes" [value]="size">{{ size }}px</option>
-              </select>
+              <div class="input-group input-group-sm">
+                <input 
+                  type="number" 
+                  class="form-control" 
+                  [(ngModel)]="selectedField.fontSize"
+                  (ngModelChange)="onFieldStyleChange()"
+                  min="8"
+                  max="200"
+                  step="1"
+                  placeholder="Nhập cỡ chữ">
+                <span class="input-group-text">px</span>
+              </div>
+              <small class="form-text text-muted">Gợi ý: {{ fontSizes.join(', ') }}px</small>
             </div>
 
             <!-- Font Family -->

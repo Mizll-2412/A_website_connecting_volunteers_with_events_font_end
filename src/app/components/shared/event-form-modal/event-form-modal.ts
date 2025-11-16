@@ -337,6 +337,22 @@ export class EventFormModalComponent implements OnInit, OnChanges {
 
     const ngayBatDau = new Date(this.suKienMoi.ngayBatDau);
     const ngayKetThuc = new Date(this.suKienMoi.ngayKetThuc);
+    const now = new Date();
+    now.setHours(0, 0, 0, 0); // Reset giờ để so sánh chỉ ngày
+    ngayBatDau.setHours(0, 0, 0, 0);
+    ngayKetThuc.setHours(0, 0, 0, 0);
+
+    // Kiểm tra nếu là tạo mới (không phải chỉnh sửa), ngày bắt đầu phải >= thời gian hiện tại
+    if (!this.isEditing && ngayBatDau < now) {
+      this.toastService.warning('Ngày bắt đầu phải bằng hoặc lớn hơn thời gian hiện tại');
+      return false;
+    }
+
+    // Kiểm tra ngày kết thúc không được trong quá khứ khi tạo mới
+    if (!this.isEditing && ngayKetThuc < now) {
+      this.toastService.warning('Ngày kết thúc phải bằng hoặc lớn hơn thời gian hiện tại');
+      return false;
+    }
 
     if (ngayBatDau > ngayKetThuc) {
       this.toastService.warning('Ngày bắt đầu phải nhỏ hơn hoặc bằng ngày kết thúc');

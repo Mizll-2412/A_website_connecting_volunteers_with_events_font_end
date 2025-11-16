@@ -1,6 +1,8 @@
-import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterModule, Router } from '@angular/router';
+import { RouterModule, Router, NavigationEnd } from '@angular/router';
+import { Subscription } from 'rxjs';
+import { filter } from 'rxjs/operators';
 import { FormsModule } from '@angular/forms';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { AuthService } from '../../services/auth';
@@ -22,7 +24,7 @@ import { environment } from '../../../environments/environment';
   templateUrl: './registration-list.html',
   styleUrls: ['./registration-list.css']
 })
-export class RegistrationListComponent implements OnInit {
+export class RegistrationListComponent implements OnInit, OnDestroy {
   registrations: any[] = [];
   filteredRegistrations: any[] = [];
   isLoading = false;
@@ -67,7 +69,10 @@ export class RegistrationListComponent implements OnInit {
   // Pagination
   currentPage: number = 1;
   itemsPerPage: number = 10;
-  
+
+  // Router subscription để theo dõi navigation
+  private routerSubscription?: Subscription;
+
   constructor(
     private authService: AuthService,
     private registrationService: RegistrationService,
@@ -84,11 +89,44 @@ export class RegistrationListComponent implements OnInit {
   ngOnInit() {
     this.isLoggedIn = this.authService.isAuthenticated();
     
-    // Đọc tab đã lưu từ localStorage
-    const savedTab = localStorage.getItem('registrationListActiveTab');
-    if (savedTab && ['active', 'finished'].includes(savedTab)) {
-      this.selectedTab = savedTab;
+    // Phát hiện refresh vs navigation
+    // Kiểm tra xem có phải là refresh bằng cách kiểm tra navigation type
+    const navEntries = performance.getEntriesByType('navigation') as PerformanceNavigationTiming[];
+    const isPageReload = navEntries.length > 0 && navEntries[0].type === 'reload';
+    
+    // Hoặc kiểm tra bằng sessionStorage flag (được set khi beforeunload)
+    const wasRefreshing = sessionStorage.getItem('registrationListWasRefreshing') === 'true';
+    
+    if (isPageReload || wasRefreshing) {
+      // Nếu là refresh (F5) -> giữ nguyên tab đã lưu
+      const savedTab = localStorage.getItem('registrationListActiveTab');
+      if (savedTab && ['active', 'finished'].includes(savedTab)) {
+        this.selectedTab = savedTab;
+      } else {
+        this.selectedTab = 'active';
+        localStorage.setItem('registrationListActiveTab', 'active');
+      }
+      // Xóa flag sau khi sử dụng
+      sessionStorage.removeItem('registrationListWasRefreshing');
+    } else {
+      // Nếu điều hướng từ trang khác -> reset về tab mặc định
+      this.selectedTab = 'active';
+      localStorage.setItem('registrationListActiveTab', 'active');
     }
+    
+    // Lắng nghe beforeunload để đánh dấu refresh (chỉ khi ở trang này)
+    window.addEventListener('beforeunload', this.handleBeforeUnload);
+    
+    // Lắng nghe router events để xóa flag khi điều hướng đi
+    this.routerSubscription = this.router.events
+      .pipe(filter(event => event instanceof NavigationEnd))
+      .subscribe((event: any) => {
+        // Nếu điều hướng ra khỏi trang dang-ky, xóa flag refresh
+        if (!event.url.includes('/dang-ky')) {
+          sessionStorage.removeItem('registrationListWasRefreshing');
+          window.removeEventListener('beforeunload', this.handleBeforeUnload);
+        }
+      });
     
     if (this.isLoggedIn) {
       // Sử dụng authService.getUser() để lấy user từ cả localStorage và sessionStorage
@@ -96,6 +134,23 @@ export class RegistrationListComponent implements OnInit {
       if (this.user) {
         this.loadVolunteerInfo();
       }
+    }
+  }
+
+  ngOnDestroy(): void {
+    // Xóa event listener khi component bị destroy
+    window.removeEventListener('beforeunload', this.handleBeforeUnload);
+    // Hủy subscription
+    if (this.routerSubscription) {
+      this.routerSubscription.unsubscribe();
+    }
+  }
+
+  // Handler cho beforeunload event để phát hiện refresh
+  private handleBeforeUnload = (): void => {
+    // Chỉ set flag nếu đang ở trang dang-ky
+    if (window.location.pathname.includes('/dang-ky')) {
+      sessionStorage.setItem('registrationListWasRefreshing', 'true');
     }
   }
 
@@ -542,8 +597,15 @@ export class RegistrationListComponent implements OnInit {
           if (modal) modal.hide();
         }
 
-        // Mark as evaluated
+        // Mark as evaluated và reload evaluations để cập nhật UI ngay lập tức
         this.selectedRegistration.hasEvaluated = true;
+        this.selectedRegistration.daDanhGia = true;
+        
+        // Reload evaluations để cập nhật UI
+        this.loadAllEvaluations();
+        
+        // Force change detection để cập nhật UI ngay lập tức
+        this.cdr.detectChanges();
       },
       error: (err) => {
         console.error('Lỗi đánh giá:', err);

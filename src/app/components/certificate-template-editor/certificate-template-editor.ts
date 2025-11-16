@@ -73,8 +73,28 @@ export class CertificateTemplateEditorComponent implements OnInit, OnDestroy {
     { key: 'MaChungNhan', label: 'Mã chứng nhận' }
   ];
   
-  fontFamilies = ['Times New Roman', 'Arial', 'Roboto', 'Courier New'];
-  fontSizes = [12, 14, 16, 18, 20, 24, 28, 32, 36, 40, 48];
+  // Thêm nhiều font chữ web-safe (không cần import)
+  fontFamilies = [
+    'Times New Roman', 
+    'Arial', 
+    'Roboto', 
+    'Courier New',
+    'Georgia',
+    'Verdana',
+    'Helvetica',
+    'Comic Sans MS',
+    'Impact',
+    'Trebuchet MS',
+    'Lucida Console',
+    'Palatino',
+    'Garamond',
+    'Bookman',
+    'Tahoma',
+    'Century Gothic',
+    'Lucida Sans Unicode'
+  ];
+  // Giữ fontSizes cho dropdown gợi ý, nhưng cho phép nhập tự do
+  fontSizes = [12, 14, 16, 18, 20, 24, 28, 32, 36, 40, 48, 56, 64, 72];
   alignments = ['left', 'center', 'right'];
   
   sampleData = {
@@ -689,11 +709,13 @@ export class CertificateTemplateEditorComponent implements OnInit, OnDestroy {
 
   private getFontSize(field: TemplateField): number {
     if (typeof field.fontSize === 'number') {
-      return field.fontSize;
+      // Đảm bảo giá trị hợp lệ (8-200px)
+      return Math.max(8, Math.min(200, field.fontSize));
     }
     if (typeof field.fontSize === 'string') {
       const parsed = parseInt(field.fontSize.replace('px', '').trim(), 10);
-      return isNaN(parsed) ? 24 : parsed;
+      const size = isNaN(parsed) ? 24 : parsed;
+      return Math.max(8, Math.min(200, size));
     }
     return 24;
   }

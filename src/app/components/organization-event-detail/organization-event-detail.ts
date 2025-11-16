@@ -1094,6 +1094,22 @@ export class OrganizationEventDetailComponent implements OnInit {
     return [];
   }
   
+  isEventEnded(): boolean {
+    if (!this.event) return false;
+    
+    const now = new Date();
+    const endDate = this.event.ngayKetThuc ? new Date(this.event.ngayKetThuc) : null;
+    
+    // Kiểm tra nếu sự kiện đã kết thúc
+    if (endDate && endDate < now) {
+      return true;
+    }
+    
+    // Kiểm tra trạng thái
+    const status = this.getEventStatusText();
+    return status === 'Sự kiện đã kết thúc' || status === 'Đã kết thúc';
+  }
+
   getEventStatusText(): string {
     if (!this.event) return '';
     if (this.event.trangThaiHienThi) return this.event.trangThaiHienThi;
@@ -1438,6 +1454,13 @@ export class OrganizationEventDetailComponent implements OnInit {
       return;
     }
 
+    // Kiểm tra sự kiện đã kết thúc chưa
+    const eventStatus = this.getEventStatusText();
+    if (eventStatus !== 'Sự kiện đã kết thúc' && eventStatus !== 'Đã kết thúc') {
+      this.toastService.warning('Chỉ có thể cấp chứng nhận khi sự kiện đã kết thúc');
+      return;
+    }
+
     const selectedSample = this.getSelectedCertificateSample();
     if (!this.canIssueCertificate(selectedSample)) {
       this.toastService.error('Mẫu chứng nhận chưa có template config hoặc file. Vui lòng tạo template config hoặc upload file cho mẫu này trước khi cấp chứng nhận.');
@@ -1497,6 +1520,13 @@ export class OrganizationEventDetailComponent implements OnInit {
   async issueCertificateToVolunteerSingle(reg: Registration): Promise<void> {
     if (!this.selectedCertificateTemplate) {
       this.toastService.warning('Vui lòng chọn mẫu chứng nhận');
+      return;
+    }
+
+    // Kiểm tra sự kiện đã kết thúc chưa
+    const eventStatus = this.getEventStatusText();
+    if (eventStatus !== 'Sự kiện đã kết thúc' && eventStatus !== 'Đã kết thúc') {
+      this.toastService.warning('Chỉ có thể cấp chứng nhận khi sự kiện đã kết thúc');
       return;
     }
 

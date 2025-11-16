@@ -135,11 +135,14 @@ export class OrganizationProfileComponent implements OnInit {
   }
 
   validateSoDienThoai(): string {
-    if (this.soDienThoai && this.soDienThoai.trim() !== '') {
-      const phonePattern = /^(0|\+84)[3-9]\d{8}$/;
-      if (!phonePattern.test(this.soDienThoai)) {
-        return 'Số điện thoại không hợp lệ. Ví dụ: 0912345678 hoặc +84912345678';
-      }
+    // Bắt buộc nhập
+    if (!this.soDienThoai || this.soDienThoai.trim() === '') {
+      return 'Số điện thoại là bắt buộc';
+    }
+    // Kiểm tra format
+    const phonePattern = /^(0|\+84)[3-9]\d{8}$/;
+    if (!phonePattern.test(this.soDienThoai)) {
+      return 'Số điện thoại không hợp lệ. Ví dụ: 0912345678 hoặc +84912345678';
     }
     return '';
   }

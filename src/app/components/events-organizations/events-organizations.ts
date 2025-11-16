@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { RouterModule, Router, ActivatedRoute } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { NzDatePickerModule } from 'ng-zorro-antd/date-picker';
+import { NzSelectModule } from 'ng-zorro-antd/select';
 import { AuthService } from '../../services/auth';
 import { EventService } from '../../services/event';
 import { ToChucService } from '../../services/organization';
@@ -12,6 +13,7 @@ import { OrganizationCardComponent } from '../shared/organization-card/organizat
 import { PaginationComponent } from '../shared/pagination/pagination';
 import { environment } from '../../../environments/environment';
 import { NzFormModule } from 'ng-zorro-antd/form';
+import { normalizeVietnamese, fuzzyMatch } from '../../utils/fuzzy-search.util';
 
 interface Skill {
   maKyNang: number;
@@ -26,7 +28,7 @@ interface Field {
 @Component({
   selector: 'app-events-organizations',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule, NzDatePickerModule, NzFormModule, EventCardComponent, OrganizationCardComponent, PaginationComponent],
+  imports: [CommonModule, FormsModule, RouterModule, NzDatePickerModule, NzFormModule, NzSelectModule, EventCardComponent, OrganizationCardComponent, PaginationComponent],
   templateUrl: './events-organizations.html',
   styleUrls: ['./events-organizations.css']
 })
@@ -76,6 +78,8 @@ export class EventsOrganizationsComponent implements OnInit {
   fieldsDropdownOpen: boolean = false;
   statusDropdownOpen: boolean = false;
   organizationDropdownOpen: boolean = false;
+  organizationSearchTerm: string = '';
+  filteredOrganizationsForDropdown: any[] = [];
   
   // Date range picker state
   dateRangePickerOpen: boolean = false;
@@ -188,6 +192,7 @@ export class EventsOrganizationsComponent implements OnInit {
       next: (response: any) => {
         this.allOrganizations = response.data || response || [];
         this.filteredOrganizations = [...this.allOrganizations];
+        this.filteredOrganizationsForDropdown = [...this.allOrganizations];
         this.updatePaginatedOrganizations();
         this.isLoading = false;
       },
@@ -221,24 +226,26 @@ export class EventsOrganizationsComponent implements OnInit {
     }, 300);
   }
 
+  // Sử dụng utility functions từ fuzzy-search.util
+
   searchEvents(): void {
     let results = [...this.allEvents];
 
-    // Keyword search
+    // Keyword search với fuzzy matching
     if (this.searchKeyword.trim()) {
-      const keyword = this.searchKeyword.toLowerCase().trim();
+      const keyword = this.searchKeyword.trim();
       results = results.filter(event =>
-        event.tenSuKien?.toLowerCase().includes(keyword) ||
-        event.noiDung?.toLowerCase().includes(keyword) ||
-        event.diaChi?.toLowerCase().includes(keyword)
+        fuzzyMatch(event.tenSuKien || '', keyword) ||
+        fuzzyMatch(event.noiDung || '', keyword) ||
+        fuzzyMatch(event.diaChi || '', keyword)
       );
     }
 
-    // Location filter
+    // Location filter với fuzzy matching
     if (this.searchLocation.trim()) {
-      const location = this.searchLocation.toLowerCase().trim();
+      const location = this.searchLocation.trim();
       results = results.filter(event =>
-        event.diaChi?.toLowerCase().includes(location)
+        fuzzyMatch(event.diaChi || '', location)
       );
     }
 
@@ -339,25 +346,44 @@ export class EventsOrganizationsComponent implements OnInit {
         const recruitStart = event.tuyenBatDau ? new Date(event.tuyenBatDau) : null;
         const recruitEnd = event.tuyenKetThuc ? new Date(event.tuyenKetThuc) : null;
 
-        // Kiểm tra xem event có match với bất kỳ trạng thái nào đã chọn không
-        return this.selectedEventStatuses.some(status => {
-          switch (status) {
-            case 'upcoming': // Sắp diễn ra
-              return startDate > now;
-            case 'ongoing': // Đang diễn ra
-              return startDate <= now && endDate >= now;
-            case 'finished': // Đã kết thúc
-              return endDate < now;
-            case 'recruiting': // Đang tuyển
-              if (recruitStart && recruitEnd) {
-                return recruitStart <= now && recruitEnd >= now;
-              }
-              // Nếu không có thời gian tuyển, coi như đang tuyển nếu sự kiện chưa bắt đầu
-              return startDate > now;
-            default:
-              return false;
+        // Xác định trạng thái thực tế của sự kiện
+        let eventStatus: string = '';
+        
+        // Kiểm tra đã kết thúc trước (độ ưu tiên cao nhất)
+        if (endDate < now) {
+          eventStatus = 'finished';
+        } 
+        // Kiểm tra đang diễn ra (phải đang trong khoảng thời gian diễn ra)
+        else if (startDate <= now && endDate >= now) {
+          eventStatus = 'ongoing';
+        }
+        // Kiểm tra đang tuyển (CHỈ khi đang trong khoảng thời gian tuyển)
+        // Quan trọng: phải kiểm tra recruitEnd >= now (chưa hết thời gian tuyển)
+        else if (recruitStart && recruitEnd && recruitStart <= now && recruitEnd >= now) {
+          eventStatus = 'recruiting';
+        }
+        // Sắp diễn ra (sự kiện chưa bắt đầu)
+        else if (startDate > now) {
+          // Nếu có thời gian tuyển nhưng đã hết (recruitEnd < now), không coi là "recruiting"
+          // Chỉ coi là "upcoming" nếu chưa bắt đầu
+          eventStatus = 'upcoming';
+        }
+        // Mặc định (trường hợp hiếm)
+        else {
+          eventStatus = 'upcoming';
+        }
+
+        // Chỉ match với trạng thái đã chọn, đảm bảo không lọc ra "finished" khi không chọn nó
+        // Quan trọng: Nếu chọn "ongoing" hoặc "recruiting", không hiển thị sự kiện hết thời gian tuyển
+        if (this.selectedEventStatuses.includes('ongoing') || this.selectedEventStatuses.includes('recruiting')) {
+          // Nếu sự kiện hết thời gian tuyển (recruitEnd < now) và chưa bắt đầu (startDate > now)
+          // thì không hiển thị khi chọn "ongoing" hoặc "recruiting"
+          if (recruitEnd && recruitEnd < now && startDate > now) {
+            return false;
           }
-        });
+        }
+        
+        return this.selectedEventStatuses.includes(eventStatus);
       });
     }
 
@@ -785,13 +811,8 @@ export class EventsOrganizationsComponent implements OnInit {
 
   // Organization dropdown methods
   toggleOrganizationDropdown(): void {
-    this.organizationDropdownOpen = !this.organizationDropdownOpen;
-    if (this.organizationDropdownOpen) {
-      this.skillsDropdownOpen = false;
-      this.fieldsDropdownOpen = false;
-      this.statusDropdownOpen = false;
-      this.dateRangePickerOpen = false;
-    }
+    // Method này không còn cần thiết vì đã dùng nz-select
+    // Giữ lại để tránh lỗi nếu có nơi nào đó vẫn gọi
   }
 
   toggleOrganization(orgId: number): void {
@@ -820,6 +841,12 @@ export class EventsOrganizationsComponent implements OnInit {
   getOrganizationName(orgId: number): string {
     const org = this.allOrganizations.find(o => o.maToChuc === orgId);
     return org ? org.tenToChuc : '';
+  }
+
+  // Filter function cho nz-select
+  filterOrganizationOption = (searchValue: string, option: any): boolean => {
+    if (!searchValue) return true;
+    return fuzzyMatch(option.nzLabel || '', searchValue);
   }
 
   getSelectedOrganizationNames(): string {

@@ -252,8 +252,32 @@ export class Header implements OnInit, OnDestroy {
     } else if (this.role === 'Admin') {
       this.router.navigate(['/admin']);
     } else {
+      // Clear localStorage để đảm bảo vào tab profile mặc định
+      localStorage.removeItem('volunteerProfileActiveTab');
       this.router.navigate(['/profile']);
     }
+  }
+
+  navigateToManageOrg(event?: Event): void {
+    // Ngăn chặn default behavior của routerLink nếu có
+    if (event) {
+      event.preventDefault();
+    }
+    // Clear localStorage để reset về tab mặc định khi điều hướng từ header
+    localStorage.removeItem('eventManagementActiveTab');
+    sessionStorage.removeItem('manageOrgWasRefreshing');
+    this.router.navigate(['/manage-org']);
+  }
+
+  navigateToRegistrationList(event?: Event): void {
+    // Ngăn chặn default behavior của routerLink nếu có
+    if (event) {
+      event.preventDefault();
+    }
+    // Clear localStorage để reset về tab mặc định khi điều hướng từ header
+    localStorage.removeItem('registrationListActiveTab');
+    sessionStorage.removeItem('registrationListWasRefreshing');
+    this.router.navigate(['/dang-ky']);
   }
 
   // Phương thức cho thông báo
@@ -404,6 +428,9 @@ export class Header implements OnInit, OnDestroy {
       // Nếu là thông báo đăng ký mới và user là tổ chức, điều hướng đến trang quản lý sự kiện
       if (this.role === 'Organization' && notification.noiDung?.includes('đã đăng ký tham gia sự kiện')) {
         this.showNotifications = false;
+        // Clear localStorage để reset về tab mặc định (sẽ được override bởi queryParams)
+        localStorage.removeItem('eventManagementActiveTab');
+        sessionStorage.removeItem('manageOrgWasRefreshing');
         this.router.navigate(['/manage-org'], { queryParams: { tab: 'event-detail', eventId: eventId } });
         return;
       }
