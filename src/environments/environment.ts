@@ -1,5 +1,7 @@
 export const environment = {
   production: false,
-  apiUrl: 'https://api.buituantu.com/api',
-  baseUrl: 'https://api.buituantu.com'
+  apiUrl: 'http://localhost:5000/api',
+  baseUrl: 'http://localhost:5000',
+  // apiUrl: 'https://api.tinhnguyenvien.io.vn/api',
+  // baseUrl: 'https://api.tinhnguyenvien.io.vn'
 };

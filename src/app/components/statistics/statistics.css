@@ -83,6 +83,17 @@
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
+  height: 100%;
+}
+
+.chart-bar-wrapper {
+  width: 100%;
+  height: 150px;
+  display: flex;
+  align-items: flex-end;
+  position: relative;
 }
 
 .chart-bar {
@@ -90,6 +101,13 @@
   background-color: #4f46e5;
   border-radius: 4px 4px 0 0;
   transition: height 0.5s ease;
+  min-height: 2px;
+}
+
+.chart-value {
+  font-size: 12px;
+  font-weight: 600;
+  color: #495057;
 }
 
 .chart-label {
@@ -111,18 +129,8 @@
   width: 150px;
   height: 150px;
   border-radius: 50%;
-  background-color: #f8f9fa;
+  background-color: #e9ecef;
   overflow: hidden;
-}
-
-.pie-segment {
-  position: absolute;
-  width: 100%;
-  height: 100%;
-  transform-origin: 50% 50%;
-  background-color: var(--color);
-  clip-path: polygon(50% 50%, 50% 0%, calc(50% + 50% * var(--percentage)) 0%);
-  transform: rotate(calc(360deg * var(--percentage) * -1));
 }
 
 .pie-center {
@@ -180,4 +188,99 @@
   height: 12px;
   border-radius: 50%;
   margin-right: 8px;
+}
+
+.event-month-table th,
+.event-month-table td {
+  padding: 0.5rem;
+}
+
+.event-month-table tbody tr:nth-child(odd) {
+  background-color: #f8f9fa;
+}
+
+.latest-evaluations-card {
+  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.12);
+}
+
+.evaluation-item {
+  padding: 16px 20px;
+  border-bottom: 1px solid #f1f3f5;
+}
+
+.evaluation-item:last-of-type {
+  border-bottom: none;
+}
+
+.evaluation-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+@media (min-width: 768px) {
+  .evaluation-meta {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+}
+
+.role-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  margin-left: 6px;
+}
+
+.role-badge.user {
+  background-color: rgba(13, 110, 253, 0.12);
+  color: #0d6efd;
+}
+
+.role-badge.organization {
+  background-color: rgba(17, 200, 146, 0.12);
+  color: #11c892;
+}
+
+.evaluation-body .stars i {
+  font-size: 1rem;
+}
+
+.evaluation-body p {
+  margin-top: 8px;
+  color: #495057;
+}
+
+/* Ant Design Date Picker Styles */
+:host ::ng-deep .ant-picker {
+  width: 100% !important;
+  height: 42px !important;
+}
+
+:host ::ng-deep .ant-picker-input {
+  height: 36px !important;
+}
+
+:host ::ng-deep .ant-picker-range {
+  width: 100% !important;
+}
+
+:host ::ng-deep .ant-picker-dropdown {
+  z-index: 1050 !important;
+}
+
+:host ::ng-deep .ant-picker-panel-container {
+  z-index: 1050 !important;
+}
+
+:host ::ng-deep .ant-picker-panel {
+  z-index: 1050 !important;
 }

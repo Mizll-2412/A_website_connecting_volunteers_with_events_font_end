@@ -43,7 +43,9 @@
         <div *ngIf="activeTab === 'profile'">
           <div class="d-flex justify-content-between align-items-center mb-4">
             <h4 class="fw-semibold mb-0">Thông tin cá nhân</h4>
-            <button class="btn btn-success" (click)="onSubmit()">
+            <button 
+              class="btn btn-success" 
+              (click)="onSubmit()">
               {{ volunteer?.maTNV ? 'Cập nhật hồ sơ' : 'Tạo hồ sơ' }}
             </button>
           </div>
@@ -68,8 +70,9 @@
                   <div class="stat-item">
                     <span class="stat-label">Cấp bậc:</span>
                     <span class="stat-value">
-                      <span class="badge" [ngClass]="getRankBadgeClass()">
-                        {{ volunteer?.capBac || 'Chưa có' }}
+                      <span class="badge" [ngClass]="getRankBadgeClass()" [title]="getRankDescription()">
+                        {{ getRankName() }}
+                        <i class="bi bi-info-circle ms-1" style="font-size: 0.8em; cursor: help;"></i>
                       </span>
                     </span>
                   </div>
@@ -85,127 +88,162 @@
             <div class="col-md-8">
               <div class="row g-3">
                 <div class="col-md-6">
-                  <label class="form-label">Họ Tên</label>
-                  <input type="text" formControlName="hoTen" class="form-control" placeholder="Nhập họ tên" />
+                  <label class="form-label">Họ Tên <span class="text-danger">*</span></label>
+                  <input 
+                    type="text" 
+                    formControlName="hoTen" 
+                    class="form-control" 
+                    [class.is-invalid]="isFieldInvalid('hoTen')"
+                    placeholder="Nhập họ tên" />
+                  <div class="invalid-feedback d-block" *ngIf="isFieldInvalid('hoTen')">
+                    {{ getFieldError('hoTen') }}
+                  </div>
                 </div>
                 <div class="col-md-6">
                   <label class="form-label">Email</label>
                   <div class="input-group">
                     <input type="email" formControlName="email" class="form-control" placeholder="Email" />
-                    <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#changeEmailModal" disabled>Đổi email</button>
+                    <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#changeEmailModal">Đổi email</button>
                   </div>
                   <small class="text-muted">Đổi email sẽ yêu cầu xác thực qua email mới.</small>
                 </div>
                 <div class="col-md-6">
                   <label class="form-label">CCCD</label>
-                  <input type="text" formControlName="cccd" class="form-control" placeholder="Nhập CCCD" />
+                  <input 
+                    type="text" 
+                    formControlName="cccd" 
+                    class="form-control" 
+                    placeholder="Nhập CCCD" />
                 </div>
                 <div class="col-md-6">
-                  <label class="form-label">SĐT</label>
-                  <input type="tel" formControlName="soDienThoai" class="form-control" placeholder="Nhập số điện thoại" />
+                  <label class="form-label">Số điện thoại <span class="text-danger">*</span></label>
+                  <input 
+                    type="tel" 
+                    formControlName="soDienThoai" 
+                    class="form-control" 
+                    [class.is-invalid]="isFieldInvalid('soDienThoai')"
+                    placeholder="Nhập số điện thoại (VD: 0912345678)" />
+                  <div class="invalid-feedback d-block" *ngIf="isFieldInvalid('soDienThoai')">
+                    {{ getFieldError('soDienThoai') }}
+                  </div>
                 </div>
                 <div class="col-md-6">
                   <label class="form-label">Ngày sinh</label>
-                  <input type="date" formControlName="ngaySinh" class="form-control" />
+                  <input 
+                    type="date" 
+                    formControlName="ngaySinh" 
+                    class="form-control" 
+                    [class.is-invalid]="isFieldInvalid('ngaySinh')" />
+                  <div class="invalid-feedback d-block" *ngIf="isFieldInvalid('ngaySinh')">
+                    {{ getFieldError('ngaySinh') }}
+                  </div>
                 </div>
                 <div class="col-md-6">
-                  <label class="form-label">Giới tính</label>
-                  <select formControlName="gioiTinh" class="form-select">
+                  <label class="form-label">Giới tính <span class="text-danger">*</span></label>
+                  <select 
+                    formControlName="gioiTinh" 
+                    class="form-select"
+                    [class.is-invalid]="isFieldInvalid('gioiTinh')">
                     <option value="">-- Chọn giới tính --</option>
                     <option value="Nam">Nam</option>
                     <option value="Nữ">Nữ</option>
                     <option value="Khác">Khác</option>
                   </select>
+                  <div class="invalid-feedback d-block" *ngIf="isFieldInvalid('gioiTinh')">
+                    {{ getFieldError('gioiTinh') }}
+                  </div>
                 </div>
 
                 <div class="col-12">
                   <label class="form-label">Địa chỉ</label>
-                  <input type="text" formControlName="diaChi" class="form-control" placeholder="Nhập địa chỉ" />
+                  <input 
+                    type="text" 
+                    formControlName="diaChi" 
+                    class="form-control" 
+                    [class.is-invalid]="isFieldInvalid('diaChi')"
+                    placeholder="Nhập địa chỉ" />
+                  <div class="invalid-feedback d-block" *ngIf="isFieldInvalid('diaChi')">
+                    {{ getFieldError('diaChi') }}
+                  </div>
                 </div>
                 <div class="col-12">
                   <label class="form-label">Giới thiệu bản thân</label>
-                  <textarea formControlName="gioiThieu" class="form-control" rows="3" placeholder="Giới thiệu về bản thân..."></textarea>
+                  <textarea 
+                    formControlName="gioiThieu" 
+                    class="form-control" 
+                    [class.is-invalid]="isFieldInvalid('gioiThieu')"
+                    rows="3" 
+                    placeholder="Giới thiệu về bản thân..."></textarea>
+                  <div class="invalid-feedback d-block" *ngIf="isFieldInvalid('gioiThieu')">
+                    {{ getFieldError('gioiThieu') }}
+                  </div>
                 </div>
 
                 <!-- Kỹ năng -->
-                <div class="col-12">
-                  <label class="form-label">Kỹ năng</label>
-                  <div class="row g-2">
-                    <!-- Hiển thị kỹ năng đã chọn -->
-                    <div class="col-12 mb-2" *ngIf="volunteer?.kyNangs && (volunteer?.kyNangs?.length ?? 0) > 0">
-                      <div class="d-flex flex-wrap gap-2 mb-2">
-                        <div *ngFor="let skill of volunteer?.kyNangs" class="badge bg-success p-2">
-                          {{ skill.tenKyNang }}
-                        </div>
-                      </div>
-                    </div>
-                    <!-- Form chọn kỹ năng động -->
-                    <div class="col-md-12" *ngFor="let _ of selectedKyNangs; let knIdx = index">
-                      <div class="input-group mb-2">
-                        <select class="form-select" (change)="onKyNangChange(knIdx, $event)" [ngModel]="selectedKyNangs[knIdx]" [ngModelOptions]="{standalone: true}">
-                          <option value="">-- Chọn kỹ năng {{knIdx + 1}} --</option>
-                          <option *ngFor="let kn of getAvailableKyNangs(knIdx)" [value]="kn.maKyNang">{{ kn.tenKyNang }}</option>
-                        </select>
-                        <button type="button" class="btn btn-outline-danger" (click)="removeKyNang(knIdx)">X</button>
-                      </div>
-                      <div class="input-group">
-                        <input type="text" 
-                               class="form-control" 
-                               placeholder="Hoặc nhập kỹ năng mới..." 
-                               [(ngModel)]="newKyNangText[knIdx]"
-                               [ngModelOptions]="{standalone: true}">
-                        <button type="button" 
-                                class="btn btn-outline-success" 
-                                (click)="createNewKyNang(knIdx)"
-                                [disabled]="!newKyNangText[knIdx]?.trim()">
-                          <i class="bi bi-plus-circle"></i> Tạo mới
-                        </button>
-                      </div>
-                    </div>
-                    <div class="col-12">
-                      <button type="button" class="btn btn-outline-success" (click)="addKyNang()">+ Thêm kỹ năng</button>
-                    </div>
+                <div class="col-12 ky-nang-section">
+                  <label class="form-label">Kỹ năng <span class="text-danger">*</span></label>
+                  <nz-select
+                    nzMode="tags"
+                    nzShowSearch
+                    nzPlaceHolder="Chọn hoặc nhập kỹ năng mới"
+                    [(ngModel)]="selectedKyNangs"
+                    (ngModelChange)="onKyNangSelectChange($event)"
+                    [ngModelOptions]="{standalone: true}"
+                    style="width: 100%;"
+                    nzSize="large"
+                    [nzMaxTagCount]="5"
+                    [nzTokenSeparators]="[',']">
+                    <nz-option *ngFor="let kn of allKyNangs"
+                               [nzValue]="kn.maKyNang"
+                               [nzLabel]="kn.tenKyNang || ''">
+                    </nz-option>
+                  </nz-select>
+                  <div class="d-flex justify-content-between align-items-center mt-2">
+                    <small class="text-muted">Bạn có thể chọn từ danh sách hoặc nhập kỹ năng mới</small>
+                    <button 
+                      type="button" 
+                      class="btn btn-sm btn-outline-danger"
+                      (click)="clearAllKyNangs()"
+                      *ngIf="selectedKyNangs.length > 0">
+                      <i class="bi bi-x-circle me-1"></i>Xóa tất cả
+                    </button>
+                  </div>
+                  <div class="invalid-feedback d-block text-danger" *ngIf="hasKyNangError">
+                    {{ validateKyNang() }}
                   </div>
                 </div>
 
                 <!-- Lĩnh vực -->
-                <div class="col-12">
-                  <label class="form-label">Lĩnh vực quan tâm</label>
-                  <div class="row g-2">
-                    <!-- Hiển thị lĩnh vực đã chọn -->
-                    <div class="col-12 mb-2" *ngIf="volunteer?.linhVucs && (volunteer?.linhVucs?.length ?? 0) > 0">
-                      <div class="d-flex flex-wrap gap-2 mb-2">
-                        <div *ngFor="let field of volunteer?.linhVucs" class="badge bg-info p-2">
-                          {{ field.tenLinhVuc }}
-                        </div>
-                      </div>
-                    </div>
-                    <!-- Form chọn lĩnh vực động -->
-                    <div class="col-md-12" *ngFor="let _ of selectedLinhVucs; let lvIdx = index">
-                      <div class="input-group mb-2">
-                        <select class="form-select" (change)="onLinhVucChange(lvIdx, $event)" [ngModel]="selectedLinhVucs[lvIdx]" [ngModelOptions]="{standalone: true}">
-                          <option value="">-- Chọn lĩnh vực {{lvIdx + 1}} --</option>
-                          <option *ngFor="let lv of getAvailableLinhVucs(lvIdx)" [value]="lv.maLinhVuc">{{ lv.tenLinhVuc }}</option>
-                        </select>
-                        <button type="button" class="btn btn-outline-danger" (click)="removeLinhVuc(lvIdx)">X</button>
-                      </div>
-                      <div class="input-group">
-                        <input type="text" 
-                               class="form-control" 
-                               placeholder="Hoặc nhập lĩnh vực mới..." 
-                               [(ngModel)]="newLinhVucText[lvIdx]"
-                               [ngModelOptions]="{standalone: true}">
-                        <button type="button" 
-                                class="btn btn-outline-success" 
-                                (click)="createNewLinhVuc(lvIdx)"
-                                [disabled]="!newLinhVucText[lvIdx]?.trim()">
-                          <i class="bi bi-plus-circle"></i> Tạo mới
-                        </button>
-                      </div>
-                    </div>
-                    <div class="col-12">
-                      <button type="button" class="btn btn-outline-success" (click)="addLinhVuc()">+ Thêm lĩnh vực</button>
-                    </div>
+                <div class="col-12 linh-vuc-section">
+                  <label class="form-label">Lĩnh vực quan tâm <span class="text-danger">*</span></label>
+                  <nz-select
+                    nzMode="tags"
+                    nzShowSearch
+                    nzPlaceHolder="Chọn hoặc nhập lĩnh vực mới"
+                    [(ngModel)]="selectedLinhVucs"
+                    (ngModelChange)="onLinhVucSelectChange($event)"
+                    [ngModelOptions]="{standalone: true}"
+                    style="width: 100%;"
+                    nzSize="large"
+                    [nzMaxTagCount]="5"
+                    [nzTokenSeparators]="[',']">
+                    <nz-option *ngFor="let lv of allLinhVucs"
+                               [nzValue]="lv.maLinhVuc"
+                               [nzLabel]="lv.tenLinhVuc || ''">
+                    </nz-option>
+                  </nz-select>
+                  <div class="d-flex justify-content-between align-items-center mt-2">
+                    <small class="text-muted">Bạn có thể chọn từ danh sách hoặc nhập lĩnh vực mới</small>
+                    <button 
+                      type="button" 
+                      class="btn btn-sm btn-outline-danger"
+                      (click)="clearAllLinhVucs()"
+                      *ngIf="selectedLinhVucs.length > 0">
+                      <i class="bi bi-x-circle me-1"></i>Xóa tất cả
+                    </button>
+                  </div>
+                  <div class="invalid-feedback d-block text-danger" *ngIf="hasLinhVucError">
+                    {{ validateLinhVuc() }}
                   </div>
                 </div>
               </div>
@@ -225,19 +263,151 @@
           </div>
 
           <div class="row g-3" *ngIf="eventHistory.length > 0">
-            <div class="col-md-6" *ngFor="let event of eventHistory">
+            <div class="col-md-6" *ngFor="let reg of eventHistory">
               <div class="card h-100">
                 <div class="card-body">
-                  <h5 class="card-title">{{ event.suKien?.tenSuKien || 'Sự kiện' }}</h5>
-                  <p class="card-text"><small class="text-muted">Ngày đăng ký: {{ event.ngayDangKy | date:'dd/MM/yyyy' }}</small></p>
+                  <h5 class="card-title">
+                    <a [routerLink]="['/su-kien', reg.maSuKien]" class="text-decoration-none text-dark" style="cursor: pointer;">
+                      {{ (reg.event || reg.suKien)?.tenSuKien || reg.tenSuKien || 'Sự kiện' }}
+                    </a>
+                  </h5>
+                  
+                  <!-- Tổ chức -->
+                  <p class="card-text mb-2">
+                    <small class="text-muted">
+                      <i class="bi bi-building me-1"></i>
+                      <strong>Tổ chức:</strong> {{ (reg.event || reg.suKien)?.tenToChuc || 'Chưa có thông tin' }}
+                    </small>
+                  </p>
+                  
                   <p class="card-text">
-                    <span class="badge" 
-                          [ngClass]="{
-                            'bg-warning': event.trangThai === 0,
-                            'bg-success': event.trangThai === 1,
-                            'bg-danger': event.trangThai === 2
-                          }">
-                      {{ event.trangThai === 0 ? 'Chờ duyệt' : (event.trangThai === 1 ? 'Đã duyệt' : 'Từ chối') }}
+                    <small class="text-muted">
+                      <i class="bi bi-calendar-event me-1"></i>
+                      <span *ngIf="(reg.event || reg.suKien)?.ngayBatDau">
+                        {{ (reg.event || reg.suKien).ngayBatDau | date:'dd/MM/yyyy' }} - {{ (reg.event || reg.suKien).ngayKetThuc | date:'dd/MM/yyyy' }}
+                      </span>
+                      <span *ngIf="!((reg.event || reg.suKien)?.ngayBatDau)">-</span>
+                    </small>
+                  </p>
+                  <p class="card-text">
+                    <small class="text-muted">
+                      <i class="bi bi-clock-history me-1"></i>
+                      Ngày đăng ký: {{ reg.ngayTao | date:'dd/MM/yyyy' }}
+                    </small>
+                  </p>
+                  <p class="card-text mb-3" *ngIf="(reg.event || reg.suKien)?.diaChi">
+                    <small class="text-muted">
+                      <i class="bi bi-geo-alt me-1"></i>
+                      {{ (reg.event || reg.suKien).diaChi }}
+                    </small>
+                  </p>
+                  
+                  <!-- Trạng thái đánh giá -->
+                  <div class="border-top pt-2 mb-2">
+                    <div class="d-flex flex-column gap-1">
+                      <!-- Tôi đã đánh giá tổ chức -->
+                      <div class="d-flex justify-content-between align-items-center">
+                        <small class="text-muted">
+                          <i class="bi bi-star me-1"></i>Bạn đã đánh giá:
+                        </small>
+                        <div class="d-flex gap-1 align-items-center">
+                          <div *ngIf="getEvaluationForEvent(reg.maSuKien).fromMe" 
+                               class="d-flex gap-1 align-items-center">
+                            <span class="badge bg-warning text-dark" 
+                                  style="cursor: pointer;"
+                                  (click)="viewEvaluationPreview(getEvaluationForEvent(reg.maSuKien).fromMe!, (reg.event || reg.suKien)?.tenSuKien || reg.tenSuKien, 'Đánh giá của bạn cho tổ chức', $event)"
+                                  title="Click để xem chi tiết đánh giá">
+                              <i class="bi bi-star-fill me-1"></i>
+                              {{ getEvaluationForEvent(reg.maSuKien).fromMe?.diemSo || 0 }}/5
+                            </span>
+                            <button class="btn btn-sm btn-link p-0 text-primary"
+                                    (click)="viewEvaluationPreview(getEvaluationForEvent(reg.maSuKien).fromMe!, (reg.event || reg.suKien)?.tenSuKien || reg.tenSuKien, 'Đánh giá của bạn cho tổ chức', $event)"
+                                    title="Xem chi tiết đánh giá">
+                              <i class="bi bi-eye"></i>
+                            </button>
+                          </div>
+                          <div *ngIf="!getEvaluationForEvent(reg.maSuKien).fromMe" class="d-flex gap-1">
+                            <button class="btn btn-sm btn-warning"
+                                    (click)="openEvaluationModal(reg, $event)"
+                                    title="Đánh giá tổ chức">
+                              <i class="bi bi-star"></i> Đánh giá
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <!-- Tổ chức đã đánh giá tôi -->
+                      <div class="d-flex justify-content-between align-items-center">
+                        <small class="text-muted">
+                          <i class="bi bi-star-fill me-1"></i>Tổ chức đã đánh giá:
+                        </small>
+                        <div class="d-flex gap-1 align-items-center">
+                          <div *ngIf="getEvaluationForEvent(reg.maSuKien).toMe" 
+                               class="d-flex gap-1 align-items-center">
+                            <span class="badge bg-success text-white" 
+                                  style="cursor: pointer;"
+                                  (click)="viewEvaluationPreview(getEvaluationForEvent(reg.maSuKien).toMe!, (reg.event || reg.suKien)?.tenSuKien || reg.tenSuKien, 'Đánh giá của tổ chức cho bạn', $event)"
+                                  title="Click để xem chi tiết đánh giá">
+                              <i class="bi bi-star-fill me-1"></i>
+                              {{ getEvaluationForEvent(reg.maSuKien).toMe?.diemSo || 0 }}/5
+                            </span>
+                            <button class="btn btn-sm btn-link p-0 text-primary"
+                                    (click)="viewEvaluationPreview(getEvaluationForEvent(reg.maSuKien).toMe!, (reg.event || reg.suKien)?.tenSuKien || reg.tenSuKien, 'Đánh giá của tổ chức cho bạn', $event)"
+                                    title="Xem chi tiết đánh giá">
+                              <i class="bi bi-eye"></i>
+                            </button>
+                          </div>
+                          <div *ngIf="!getEvaluationForEvent(reg.maSuKien).toMe" class="d-flex gap-1 align-items-center">
+                            <button *ngIf="!hasRequestedEvaluation(reg.maSuKien)" 
+                                    class="btn btn-sm btn-outline-primary"
+                                    (click)="requestEvaluationFromOrganization(reg, $event)"
+                                    title="Gửi yêu cầu tổ chức đánh giá bạn">
+                              <i class="bi bi-bell"></i> Yêu cầu đánh giá
+                            </button>
+                            <button *ngIf="hasRequestedEvaluation(reg.maSuKien)" 
+                                    class="btn btn-sm btn-outline-warning"
+                                    (click)="requestEvaluationFromOrganization(reg, $event)"
+                                    title="Gửi lại yêu cầu đánh giá">
+                              <i class="bi bi-arrow-repeat"></i> Gửi lại
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <!-- Chứng nhận -->
+                  <div class="border-top pt-2 mb-2">
+                    <div class="d-flex justify-content-between align-items-center">
+                      <small class="text-muted">
+                        <i class="bi bi-award-fill me-1"></i>Giấy chứng nhận:
+                      </small>
+                      <div>
+                        <button *ngIf="getCertificateForEvent(reg.maSuKien)" 
+                                class="btn btn-sm btn-primary"
+                                (click)="viewCertificateFromEvent(reg)"
+                                title="Xem giấy chứng nhận">
+                          <i class="bi bi-award-fill me-1"></i>Xem chứng nhận
+                        </button>
+                        <button *ngIf="!getCertificateForEvent(reg.maSuKien) && !hasRequestedCertificate(reg.maSuKien)" 
+                                class="btn btn-sm btn-outline-primary"
+                                (click)="requestCertificateFromEvent(reg)"
+                                title="Yêu cầu tổ chức cấp giấy chứng nhận">
+                          <i class="bi bi-file-earmark-text me-1"></i>Yêu cầu cấp
+                        </button>
+                        <button *ngIf="!getCertificateForEvent(reg.maSuKien) && hasRequestedCertificate(reg.maSuKien)" 
+                                class="btn btn-sm btn-outline-warning"
+                                (click)="requestCertificateFromEvent(reg)"
+                                title="Gửi lại yêu cầu cấp giấy chứng nhận">
+                          <i class="bi bi-arrow-repeat me-1"></i>Gửi lại
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <p class="card-text mb-0">
+                    <span class="badge bg-secondary">
+                      <i class="bi bi-check-circle me-1"></i>Đã hoàn thành
                     </span>
                   </p>
                 </div>
@@ -265,21 +435,72 @@
             </div>
           </div>
 
-          <div *ngIf="evaluations.length === 0" class="text-center py-5">
-            <i class="bi bi-star" style="font-size: 3rem; color: #ccc;"></i>
-            <p class="mt-3 text-muted">Chưa có đánh giá nào</p>
+          <h5 class="fw-semibold mb-3">
+            <i class="bi bi-star-fill text-warning me-2"></i>Đánh giá nhận được
+          </h5>
+          <p class="text-muted mb-3">Các đánh giá tổ chức đã đưa ra cho bạn</p>
+
+          <div *ngIf="evaluations.length === 0" class="text-center py-4">
+            <i class="bi bi-star" style="font-size: 2rem; color: #ccc;"></i>
+            <p class="mt-2 text-muted">Chưa có đánh giá nào</p>
           </div>
 
           <div class="list-group" *ngIf="evaluations.length > 0">
             <div class="list-group-item" *ngFor="let eval of evaluations">
-              <div class="d-flex justify-content-between">
-                <h6>{{ eval.toChuc?.tenToChuc || 'Tổ chức' }}</h6>
-                <span class="text-warning">
-                  <i class="bi bi-star-fill" *ngFor="let star of [1,2,3,4,5].slice(0, eval.diemDanhGia)"></i>
-                </span>
+              <div class="d-flex justify-content-between align-items-start">
+                <div class="flex-grow-1">
+                  <h6 class="mb-1">{{ eval.tenNguoiDanhGia || 'Tổ chức' }}</h6>
+                  <p class="mb-1 text-muted small">Sự kiện: {{ eval.tenSuKien || 'N/A' }}</p>
+                  <div class="mb-2">
+                    <span class="text-warning">
+                      <i *ngFor="let star of [1,2,3,4,5]" class="bi" [ngClass]="star <= eval.diemSo ? 'bi-star-fill' : 'bi-star'"></i>
+                    </span>
+                    <span class="ms-2">{{ eval.diemSo }}/5</span>
+                  </div>
+                  <p class="mb-1" *ngIf="eval.noiDung">{{ eval.noiDung }}</p>
+                  <small class="text-muted">{{ eval.ngayTao | date:'dd/MM/yyyy HH:mm' }}</small>
+                </div>
               </div>
-              <p class="mb-1">{{ eval.nhanXet }}</p>
-              <small class="text-muted">{{ eval.ngayDanhGia | date:'dd/MM/yyyy' }}</small>
+            </div>
+          </div>
+
+          <!-- Phần "Đánh giá đã đưa ra" -->
+          <div class="mt-5">
+            <h5 class="fw-semibold mb-3">
+              <i class="bi bi-chat-left-text text-primary me-2"></i>Đánh giá đã đưa ra
+            </h5>
+            <p class="text-muted mb-3">Các đánh giá bạn đã đưa ra cho tổ chức</p>
+
+            <div *ngIf="myEvaluations.length === 0" class="text-center py-4">
+              <i class="bi bi-star" style="font-size: 2rem; color: #ccc;"></i>
+              <p class="mt-2 text-muted">Bạn chưa đánh giá tổ chức nào</p>
+            </div>
+
+            <div class="list-group" *ngIf="myEvaluations.length > 0">
+              <div class="list-group-item" *ngFor="let eval of myEvaluations">
+                <div class="d-flex justify-content-between align-items-start">
+                  <div class="flex-grow-1">
+                    <h6 class="mb-2">
+                      <i class="bi bi-building me-2"></i>
+                      {{ eval.tenToChuc || eval.toChuc?.tenToChuc || 'Tổ chức' }}
+                    </h6>
+                    <p class="mb-1 text-muted">
+                      <i class="bi bi-calendar-event me-1"></i>
+                      Sự kiện: {{ eval.tenSuKien || eval.suKien?.tenSuKien || 'N/A' }}
+                    </p>
+                    <p class="mb-2" *ngIf="eval.noiDung">{{ eval.noiDung }}</p>
+                    <small class="text-muted">
+                      <i class="bi bi-clock me-1"></i>
+                      {{ eval.ngayTao | date:'dd/MM/yyyy HH:mm' }}
+                    </small>
+                  </div>
+                  <div class="ms-3">
+                    <span class="badge bg-warning text-dark fs-6">
+                      <i class="bi bi-star-fill me-1"></i>{{ eval.diemSo || eval.diemDanhGia }}/5
+                    </span>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -314,15 +535,10 @@
                   </p>
                   
                   <div class="d-flex gap-2 justify-content-center mt-3">
-                    <button class="btn btn-sm btn-outline-primary" 
+                    <button class="btn btn-sm btn-primary" 
                             (click)="viewCertificate(cert)"
                             title="Xem chứng nhận">
-                      <i class="bi bi-eye me-1"></i>Xem
-                    </button>
-                    <button class="btn btn-sm btn-primary" 
-                            (click)="downloadCertificate(cert)"
-                            title="Tải về chứng nhận">
-                      <i class="bi bi-download me-1"></i>Tải về
+                      <i class="bi bi-eye me-1"></i>Xem chứng nhận
                     </button>
                   </div>
                 </div>
@@ -343,19 +559,151 @@
     <div class="modal-content">
       <div class="modal-header">
         <h5 class="modal-title">Đổi email</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        <button 
+          type="button" 
+          class="btn-close" 
+          data-bs-dismiss="modal" 
+          aria-label="Close"
+          [attr.disabled]="isChangingEmail ? '' : null"
+          [style.pointer-events]="isChangingEmail ? 'none' : 'auto'"></button>
       </div>
       <div class="modal-body">
         <div class="mb-3">
           <label class="form-label">Email mới</label>
-          <input type="email" class="form-control" [(ngModel)]="newEmail" [ngModelOptions]="{standalone: true}" placeholder="nhap-email@domain.com" />
+          <input 
+            type="email" 
+            class="form-control" 
+            [(ngModel)]="newEmail" 
+            [ngModelOptions]="{standalone: true}" 
+            [disabled]="isChangingEmail"
+            placeholder="nhap-email@domain.com" />
         </div>
         <small class="text-muted">Hệ thống sẽ gửi liên kết xác nhận tới email mới.</small>
       </div>
       <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
-        <button type="button" class="btn btn-primary" (click)="submitChangeEmail()">Gửi xác nhận</button>
+        <button 
+          type="button" 
+          class="btn btn-secondary" 
+          data-bs-dismiss="modal"
+          [disabled]="isChangingEmail">
+          Hủy
+        </button>
+        <button 
+          type="button" 
+          class="btn btn-primary" 
+          (click)="submitChangeEmail()"
+          [disabled]="isChangingEmail">
+          <span *ngIf="isChangingEmail" class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+          <span *ngIf="!isChangingEmail">Gửi xác nhận</span>
+          <span *ngIf="isChangingEmail">Đang gửi...</span>
+        </button>
       </div>
     </div>
   </div>
 </div>
+
+<!-- Evaluation Preview Modal -->
+<div class="modal fade" id="evaluationPreviewModal" tabindex="-1" aria-labelledby="evaluationPreviewModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="evaluationPreviewModalLabel">
+          <i class="bi bi-star-fill text-warning me-2"></i>{{ evaluationPreviewTitle }}
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" (click)="closeEvaluationPreviewModal()"></button>
+      </div>
+      <div class="modal-body" *ngIf="selectedEvaluationForPreview">
+        <div class="card">
+          <div class="card-body">
+            <div class="mb-3">
+              <h6 class="text-muted mb-2">Điểm đánh giá</h6>
+              <div class="d-flex align-items-center">
+                <div class="rating-stars me-3">
+                  <i *ngFor="let star of [1,2,3,4,5]" 
+                     class="bi fs-3" 
+                     [ngClass]="star <= selectedEvaluationForPreview.diemSo ? 'bi-star-fill text-warning' : 'bi-star text-muted'">
+                  </i>
+                </div>
+                <span class="badge bg-warning text-dark fs-5">
+                  {{ selectedEvaluationForPreview.diemSo }}/5
+                </span>
+              </div>
+            </div>
+            
+            <div class="mb-3" *ngIf="selectedEvaluationForPreview.noiDung">
+              <h6 class="text-muted mb-2">Nhận xét</h6>
+              <p class="p-3 bg-light rounded">{{ selectedEvaluationForPreview.noiDung }}</p>
+            </div>
+            
+            <div class="mb-0">
+              <small class="text-muted">
+                <i class="bi bi-clock me-1"></i>
+                Ngày đánh giá: {{ selectedEvaluationForPreview.ngayTao | date:'dd/MM/yyyy HH:mm' }}
+              </small>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" (click)="closeEvaluationPreviewModal()">
+          Đóng
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Evaluation Modal (Đánh giá tổ chức) -->
+<div class="modal fade" id="evaluationModal" tabindex="-1" aria-labelledby="evaluationModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="evaluationModalLabel">
+          <i class="bi bi-star text-warning me-2"></i>Đánh giá tổ chức
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" (click)="closeEvaluationModal()"></button>
+      </div>
+      <div class="modal-body" *ngIf="selectedEventForEvaluation">
+        <p class="mb-3">
+          <strong>Sự kiện:</strong> {{ (selectedEventForEvaluation.event || selectedEventForEvaluation.suKien)?.tenSuKien || selectedEventForEvaluation.tenSuKien }}
+        </p>
+        
+        <div class="mb-3">
+          <label class="form-label">Điểm đánh giá <span class="text-danger">*</span></label>
+          <app-star-rating 
+            [(rating)]="evaluationRating"
+            [size]="'lg'"
+            [showLabel]="true">
+          </app-star-rating>
+        </div>
+        
+        <div class="mb-3">
+          <label for="evaluationComment" class="form-label">Nhận xét (tùy chọn)</label>
+          <textarea 
+            id="evaluationComment"
+            class="form-control" 
+            rows="4" 
+            [(ngModel)]="evaluationComment"
+            [ngModelOptions]="{standalone: true}"
+            placeholder="Chia sẻ trải nghiệm của bạn về sự kiện này...">
+          </textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" (click)="closeEvaluationModal()">
+          Hủy
+        </button>
+        <button type="button" class="btn btn-primary" (click)="submitEvaluation()">
+          <i class="bi bi-check-circle me-1"></i>Gửi đánh giá
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Certificate Viewer Modal -->
+<app-certificate-viewer-modal 
+  [certificateId]="selectedCertificateId"
+  [show]="showCertificateModal"
+  (close)="closeCertificateModal()">
+</app-certificate-viewer-modal>

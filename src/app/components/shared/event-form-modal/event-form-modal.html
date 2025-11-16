@@ -1,0 +1,294 @@
+<!-- Modal thêm/sửa sự kiện -->
+<div class="modal" *ngIf="visible" (click)="huyBo()">
+  <div class="modal-content modal-form" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <div>
+        <h2>{{ isEditing ? 'Chỉnh sửa sự kiện' : 'Thêm sự kiện mới' }}</h2>
+        <p class="modal-subtitle">
+          Cập nhật thông tin sự kiện, thời gian tuyển dụng và yêu cầu kỹ năng
+        </p>
+      </div>
+      <button class="btn-close" (click)="huyBo()">&times;</button>
+    </div>
+    <div class="modal-body">
+      <form class="event-form" #eventForm="ngForm" (ngSubmit)="luuSuKien()">
+        <div class="form-grid two-col">
+          <div class="form-group full-width">
+            <label>Tên sự kiện <span class="required">*</span></label>
+            <input
+              class="form-control"
+              type="text"
+              [(ngModel)]="suKienMoi.tenSuKien"
+              name="tenSuKien"
+              placeholder="Nhập tên sự kiện"
+              required
+            />
+          </div>
+
+          <div class="form-group full-width">
+            <label>Mô tả sự kiện <span class="required">*</span></label>
+            <textarea
+              class="form-control"
+              [(ngModel)]="suKienMoi.noiDung"
+              name="noiDung"
+              rows="2"
+              style="min-height: 60px; height: 60px;"
+              placeholder="Mô tả ngắn gọn nội dung, mục tiêu và giá trị của sự kiện"
+              required
+            ></textarea>
+          </div>
+
+          <div class="form-group">
+            <label>Thời gian bắt đầu <span class="required">*</span></label>
+            <input
+              class="form-control"
+              type="datetime-local"
+              [(ngModel)]="suKienMoi.ngayBatDau"
+              name="ngayBatDau"
+              [min]="getMinDateForNgayBatDau()"
+              (change)="onNgayBatDauChange()"
+              required
+            />
+            <small class="text-muted">Thời gian bắt đầu phải bằng hoặc lớn hơn thời gian hiện tại</small>
+          </div>
+
+          <div class="form-group">
+            <label>Thời gian kết thúc <span class="required">*</span></label>
+            <input
+              class="form-control"
+              type="datetime-local"
+              [(ngModel)]="suKienMoi.ngayKetThuc"
+              name="ngayKetThuc"
+              [min]="getMinDateForNgayKetThuc()"
+              (change)="onNgayKetThucChange()"
+              required
+            />
+            <small class="text-muted">Thời gian kết thúc phải sau thời gian bắt đầu</small>
+          </div>
+
+          <div class="form-group">
+            <label>Thời gian bắt đầu tuyển <span class="required">*</span></label>
+            <input
+              class="form-control"
+              type="datetime-local"
+              [(ngModel)]="suKienMoi.tuyenBatDau"
+              name="tuyenBatDau"
+              [min]="getMinDateForTuyenBatDau()"
+              [max]="getMaxDateForTuyenBatDau()"
+              (change)="onTuyenBatDauChange()"
+              required
+            />
+            <small class="text-muted">Thời gian bắt đầu tuyển phải nằm trong khoảng từ ngày bắt đầu đến ngày kết thúc sự kiện</small>
+          </div>
+
+          <div class="form-group">
+            <label>Thời gian kết thúc tuyển <span class="required">*</span></label>
+            <input
+              class="form-control"
+              type="datetime-local"
+              [(ngModel)]="suKienMoi.tuyenKetThuc"
+              name="tuyenKetThuc"
+              [min]="getMinDateForTuyenKetThuc()"
+              [max]="getMaxDateForTuyenKetThuc()"
+              (change)="onTuyenKetThucChange()"
+              required
+            />
+            <small class="text-muted">Thời gian kết thúc tuyển phải nhỏ hơn hoặc bằng ngày kết thúc sự kiện</small>
+          </div>
+
+          <div class="col-md-12 mt-4">
+            <h6>Thời gian sự kiện diễn ra thực tế (tùy chọn)</h6>
+            <p class="small text-muted">
+              <i class="bi bi-info-circle"></i> 
+              Nếu không nhập, hệ thống tự tính: Ngày kết thúc tuyển + 1 ngày
+            </p>
+          </div>
+
+          <div class="form-group">
+            <label>Ngày bắt đầu diễn ra</label>
+            <input type="datetime-local" 
+                   [(ngModel)]="suKienMoi.ngayDienRaBatDau"
+                   name="ngayDienRaBatDau"
+                   class="form-control"
+                   [min]="getMinDateForNgayDienRaBatDau()"
+                   [max]="getMaxDateForNgayDienRaBatDau()">
+            <small class="text-muted">Ngày sự kiện thực sự bắt đầu</small>
+          </div>
+
+          <div class="form-group">
+            <label>Ngày kết thúc diễn ra</label>
+            <input type="datetime-local" 
+                   [(ngModel)]="suKienMoi.ngayDienRaKetThuc"
+                   name="ngayDienRaKetThuc"
+                   class="form-control"
+                   [min]="getMinDateForNgayDienRaKetThuc()"
+                   [max]="getMaxDateForNgayDienRaKetThuc()">
+          </div>
+
+          <div class="form-group">
+            <label>Khóa hủy đăng ký trước (giờ)</label>
+            <input type="number" 
+                   [(ngModel)]="suKienMoi.thoiGianKhoaHuy"
+                   name="thoiGianKhoaHuy"
+                   class="form-control"
+                   placeholder="24"
+                   min="0"
+                   max="168">
+            <small class="text-muted">
+              TNV không hủy được khi < X giờ (mặc định: 24h)
+            </small>
+          </div>
+
+          <div class="form-group">
+            <label>Địa điểm <span class="required">*</span></label>
+            <input
+              class="form-control"
+              type="text"
+              [(ngModel)]="suKienMoi.diaChi"
+              name="diaChi"
+              placeholder="Ví dụ: 123 Nguyễn Huệ, Quận 1, TP.HCM"
+              required
+            />
+          </div>
+
+          <div class="form-group">
+            <label>Quy mô tình nguyện viên <span class="required">*</span></label>
+            <input
+              class="form-control"
+              [ngClass]="{'is-invalid': soLuongError}"
+              type="number"
+              [(ngModel)]="suKienMoi.soLuong"
+              name="soLuong"
+              placeholder="Nhập số lượng dự kiến"
+              min="1"
+              (input)="onSoLuongChange()"
+              (blur)="onSoLuongChange()"
+              required
+            />
+            <small class="text-danger d-block mt-1" *ngIf="soLuongError">{{ soLuongError }}</small>
+          </div>
+
+          <div class="form-group full-width">
+            <label>Hình ảnh sự kiện <span class="required">*</span></label>
+            <div class="upload-wrapper">
+              <input
+                class="form-control"
+                type="file"
+                accept="image/*"
+                (change)="onFileSelected($event)"
+                #fileInput
+              />
+              <div class="image-preview" *ngIf="previewUrl || suKienMoi.hinhAnh">
+                <img
+                  [src]="previewUrl || getImageUrl(suKienMoi.hinhAnh!)"
+                  alt="Hình xem trước sự kiện"
+                  (error)="handleImageError($event)"
+                />
+              </div>
+            </div>
+            <small class="text-muted">
+              Định dạng hỗ trợ: JPG, PNG. Kích thước nên lớn hơn 800x600px.
+            </small>
+            <small class="text-danger d-block mt-1" *ngIf="!selectedFile && !suKienMoi.hinhAnh">
+              Vui lòng chọn hình ảnh cho sự kiện
+            </small>
+          </div>
+
+          <div class="form-group full-width">
+            <label for="linhVucIds">Lĩnh vực liên quan <span class="required">*</span></label>
+            <nz-select
+              id="linhVucIds"
+              nzMode="multiple"
+              nzShowSearch
+              nzPlaceHolder="Chọn lĩnh vực (ít nhất 1)"
+              [(ngModel)]="selectedLinhVucs"
+              (ngModelChange)="onSelectLinhVucChange($event)"
+              name="linhVucIds"
+              style="width: 100%;"
+              nzSize="large"
+              [nzMaxTagCount]="5"
+            >
+              <nz-option
+                *ngFor="let field of linhVucs"
+                [nzValue]="field.maLinhVuc"
+                [nzLabel]="field.tenLinhVuc"
+              ></nz-option>
+            </nz-select>
+            <small class="text-muted d-block mt-1" *ngIf="linhVucs.length === 0">
+              Chưa có dữ liệu lĩnh vực
+            </small>
+            <small class="text-danger d-block mt-1" *ngIf="selectedLinhVucs.length === 0">
+              Vui lòng chọn ít nhất 1 lĩnh vực
+            </small>
+          </div>
+
+          <div class="form-group full-width">
+            <label for="kyNangIds">Kỹ năng cần thiết <span class="required">*</span></label>
+            <nz-select
+              id="kyNangIds"
+              nzMode="multiple"
+              nzShowSearch
+              nzPlaceHolder="Chọn kỹ năng (ít nhất 1)"
+              [(ngModel)]="selectedKyNangs"
+              (ngModelChange)="onSelectKyNangChange($event)"
+              name="kyNangIds"
+              style="width: 100%;"
+              nzSize="large"
+              [nzMaxTagCount]="5"
+            >
+              <nz-option
+                *ngFor="let skill of kyNangs"
+                [nzValue]="skill.maKyNang"
+                [nzLabel]="skill.tenKyNang"
+              ></nz-option>
+            </nz-select>
+            <small class="text-muted d-block mt-1" *ngIf="kyNangs.length === 0">
+              Chưa có dữ liệu kỹ năng
+            </small>
+            <small class="text-danger d-block mt-1" *ngIf="selectedKyNangs.length === 0">
+              Vui lòng chọn ít nhất 1 kỹ năng
+            </small>
+          </div>
+
+          <div class="form-group">
+            <label>Trạng thái</label>
+            <input
+              class="form-control"
+              type="text"
+              [value]="getTrangThaiTuDong()"
+              disabled
+              readonly
+            />
+            <small class="text-muted">Trạng thái được tự động tính toán dựa trên ngày tháng</small>
+          </div>
+
+          <div class="form-group" *ngIf="showOrganizationSelector">
+            <label>Tổ chức phụ trách <span class="required">*</span></label>
+            <select
+              class="form-control"
+              [(ngModel)]="suKienMoi.maToChuc"
+              name="maToChuc"
+              required
+            >
+              <option [ngValue]="null" disabled>Chọn tổ chức</option>
+              <option *ngFor="let org of organizations" [ngValue]="org.maToChuc">
+                {{ org.tenToChuc }}
+              </option>
+            </select>
+          </div>
+        </div>
+      </form>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn-modal btn-cancel" (click)="huyBo()" [disabled]="isSaving">Hủy</button>
+      <button type="button" class="btn-modal btn-approve" (click)="luuSuKien()" [disabled]="isSaving">
+        <span *ngIf="!isSaving">{{ isEditing ? 'Cập nhật' : 'Thêm mới' }}</span>
+        <span *ngIf="isSaving">
+          <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+          Đang lưu...
+        </span>
+      </button>
+    </div>
+  </div>
+</div>
+

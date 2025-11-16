@@ -208,3 +208,25 @@ thead th {
   from { opacity: 0; }
   to { opacity: 1; }
 }
+
+/* Modal centering */
+.modal.show {
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal.show .modal-dialog {
+  margin: var(--bs-modal-margin, 0.5rem) auto;
+  display: flex;
+  align-items: center;
+  min-height: calc(100% - (var(--bs-modal-margin, 0.5rem) * 2));
+}
+
+.modal.show .modal-content {
+  margin: auto;
+}
+
+.modal.show .modal-dialog.modal-dialog-scrollable {
+  max-height: calc(100% - (var(--bs-modal-margin, 0.5rem) * 2));
+}

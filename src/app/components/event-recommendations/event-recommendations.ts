@@ -46,13 +46,13 @@ export class EventRecommendations implements OnInit {
   }
   
   loadUserInfo(): void {
-    const userInfo = localStorage.getItem('user');
-    if (!userInfo) {
+    // Sử dụng authService.getUser() để lấy user từ cả localStorage và sessionStorage
+    const user = this.authService.getUser();
+    if (!user) {
       this.router.navigate(['/login']);
       return;
     }
 
-    const user = JSON.parse(userInfo);
     if (user.maTaiKhoan) {
       // Lấy thông tin tình nguyện viên
       this.http.get<any>(`${this.apiUrl}/tinhnguyenvien/by-account/${user.maTaiKhoan}`).subscribe({

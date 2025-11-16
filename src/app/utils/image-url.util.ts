@@ -3,7 +3,7 @@ import { environment } from '../../environments/environment';
 /**
  * Builds a full image URL from a relative path
  * @param path - Relative path to the image (e.g., '/uploads/image.jpg')
- * @returns Full URL (e.g., 'http://localhost:5000/uploads/image.jpg' or 'https://api.buituantu.com/uploads/image.jpg')
+ * @returns Full URL (e.g., 'http://localhost:5000/uploads/image.jpg' or 'https://api.tinhnguyenvien.io.vn/uploads/image.jpg')
  */
 export function getImageUrl(path: string | null | undefined): string {
   if (!path) {

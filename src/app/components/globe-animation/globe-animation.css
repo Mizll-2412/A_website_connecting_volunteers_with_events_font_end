@@ -1,0 +1,86 @@
+.globe-animation-container {
+  position: relative;
+}
+
+.small-globe-wrapper {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+  transition: transform 0.2s ease;
+}
+
+.small-globe-wrapper:hover {
+  transform: scale(1.1);
+}
+
+.small-globe-wrapper canvas {
+  width: 120px;
+  height: 120px;
+  display: block;
+}
+
+/* Fullscreen globe animation */
+.fullscreen-rive-overlay {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  overflow: hidden;
+  z-index: 10000;
+  cursor: pointer;
+  background: transparent;
+}
+
+.full-globe-canvas {
+  width: 100vw !important;
+  height: 100vh !important;
+  display: block !important;
+  background: transparent;
+  z-index: 10;
+  pointer-events: none;
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+
+/* Full screen globe animation background */
+.wDupLw {
+  position: absolute;
+  background: radial-gradient(
+    circle,
+    rgb(153, 43, 255) 10%,
+    rgb(90, 50, 250) 20%,
+    rgb(19, 163, 181) 30%,
+    rgba(156, 234, 247, 0.64) 40%,
+    rgba(255, 255, 255, 0) 50%
+  );
+  height: 185%;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%) scale(0);
+  width: 185%;
+  z-index: 5;
+  border-radius: 50%;
+  animation-delay: 0s;
+  animation-direction: normal;
+  animation-duration: 1.4s;
+  animation-fill-mode: forwards;
+  animation-name: CSZT1Q;
+  animation-timing-function: cubic-bezier(0.28, 0.61, 0.67, 1.03);
+  transform-origin: center center;
+}
+
+@keyframes CSZT1Q {
+  0% {
+    transform: translate(-50%, -50%) scale(0);
+  }
+
+  100% {
+    transform: translate(-50%, -50%) scale(1.7);
+  }
+}
+

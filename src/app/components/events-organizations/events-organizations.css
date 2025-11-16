@@ -305,3 +305,705 @@
   }
 }
 
+/* Custom Multi-Select Styles */
+.custom-multiselect {
+  position: relative;
+  width: 100%;
+}
+
+.multiselect-input {
+  position: relative;
+  min-height: 38px;
+  padding: 4px 30px 4px 8px;
+  border: 1px solid #ced4da;
+  border-radius: 0.25rem;
+  background-color: #fff;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
+  transition: all 0.2s ease;
+}
+
+.multiselect-input:hover {
+  border-color: #80bdff;
+}
+
+.custom-multiselect.open .multiselect-input {
+  border-color: #40a9ff;
+  box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2);
+}
+
+.multiselect-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  flex: 1;
+  align-items: center;
+}
+
+.multiselect-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: #f0f0f0;
+  border: 1px solid #d9d9d9;
+  border-radius: 4px;
+  padding: 2px 8px;
+  font-size: 0.875rem;
+  line-height: 22px;
+  height: 24px;
+  color: rgba(0, 0, 0, 0.85);
+}
+
+.multiselect-tag i {
+  cursor: pointer;
+  color: rgba(0, 0, 0, 0.45);
+  font-size: 0.875rem;
+  transition: color 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+}
+
+.multiselect-tag i:hover {
+  color: rgba(0, 0, 0, 0.75);
+}
+
+.multiselect-tag-more {
+  display: inline-flex;
+  align-items: center;
+  background: #f0f0f0;
+  border: 1px solid #d9d9d9;
+  border-radius: 4px;
+  padding: 2px 8px;
+  font-size: 0.875rem;
+  line-height: 22px;
+  height: 24px;
+  color: rgba(0, 0, 0, 0.65);
+}
+
+.multiselect-placeholder {
+  color: #6c757d;
+  font-size: 0.875rem;
+}
+
+.multiselect-arrow {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  transition: transform 0.2s ease;
+  color: rgba(0, 0, 0, 0.45);
+  font-size: 0.75rem;
+}
+
+.multiselect-arrow.rotated {
+  transform: translateY(-50%) rotate(180deg);
+}
+
+.multiselect-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  margin-top: 4px;
+  background: #fff;
+  border: 1px solid #d9d9d9;
+  border-radius: 4px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  z-index: 1000;
+  max-height: 256px;
+  overflow-y: auto;
+  padding: 4px 0;
+}
+
+.multiselect-option {
+  padding: 8px 12px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: background-color 0.2s;
+  font-size: 0.875rem;
+  color: rgba(0, 0, 0, 0.85);
+}
+
+.multiselect-option:hover {
+  background-color: #f5f5f5;
+}
+
+.multiselect-option.selected {
+  background-color: #e6f7ff;
+  color: #1890ff;
+}
+
+.multiselect-option i.bi-check {
+  color: #1890ff;
+  font-size: 0.875rem;
+  font-weight: bold;
+}
+
+/* Custom Select Styles (for Status) */
+.custom-select {
+  position: relative;
+  width: 100%;
+}
+
+.select-input {
+  position: relative;
+  min-height: 38px;
+  padding: 6px 30px 6px 12px;
+  border: 1px solid #ced4da;
+  border-radius: 0.25rem;
+  background-color: #fff;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  transition: all 0.2s ease;
+}
+
+.select-input:hover {
+  border-color: #80bdff;
+}
+
+.custom-select.open .select-input {
+  border-color: #40a9ff;
+  box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2);
+}
+
+.select-value {
+  flex: 1;
+  color: rgba(0, 0, 0, 0.85);
+  font-size: 0.875rem;
+}
+
+.select-arrow {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  transition: transform 0.2s ease;
+  color: rgba(0, 0, 0, 0.45);
+  font-size: 0.75rem;
+}
+
+.select-arrow.rotated {
+  transform: translateY(-50%) rotate(180deg);
+}
+
+.select-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  margin-top: 4px;
+  background: #fff;
+  border: 1px solid #d9d9d9;
+  border-radius: 4px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  z-index: 1000;
+  max-height: 256px;
+  overflow-y: auto;
+  padding: 4px 0;
+}
+
+.select-option {
+  padding: 8px 12px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: background-color 0.2s;
+  font-size: 0.875rem;
+  color: rgba(0, 0, 0, 0.85);
+}
+
+.select-option:hover {
+  background-color: #f5f5f5;
+}
+
+.select-option.selected {
+  background-color: #e6f7ff;
+  color: #1890ff;
+}
+
+.select-option i.bi-check {
+  color: #1890ff;
+  font-size: 0.875rem;
+  font-weight: bold;
+}
+
+/* Custom Date Picker Styles */
+.custom-datepicker {
+  position: relative;
+  width: 100%;
+}
+
+.datepicker-input {
+  position: relative;
+  min-height: 38px;
+  padding: 6px 60px 6px 12px;
+  border: 1px solid #ced4da;
+  border-radius: 0.25rem;
+  background-color: #fff;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  transition: all 0.2s ease;
+}
+
+.datepicker-input:hover {
+  border-color: #80bdff;
+}
+
+.custom-datepicker.open .datepicker-input {
+  border-color: #40a9ff;
+  box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2);
+}
+
+.datepicker-value {
+  flex: 1;
+  color: rgba(0, 0, 0, 0.85);
+  font-size: 0.875rem;
+}
+
+.datepicker-placeholder {
+  flex: 1;
+  color: #6c757d;
+  font-size: 0.875rem;
+}
+
+.datepicker-icon {
+  position: absolute;
+  right: 30px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: rgba(0, 0, 0, 0.45);
+  font-size: 0.875rem;
+  pointer-events: none;
+}
+
+.datepicker-clear {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: rgba(0, 0, 0, 0.45);
+  font-size: 0.875rem;
+  cursor: pointer;
+  width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: all 0.2s;
+}
+
+.datepicker-clear:hover {
+  background-color: rgba(0, 0, 0, 0.06);
+  color: rgba(0, 0, 0, 0.75);
+}
+
+.datepicker-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  margin-top: 4px;
+  background: #fff;
+  border: 1px solid #d9d9d9;
+  border-radius: 4px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  z-index: 1000;
+  padding: 8px;
+}
+
+.datepicker-native-input {
+  width: 100%;
+  padding: 6px 12px;
+  border: 1px solid #d9d9d9;
+  border-radius: 4px;
+  font-size: 0.875rem;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.datepicker-native-input:focus {
+  border-color: #40a9ff;
+  box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2);
+}
+
+/* Calendar Picker Styles */
+.calendar-picker {
+  width: 280px;
+  padding: 12px;
+  background: #fff;
+}
+
+.calendar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+  padding: 0 4px;
+}
+
+.calendar-month-year {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: rgba(0, 0, 0, 0.85);
+  flex: 1;
+  text-align: center;
+}
+
+.calendar-nav-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(0, 0, 0, 0.45);
+  transition: color 0.2s;
+  border-radius: 4px;
+}
+
+.calendar-nav-btn:hover {
+  color: rgba(0, 0, 0, 0.85);
+  background-color: rgba(0, 0, 0, 0.04);
+}
+
+.calendar-nav-btn i {
+  font-size: 0.75rem;
+}
+
+.calendar-weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 0;
+  margin-bottom: 8px;
+}
+
+.calendar-weekday {
+  text-align: center;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: rgba(0, 0, 0, 0.45);
+  padding: 8px 0;
+}
+
+.calendar-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.calendar-week {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 0;
+}
+
+.calendar-day {
+  aspect-ratio: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 0.875rem;
+  color: rgba(0, 0, 0, 0.85);
+  border-radius: 4px;
+  transition: all 0.2s;
+  margin: 2px;
+  position: relative;
+  z-index: 1;
+}
+
+.calendar-day.other-month {
+  color: rgba(0, 0, 0, 0.25);
+}
+
+.calendar-day.today {
+  font-weight: 600;
+  border: 1px solid #1890ff;
+}
+
+.calendar-day.selected {
+  background-color: #1890ff;
+  color: #fff;
+  font-weight: 500;
+  z-index: 10;
+}
+
+.calendar-day.selected:hover {
+  background-color: #40a9ff;
+  color: #fff;
+}
+
+.calendar-day:hover:not(.selected):not(.start-date):not(.end-date):not(.in-range) {
+  background-color: #f5f5f5;
+  color: rgba(0, 0, 0, 0.85);
+}
+
+.calendar-day.today.selected {
+  border-color: #1890ff;
+}
+
+/* Date Range Picker Styles */
+.custom-daterange-picker {
+  position: relative;
+  width: 100%;
+  z-index: 9998;
+  isolation: isolate;
+}
+
+.daterange-input {
+  position: relative;
+  height: 38px;
+  padding: 4px 60px 4px 12px;
+  border: 1px solid #ced4da;
+  border-radius: 0.25rem;
+  background-color: #fff;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.2s ease;
+}
+
+.daterange-input:hover {
+  border-color: #80bdff;
+}
+
+.custom-daterange-picker.open .daterange-input {
+  border-color: #40a9ff;
+  box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2);
+}
+
+.daterange-start,
+.daterange-end {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 2px 8px;
+  border-radius: 4px;
+  transition: all 0.2s;
+  position: relative;
+  justify-content: center;
+}
+
+.daterange-start.active,
+.daterange-end.active {
+  background-color: #e6f7ff;
+  border-bottom: 2px solid #1890ff;
+}
+
+.daterange-label {
+  font-size: 0.7rem;
+  color: rgba(0, 0, 0, 0.45);
+  margin-bottom: 1px;
+  line-height: 1;
+}
+
+.daterange-value {
+  font-size: 0.875rem;
+  color: rgba(0, 0, 0, 0.85);
+  font-weight: 500;
+}
+
+.daterange-placeholder {
+  font-size: 0.875rem;
+  color: #6c757d;
+}
+
+.daterange-separator {
+  color: rgba(0, 0, 0, 0.45);
+  font-size: 1rem;
+  padding: 0 4px;
+}
+
+.daterange-icon {
+  position: absolute;
+  right: 30px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: rgba(0, 0, 0, 0.45);
+  font-size: 0.875rem;
+  pointer-events: none;
+}
+
+.daterange-clear {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: rgba(0, 0, 0, 0.45);
+  font-size: 0.875rem;
+  cursor: pointer;
+  width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: all 0.2s;
+}
+
+.daterange-clear:hover {
+  background-color: rgba(0, 0, 0, 0.06);
+  color: rgba(0, 0, 0, 0.75);
+}
+
+.daterange-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  margin-top: 4px;
+  background: #fff;
+  border: 1px solid #d9d9d9;
+  border-radius: 4px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  z-index: 9999;
+  padding: 12px;
+}
+
+.daterange-calendars {
+  display: flex;
+  gap: 16px;
+}
+
+.daterange-calendars .calendar-picker {
+  width: 280px;
+  padding: 0;
+}
+
+/* Range highlighting */
+.calendar-day.in-range {
+  background-color: #e6f7ff !important;
+  color: rgba(0, 0, 0, 0.85) !important;
+  border-radius: 0;
+}
+
+.calendar-day.in-range:hover {
+  background-color: #bae7ff !important;
+  color: rgba(0, 0, 0, 0.85) !important;
+}
+
+.calendar-day.start-date {
+  background-color: #1890ff !important;
+  color: #fff !important;
+  font-weight: 500;
+  border-radius: 4px 0 0 4px;
+  z-index: 10;
+}
+
+.calendar-day.start-date:hover {
+  background-color: #40a9ff !important;
+  color: #fff !important;
+}
+
+.calendar-day.end-date {
+  background-color: #1890ff !important;
+  color: #fff !important;
+  font-weight: 500;
+  border-radius: 0 4px 4px 0;
+  z-index: 10;
+}
+
+.calendar-day.end-date:hover {
+  background-color: #40a9ff !important;
+  color: #fff !important;
+}
+
+.calendar-day.start-date.end-date {
+  border-radius: 4px;
+}
+
+.calendar-day.in-range.start-date {
+  border-radius: 4px 0 0 4px;
+}
+
+.calendar-day.in-range.end-date {
+  border-radius: 0 4px 4px 0;
+}
+
+/* Ant Design RangePicker Styles */
+:host ::ng-deep .ant-picker {
+  width: 100% !important;
+  height: 38px !important;
+}
+
+:host ::ng-deep .ant-picker-input {
+  height: 36px !important;
+}
+
+:host ::ng-deep .ant-picker-range {
+  width: 100% !important;
+}
+
+/* Ensure dropdown panel is visible */
+:host ::ng-deep .ant-picker-dropdown {
+  z-index: 1050 !important;
+}
+
+:host ::ng-deep .ant-picker-panel-container {
+  z-index: 1050 !important;
+}
+
+:host ::ng-deep .ant-picker-panel {
+  z-index: 1050 !important;
+}
+
+/* Fix overflow issues */
+:host ::ng-deep .ant-picker-dropdown-hidden {
+  display: none !important;
+}
+
+/* Ensure calendar is visible */
+:host ::ng-deep .ant-picker-panels {
+  display: flex !important;
+}
+
+:host ::ng-deep .ant-picker-panel {
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+/* Fix parent container overflow issues */
+.advanced-filters,
+.row,
+.col-md-6 {
+  overflow: visible !important;
+}
+
+/* Ensure Ant Design dropdown is visible and properly positioned */
+:host ::ng-deep .ant-picker-dropdown {
+  z-index: 1050 !important;
+}
+
+/* Ensure parent container allows proper positioning */
+.col-md-6 {
+  position: relative;
+}
+
+/* Override Bootstrap form-control styles that might affect Ant Design */
+:host ::ng-deep .ant-picker {
+  border: 1px solid #d9d9d9 !important;
+  border-radius: 4px !important;
+}
+
+:host ::ng-deep .ant-picker:hover {
+  border-color: #40a9ff !important;
+}
+
+:host ::ng-deep .ant-picker-focused {
+  border-color: #40a9ff !important;
+  box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2) !important;
+}
+

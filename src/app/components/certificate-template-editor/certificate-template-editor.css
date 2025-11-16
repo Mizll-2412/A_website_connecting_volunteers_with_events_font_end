@@ -1,0 +1,105 @@
+.template-editor-container {
+  padding: 20px;
+  background: #f8f9fa;
+  min-height: 100vh;
+}
+
+.card {
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  margin-bottom: 20px;
+}
+
+.card-header {
+  font-weight: 600;
+}
+
+.canvas-container {
+  overflow: auto;
+  max-height: 70vh;
+  background: #e9ecef;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 20px;
+}
+
+.canvas-wrapper {
+  transition: transform 0.2s ease;
+  display: inline-block;
+}
+
+canvas {
+  border: 2px solid #dee2e6;
+  background: white;
+  cursor: move;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.list-group-item {
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.list-group-item:hover {
+  background-color: #f8f9fa;
+}
+
+.list-group-item.active {
+  background-color: #007bff;
+  border-color: #007bff;
+}
+
+.btn-group button {
+  flex: 1;
+}
+
+.form-control-color {
+  height: 40px;
+  cursor: pointer;
+}
+
+/* Loading overlay */
+.template-editor-container.loading {
+  pointer-events: none;
+  opacity: 0.6;
+}
+
+/* Responsive */
+@media (max-width: 992px) {
+  .col-md-3, .col-md-6 {
+    margin-bottom: 20px;
+  }
+  
+  .canvas-container {
+    max-height: 50vh;
+  }
+}
+
+/* Smooth transitions */
+* {
+  transition: all 0.15s ease-in-out;
+}
+
+button, .list-group-item {
+  transition: all 0.2s;
+}
+
+/* Custom scrollbar */
+.canvas-container::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.canvas-container::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+.canvas-container::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 4px;
+}
+
+.canvas-container::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}
+

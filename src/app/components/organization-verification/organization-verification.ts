@@ -7,6 +7,7 @@ import { ToChuc, TrangThaiXacMinh } from '../../models/organiztion';
 import { AuthService } from '../../services/auth';
 import { environment } from '../../../environments/environment';
 import { getImageUrl } from '../../utils/image-url.util';
+import { ToastService } from '../../services/toast.service';
 
 interface LegalDocument {
   maGiayTo: number;
@@ -40,7 +41,8 @@ export class OrganizationVerification implements OnInit {
   constructor(
     private http: HttpClient,
     private auth: AuthService,
-    private sanitizer: DomSanitizer
+    private sanitizer: DomSanitizer,
+    private toastService: ToastService
   ) {}
 
   ngOnInit(): void {
@@ -49,38 +51,34 @@ export class OrganizationVerification implements OnInit {
   }
 
   loadOrganizationInfo(): void {
-    const userInfo = localStorage.getItem('user');
-    if (!userInfo) return;
-
-    const user = JSON.parse(userInfo);
-    if (user.maTaiKhoan) {
-      this.http.get<any>(`${this.apiUrl}/organization/by-account/${user.maTaiKhoan}`).subscribe({
-        next: (response) => {
-          this.organization = response.data || response;
-        },
-        error: (err) => {
-          console.error('Lỗi tải thông tin tổ chức:', err);
-        }
-      });
-    }
+    // Sử dụng authService.getUser() để lấy user từ cả localStorage và sessionStorage
+    const user = this.auth.getUser();
+    if (!user || !user.maTaiKhoan) return;
+    
+    this.http.get<any>(`${this.apiUrl}/organization/by-account/${user.maTaiKhoan}`).subscribe({
+      next: (response) => {
+        this.organization = response.data || response;
+      },
+      error: (err) => {
+        console.error('Lỗi tải thông tin tổ chức:', err);
+      }
+    });
   }
 
   loadLegalDocuments(): void {
     if (!this.organization?.maToChuc) {
-      const userInfo = localStorage.getItem('user');
-      if (!userInfo) return;
-
-      const user = JSON.parse(userInfo);
-      if (user.maTaiKhoan) {
-        this.http.get<any>(`${this.apiUrl}/organization/by-account/${user.maTaiKhoan}`).subscribe({
-          next: (response) => {
-            const org = response.data || response;
-            if (org?.maToChuc) {
-              this.fetchLegalDocuments(org.maToChuc);
-            }
+      // Sử dụng authService.getUser() để lấy user từ cả localStorage và sessionStorage
+      const user = this.auth.getUser();
+      if (!user || !user.maTaiKhoan) return;
+      
+      this.http.get<any>(`${this.apiUrl}/organization/by-account/${user.maTaiKhoan}`).subscribe({
+        next: (response) => {
+          const org = response.data || response;
+          if (org?.maToChuc) {
+            this.fetchLegalDocuments(org.maToChuc);
           }
-        });
-      }
+        }
+      });
     } else {
       this.fetchLegalDocuments(this.organization.maToChuc);
     }
@@ -133,7 +131,7 @@ export class OrganizationVerification implements OnInit {
 
     this.http.post<any>(`${this.apiUrl}/GiayToPhapLy/upload`, formData).subscribe({
       next: (response) => {
-        alert('Tải lên giấy tờ pháp lý thành công');
+        this.toastService.success('Tải lên giấy tờ pháp lý thành công');
         this.selectedLegalDocs = [];
         this.legalDocDescription = '';
         this.legalDocName = '';
@@ -141,7 +139,7 @@ export class OrganizationVerification implements OnInit {
       },
       error: (err) => {
         console.error('Lỗi tải lên giấy tờ pháp lý:', err);
-        alert('Lỗi tải lên giấy tờ pháp lý: ' + (err.error?.message || 'Đã xảy ra lỗi'));
+        this.toastService.error(err.error?.message || 'Lỗi tải lên giấy tờ pháp lý');
       }
     });
   }
@@ -157,13 +155,13 @@ export class OrganizationVerification implements OnInit {
     
     this.http.post<any>(`${this.apiUrl}/organization/request-verification`, requestData).subscribe({
       next: (response) => {
-        alert('Yêu cầu xác minh đã được gửi thành công');
+        this.toastService.success('Gửi yêu cầu xác minh thành công');
         this.loadOrganizationInfo(); // Tải lại thông tin tổ chức để cập nhật trạng thái
         this.isRequestingVerification = false;
       },
       error: (err) => {
         console.error('Lỗi gửi yêu cầu xác minh:', err);
-        alert('Lỗi gửi yêu cầu xác minh: ' + (err.error?.message || 'Đã xảy ra lỗi'));
+        this.toastService.error(err.error?.message || 'Lỗi gửi yêu cầu xác minh');
         this.isRequestingVerification = false;
       }
     });
@@ -179,12 +177,12 @@ export class OrganizationVerification implements OnInit {
     if (confirm('Bạn có chắc chắn muốn xóa giấy tờ này không?')) {
       this.http.delete<any>(`${this.apiUrl}/GiayToPhapLy/${document.maGiayTo}`).subscribe({
         next: () => {
-          alert('Xóa giấy tờ pháp lý thành công');
+          this.toastService.success('Xóa giấy tờ pháp lý thành công');
           this.loadLegalDocuments();
         },
         error: (err) => {
           console.error('Lỗi xóa giấy tờ pháp lý:', err);
-          alert('Lỗi xóa giấy tờ pháp lý: ' + (err.error?.message || 'Đã xảy ra lỗi'));
+          this.toastService.error(err.error?.message || 'Lỗi xóa giấy tờ pháp lý');
         }
       });
     }

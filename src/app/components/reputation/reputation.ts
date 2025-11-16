@@ -30,11 +30,19 @@ export class Reputation implements OnInit {
   
   ranks: RankInfo[] = [
     {
-      name: 'Tình nguyện viên Đồng',
+      name: 'Tình nguyện viên Mới',
       cssClass: 'bronze',
       icon: 'bi-award',
       minRating: 0,
-      description: 'Cấp bậc khởi đầu cho tình nguyện viên mới.',
+      description: 'Tình nguyện viên mới tham gia hệ thống.',
+      privileges: 'Tham gia các sự kiện cơ bản'
+    },
+    {
+      name: 'Tình nguyện viên Đồng',
+      cssClass: 'bronze',
+      icon: 'bi-award',
+      minRating: 2,
+      description: 'Đã tham gia ít nhất 1 sự kiện và có đánh giá trung bình từ 2 sao.',
       privileges: 'Tham gia các sự kiện cơ bản'
     },
     {
@@ -42,7 +50,7 @@ export class Reputation implements OnInit {
       cssClass: 'silver',
       icon: 'bi-award-fill',
       minRating: 3,
-      description: 'Tình nguyện viên có kinh nghiệm và đánh giá tốt.',
+      description: 'Có đánh giá trung bình từ 3 sao.',
       privileges: 'Ưu tiên đăng ký sự kiện'
     },
     {
@@ -50,23 +58,15 @@ export class Reputation implements OnInit {
       cssClass: 'gold',
       icon: 'bi-trophy',
       minRating: 4,
-      description: 'Tình nguyện viên có nhiều kinh nghiệm và đánh giá rất tốt.',
+      description: 'Có đánh giá trung bình từ 4 sao.',
       privileges: 'Ưu tiên cao đăng ký sự kiện, được đề xuất cho sự kiện đặc biệt'
-    },
-    {
-      name: 'Tình nguyện viên Bạch Kim',
-      cssClass: 'platinum',
-      icon: 'bi-trophy-fill',
-      minRating: 4.5,
-      description: 'Tình nguyện viên xuất sắc với nhiều đóng góp.',
-      privileges: 'Ưu tiên cao nhất, được đề xuất làm đội trưởng'
     },
     {
       name: 'Tình nguyện viên Kim Cương',
       cssClass: 'diamond',
       icon: 'bi-gem',
-      minRating: 4.8,
-      description: 'Tình nguyện viên tiêu biểu, có đóng góp nổi bật.',
+      minRating: 4.5,
+      description: 'Có đánh giá trung bình từ 4.5 đến 5 sao.',
       privileges: 'Tất cả đặc quyền trên, được mời tham gia các sự kiện đặc biệt'
     }
   ];

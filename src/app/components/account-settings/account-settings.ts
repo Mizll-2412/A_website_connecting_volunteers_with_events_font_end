@@ -55,7 +55,8 @@ export class AccountSettingsComponent implements OnInit {
   
   loadUserProfile(): void {
     this.isLoading = true;
-    const token = localStorage.getItem('token');
+    // Sử dụng authService.getToken() để lấy token từ cả localStorage và sessionStorage
+    const token = this.authService.getToken() || '';
     
     this.http.get<any>(`${this.apiUrl}/auth/profile`, {
       headers: { 'Authorization': `Bearer ${token}` }
@@ -80,7 +81,7 @@ export class AccountSettingsComponent implements OnInit {
         this.isLoading = false;
       },
       error: (error) => {
-        console.error('Error loading profile:', error);
+        console.error('Lỗi khi tải thông tin tài khoản:', error);
         this.errorMessage = 'Không thể tải thông tin tài khoản';
         this.isLoading = false;
       }
@@ -116,7 +117,8 @@ export class AccountSettingsComponent implements OnInit {
       formData.append('avatar', this.selectedFile);
     }
     
-    const token = localStorage.getItem('token');
+    // Sử dụng authService.getToken() để lấy token từ cả localStorage và sessionStorage
+    const token = this.authService.getToken() || '';
     
     this.http.put(`${this.apiUrl}/auth/profile`, formData, {
       headers: { 'Authorization': `Bearer ${token}` }
@@ -132,8 +134,15 @@ export class AccountSettingsComponent implements OnInit {
         window.scrollTo({ top: 0, behavior: 'smooth' });
       },
       error: (error) => {
-        console.error('Error updating profile:', error);
-        this.errorMessage = 'Không thể cập nhật thông tin. Vui lòng thử lại.';
+        const errorMsg = error.normalizedMessage || error.error?.message || 'Không thể cập nhật thông tin. Vui lòng thử lại.';
+        console.error('Lỗi cập nhật tài khoản:', {
+          message: errorMsg,
+          status: error.status,
+          statusText: error.statusText,
+          error: error.error,
+          fullError: error
+        });
+        this.errorMessage = errorMsg;
         this.isLoading = false;
         window.scrollTo({ top: 0, behavior: 'smooth' });
       }
@@ -157,7 +166,8 @@ export class AccountSettingsComponent implements OnInit {
     this.successMessage = '';
     this.errorMessage = '';
     
-    const token = localStorage.getItem('token');
+    // Sử dụng authService.getToken() để lấy token từ cả localStorage và sessionStorage
+    const token = this.authService.getToken() || '';
     
     this.http.post(`${this.apiUrl}/auth/change-password`, {
       oldPassword: this.passwordData.oldPassword,
@@ -176,7 +186,7 @@ export class AccountSettingsComponent implements OnInit {
         window.scrollTo({ top: 0, behavior: 'smooth' });
       },
       error: (error) => {
-        console.error('Error changing password:', error);
+        console.error('Lỗi khi đổi mật khẩu:', error);
         this.errorMessage = error.error?.message || 'Không thể đổi mật khẩu. Vui lòng kiểm tra mật khẩu cũ.';
         this.isLoading = false;
         window.scrollTo({ top: 0, behavior: 'smooth' });

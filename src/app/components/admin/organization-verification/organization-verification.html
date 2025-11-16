@@ -1,4 +1,45 @@
 <div class="organization-verification">
+  <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+    <div>
+      <h2 class="page-title mb-1">Quản lý xác minh tổ chức</h2>
+      <p class="text-muted mb-0">Danh sách toàn bộ tổ chức đang chờ xác minh trên hệ thống</p>
+    </div>
+  </div>
+  <!-- Thống kê trạng thái - Đưa lên đầu -->
+  <div class="card mb-4">
+    <div class="card-header">
+      <h4>Thống kê trạng thái</h4>
+    </div>
+    <div class="card-body">
+      <div class="row text-center">
+        <div class="col-md-3">
+          <div class="p-3 border rounded bg-light">
+            <h2 class="text-warning">{{getPendingCount()}}</h2>
+            <p class="mb-0">Chờ xác minh</p>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="p-3 border rounded bg-light">
+            <h2 class="text-success">{{getVerifiedCount()}}</h2>
+            <p class="mb-0">Đã xác minh</p>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="p-3 border rounded bg-light">
+            <h2 class="text-danger">{{getRejectedCount()}}</h2>
+            <p class="mb-0">Đã từ chối</p>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="p-3 border rounded bg-light">
+            <h2 class="text-dark">{{getRevokedCount()}}</h2>
+            <p class="mb-0">Đã thu hồi</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <div class="card mb-4">
     <div class="card-header d-flex justify-content-between align-items-center">
       <h4>Quản lý xác minh tổ chức</h4>
@@ -14,98 +55,100 @@
     </div>
     
     <div class="card-body">
-      <div class="table-responsive">
-        <table class="table table-hover">
-          <thead>
-            <tr>
-              <th>ID</th>
-              <th>Tên tổ chức</th>
-              <th>Email</th>
-              <th>Số điện thoại</th>
-              <th>Ngày đăng ký</th>
-              <th>Trạng thái</th>
-              <th>Thao tác</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr *ngFor="let org of filteredOrganizations">
-              <td>{{org.maToChuc}}</td>
-              <td>{{org.tenToChuc || 'Chưa cập nhật'}}</td>
-              <td>{{org.email}}</td>
-              <td>{{org.soDienThoai || 'Chưa cập nhật'}}</td>
-              <td>{{org.ngayTao | date:'dd/MM/yyyy'}}</td>
-              <td>
-                <span class="badge rounded-pill" [ngClass]="{
-                  'bg-warning': org.trangThaiXacMinh === null || org.trangThaiXacMinh === 0,
-                  'bg-success': org.trangThaiXacMinh === 1,
-                  'bg-danger': org.trangThaiXacMinh === 2
-                }">{{getVerificationStatus(org.trangThaiXacMinh)}}</span>
-                <small *ngIf="org.trangThaiXacMinh === 2 && org.lyDoTuChoi" class="d-block text-danger">
-                  {{org.lyDoTuChoi}}
-                </small>
-              </td>
-              <td>
-                <div class="btn-group" role="group">
-                  <button class="btn btn-sm btn-outline-info" (click)="viewOrganizationDetails(org)">
-                    <i class="bi bi-eye"></i> Chi tiết
-                  </button>
-                  <button *ngIf="org.trangThaiXacMinh === null || org.trangThaiXacMinh === 0" 
-                    class="btn btn-sm btn-outline-success" (click)="verifyOrganization(org, true)">
-                    <i class="bi bi-check-circle"></i> Xác minh
-                  </button>
-                  <button *ngIf="org.trangThaiXacMinh === null || org.trangThaiXacMinh === 0" 
-                    class="btn btn-sm btn-outline-danger" (click)="verifyOrganization(org, false)">
-                    <i class="bi bi-x-circle"></i> Từ chối
-                  </button>
-                  <button *ngIf="org.trangThaiXacMinh === 2" 
-                    class="btn btn-sm btn-outline-success" (click)="verifyOrganization(org, true)">
-                    <i class="bi bi-arrow-repeat"></i> Xác minh lại
-                  </button>
-                  <button *ngIf="org.trangThaiXacMinh === 1" 
-                    class="btn btn-sm btn-outline-warning" (click)="revokeVerification(org)" title="Thu hồi xác minh">
-                    <i class="bi bi-x-octagon"></i> Thu hồi
-                  </button>
-                </div>
-              </td>
-            </tr>
-            <tr *ngIf="filteredOrganizations.length === 0">
-              <td colspan="7" class="text-center">Không có tổ chức nào phù hợp với bộ lọc</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-  </div>
-  
-  <div class="card">
-    <div class="card-header">
-      <h4>Thống kê trạng thái</h4>
-    </div>
-    <div class="card-body">
-      <div class="row text-center">
-        <div class="col-md-4">
-          <div class="p-3 border rounded bg-light">
-            <h2 class="text-warning">{{getPendingCount()}}</h2>
-            <p class="mb-0">Chờ xác minh</p>
+      <app-table
+        [columns]="tableColumns"
+        [data]="paginatedOrganizationsList"
+        [emptyText]="'Không có tổ chức nào phù hợp với bộ lọc'"
+        [storageKey]="'organization-verification'"
+      >
+        <!-- Template cho cột Tên tổ chức -->
+        <ng-template #tenToChucTemplate let-org>
+          {{org.tenToChuc || 'Chưa cập nhật'}}
+        </ng-template>
+
+        <!-- Template cho cột Số điện thoại -->
+        <ng-template #soDienThoaiTemplate let-org>
+          {{org.soDienThoai || 'Chưa cập nhật'}}
+        </ng-template>
+
+        <!-- Template cho cột Ngày đăng ký -->
+        <ng-template #ngayTaoTemplate let-org>
+          {{org.ngayTao | date:'dd/MM/yyyy'}}
+        </ng-template>
+
+        <!-- Template cho cột Trạng thái -->
+        <ng-template #trangThaiTemplate let-org>
+          <span class="badge rounded-pill" [ngClass]="{
+            'bg-secondary': org.trangThaiXacMinh === null,
+            'bg-warning': org.trangThaiXacMinh === 0,
+            'bg-success': org.trangThaiXacMinh === 1,
+            'bg-danger': org.trangThaiXacMinh === 2,
+            'bg-dark': org.trangThaiXacMinh === 3
+          }">{{getVerificationStatus(org.trangThaiXacMinh)}}</span>
+          <small *ngIf="org.trangThaiXacMinh === 2 && org.lyDoTuChoi" class="d-block text-danger">
+            {{org.lyDoTuChoi}}
+          </small>
+        </ng-template>
+
+        <!-- Template cho cột Thao tác -->
+        <ng-template #actionsTemplate let-org>
+          <div class="btn-group" role="group">
+            <button class="btn btn-sm btn-outline-info" (click)="viewOrganizationDetails(org); $event.stopPropagation()">
+              <i class="bi bi-eye"></i> Chi tiết
+            </button>
+            <button *ngIf="org.trangThaiXacMinh === 0" 
+              class="btn btn-sm btn-outline-success" (click)="verifyOrganization(org, 'approve'); $event.stopPropagation()">
+              <i class="bi bi-check-circle"></i> Xác minh
+            </button>
+            <button *ngIf="org.trangThaiXacMinh === 0" 
+              class="btn btn-sm btn-outline-danger" (click)="verifyOrganization(org, 'reject'); $event.stopPropagation()">
+              <i class="bi bi-x-circle"></i> Từ chối
+            </button>
+            <button *ngIf="org.trangThaiXacMinh === 2" 
+              class="btn btn-sm btn-outline-success" (click)="verifyOrganization(org, 'approve'); $event.stopPropagation()">
+              <i class="bi bi-arrow-repeat"></i> Xác minh lại
+            </button>
+            <button *ngIf="org.trangThaiXacMinh === 1" 
+              class="btn btn-sm btn-outline-warning" (click)="revokeVerification(org); $event.stopPropagation()" title="Thu hồi xác minh">
+              <i class="bi bi-x-octagon"></i> Thu hồi
+            </button>
           </div>
-        </div>
-        <div class="col-md-4">
-          <div class="p-3 border rounded bg-light">
-            <h2 class="text-success">{{getVerifiedCount()}}</h2>
-            <p class="mb-0">Đã xác minh</p>
-          </div>
-        </div>
-        <div class="col-md-4">
-          <div class="p-3 border rounded bg-light">
-            <h2 class="text-danger">{{getRejectedCount()}}</h2>
-            <p class="mb-0">Đã từ chối</p>
-          </div>
-        </div>
-      </div>
+        </ng-template>
+      </app-table>
+      
+      <app-pagination
+        [totalItems]="filteredOrganizations.length"
+        [itemsPerPage]="itemsPerPage"
+        [currentPage]="currentPage"
+        (pageChange)="onPageChange($event)"
+        (itemsPerPageChange)="onItemsPerPageChange($event)"
+      ></app-pagination>
     </div>
   </div>
 </div>
 
+<!-- Modal nhập lý do (từ chối/thu hồi) -->
+<div class="modal fade" id="reasonModal" tabindex="-1" aria-hidden="true" style="z-index: 1061;">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">
+          <i class="bi bi-exclamation-triangle me-2"></i>
+          {{ reasonMode === 'reject' ? 'Nhập lý do từ chối xác minh' : 'Nhập lý do thu hồi xác minh' }}
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <label class="form-label">Lý do</label>
+        <textarea class="form-control" [(ngModel)]="reasonText" rows="4" placeholder="Nhập lý do..."></textarea>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+        <button type="button" class="btn btn-primary" (click)="submitReason()">Xác nhận</button>
+      </div>
+    </div>
+  </div>
+</div>
 <!-- Modal chi tiết tổ chức -->
 <div class="modal fade" id="orgDetailsModal" tabindex="-1" aria-labelledby="orgDetailsModalLabel" aria-hidden="true">
   <div class="modal-dialog modal-lg">
@@ -180,44 +223,15 @@
           </div>
         </div>
         
-        <div class="mt-4">
-          <h5>Sự kiện đã tạo</h5>
-          <div class="table-responsive">
-            <table class="table table-sm table-hover">
-              <thead>
-                <tr>
-                  <th>Tên sự kiện</th>
-                  <th>Ngày bắt đầu</th>
-                  <th>Trạng thái</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr *ngIf="!selectedOrganization.suKiens || selectedOrganization.suKiens.length === 0">
-                  <td colspan="3" class="text-center">Chưa có sự kiện nào</td>
-                </tr>
-                <tr *ngFor="let event of selectedOrganization.suKiens">
-                  <td>{{event.tenSuKien}}</td>
-                  <td>{{event.ngayBatDau | date:'dd/MM/yyyy'}}</td>
-                  <td>
-                    <span class="badge" [ngClass]="{
-                      'bg-warning': event.trangThai === 'Đang tuyển',
-                      'bg-success': event.trangThai === 'Đang diễn ra',
-                      'bg-secondary': event.trangThai === 'Đã kết thúc'
-                    }">{{event.trangThai || 'Đang tuyển'}}</span>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
+        
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
-        <div *ngIf="selectedOrganization.trangThaiXacMinh === null || selectedOrganization.trangThaiXacMinh === 0">
-          <button type="button" class="btn btn-success me-2" (click)="verifyOrganization(selectedOrganization, true)">
+        <div *ngIf="selectedOrganization.trangThaiXacMinh === 0">
+          <button type="button" class="btn btn-success me-2" (click)="verifyOrganization(selectedOrganization, 'approve')">
             <i class="bi bi-check-circle"></i> Xác minh
           </button>
-          <button type="button" class="btn btn-danger" (click)="verifyOrganization(selectedOrganization, false)">
+          <button type="button" class="btn btn-danger" (click)="verifyOrganization(selectedOrganization, 'reject')">
             <i class="bi bi-x-circle"></i> Từ chối
           </button>
         </div>

@@ -1,4 +1,4 @@
-<main class="container py-4">
+<div class="container px-4 py-4" style="max-width: 1400px;">
   <!-- Loading & Error States -->
   <div *ngIf="isLoading" class="text-center my-5">
     <div class="spinner-border text-primary" role="status">
@@ -13,299 +13,679 @@
 
   <!-- Main Content when loaded -->
   <div *ngIf="!isLoading">
-    <!-- Page Header -->
-    <div class="d-flex justify-content-between align-items-center mb-4">
-      <h1 class="h2 mb-0">Quản lý sự kiện</h1>
-      <div *ngIf="organization">
-        <span class="badge bg-info me-2">{{ organization.tenToChuc || 'Chưa cập nhật tên' }}</span>
-        <span class="badge" [ngClass]="{
-          'bg-success': isVerified,
-          'bg-warning': !isVerified && !isRejected,
-          'bg-danger': isRejected
-        }">
-          {{ isVerified ? 'Đã xác minh' : (isRejected ? 'Bị từ chối' : 'Chờ xác minh') }}
-        </span>
-      </div>
+  <!-- Page Header -->
+  <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+    <div>
+      <h2 class="page-title mb-1">Quản lý sự kiện</h2>
+      <p class="text-muted mb-0">Quản lý và điều phối các sự kiện tình nguyện của tổ chức</p>
     </div>
+    <div *ngIf="organization">
+      <span class="badge bg-info me-2">{{ organization.tenToChuc || 'Chưa cập nhật tên' }}</span>
+      <span class="badge" [ngClass]="{
+        'bg-success': isVerified,
+        'bg-warning': !isVerified && !isRejected,
+        'bg-danger': isRejected
+      }">
+        {{ isVerified ? 'Đã xác minh' : (isRejected ? 'Bị từ chối' : 'Chờ xác minh') }}
+      </span>
+    </div>
+  </div>
+
+  <!-- Statistics Cards -->
+  <div class="statistics mb-4">
+    <div class="stat-card">
+      <div class="stat-value">{{ events.length }}</div>
+      <div class="stat-label">Tổng số sự kiện</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value">{{ eventsInProgress }}</div>
+      <div class="stat-label">Đang diễn ra</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value">{{ eventsUpcoming }}</div>
+      <div class="stat-label">Sắp diễn ra</div>
+    </div>
+  </div>
+  
+  <!-- Tabs Navigation -->
+  <ul class="nav nav-tabs mb-3">
+    <li class="nav-item">
+      <a class="nav-link" [class.active]="selectedTab === 'events'" (click)="selectTab('events')" style="cursor: pointer;">
+        <i class="bi bi-calendar-event"></i> Sự kiện đang hoạt động ({{ activeEvents.length }})
+      </a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link" [class.active]="selectedTab === 'finished-events'" (click)="selectTab('finished-events')" style="cursor: pointer;">
+        <i class="bi bi-calendar-check"></i> Sự kiện đã kết thúc ({{ finishedEvents.length }})
+      </a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link" [class.active]="selectedTab === 'certificate-samples'" (click)="selectTab('certificate-samples')" style="cursor: pointer;">
+        <i class="bi bi-award"></i> Mẫu chứng nhận
+      </a>
+    </li>
+  </ul>
     
     <!-- Page Content based on selected tab -->
     <div [ngSwitch]="selectedTab">
-      <!-- Events List Tab -->
+      <!-- Active Events List Tab -->
       <div *ngSwitchCase="'events'">
-        <div class="card">
-          <div class="card-header d-flex justify-content-between align-items-center">
-            <h5 class="mb-0">Danh sách sự kiện</h5>
-            <button class="btn btn-primary" 
-                    (click)="createEvent()">
-              <i class="bi bi-plus"></i> Tạo sự kiện mới
-            </button>
-          </div>
-          <div class="card-body">
-            <div class="table-responsive">
-              <table class="table table-hover">
-                <thead>
-                  <tr>
-                    <th>Tên sự kiện</th>
-                    <th>Địa điểm</th>
-                    <th>Ngày bắt đầu</th>
-                    <th>Ngày kết thúc</th>
-                    <th>Trạng thái</th>
-                    <th>Thao tác</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr *ngFor="let event of events">
-                    <td>{{ event.tenSuKien }}</td>
-                    <td>{{ event.diaChi }}</td>
-                    <td>{{ formatDate(event.ngayBatDau) }}</td>
-                    <td>{{ formatDate(event.ngayKetThuc) }}</td>
-                    <td>
-                      <span class="badge" [ngClass]="getEventStatusClass(event.trangThai)">
-                        {{ getEventStatusText(event.trangThai) }}
-                      </span>
-                    </td>
-                    <td>
-                      <div class="btn-group btn-group-sm">
-                        <button class="btn btn-outline-primary" (click)="selectEvent(event)">
-                          <i class="bi bi-eye"></i> Chi tiết
-                        </button>
-                        <button class="btn btn-outline-secondary" 
-                                (click)="editEvent(event)"
-                                [disabled]="!canEditEvent(event)"
-                                [title]="!canEditEvent(event) ? 'Không thể sửa sự kiện đã có người đăng ký' : 'Sửa sự kiện'">
-                          <i class="bi bi-pencil"></i> Sửa
-                        </button>
-                        <button *ngIf="canCompleteEvent(event)" 
-                                class="btn btn-outline-success" 
-                                (click)="openCompleteEventModal(event)"
-                                title="Kết thúc sự kiện và cấp chứng nhận">
-                          <i class="bi bi-check-circle"></i> Kết thúc
-                        </button>
-                        <button class="btn btn-outline-danger" (click)="deleteEvent(event)">
-                          <i class="bi bi-trash"></i> Xóa
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                  <tr *ngIf="events.length === 0">
-                    <td colspan="6" class="text-center py-3">
-                      <p class="mb-0">Chưa có sự kiện nào</p>
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
+        <div class="table-container">
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <h4>Sự kiện đang hoạt động</h4>
+            <div class="d-flex gap-2">
+              <input type="text" class="form-control" style="width: 260px; padding: 0.375rem 0.75rem;" [(ngModel)]="searchKeyword" (input)="applySearchFilter()" placeholder="Tìm kiếm..." />
+              <button class="btn btn-primary" style="padding: 0.375rem 0.75rem;" (click)="createEvent()">
+                <i class="bi bi-plus-circle"></i> Thêm sự kiện
+              </button>
             </div>
           </div>
+          
+          <app-table
+            [columns]="activeEventsTableColumns"
+            [data]="paginatedActiveEvents"
+            [loading]="isLoading"
+            [emptyText]="'Chưa có sự kiện đang hoạt động'"
+            storageKey="org-active-events"
+          >
+            <!-- Status Template -->
+            <ng-template #statusTemplate let-row>
+              <span class="badge" [ngClass]="getEventStatusClass(getEventStatusText(row))">
+                {{ getEventStatusText(row) }}
+              </span>
+            </ng-template>
+
+            <!-- Actions Template -->
+            <ng-template #actionsTemplate let-row>
+              <div class="btn-group">
+                <button class="btn-action btn-view" [routerLink]="['/manage-org', row.maSuKien]" title="Xem chi tiết">
+                  <i class="bi bi-eye"></i>
+                </button>
+                <button class="btn-action btn-edit" 
+                        (click)="editEvent(row); $event.stopPropagation()" 
+                        title="Sửa">
+                  <i class="bi bi-pencil"></i>
+                </button>
+                <button class="btn-action btn-delete" 
+                        (click)="deleteEvent(row); $event.stopPropagation()" 
+                        title="Xóa">
+                  <i class="bi bi-trash"></i>
+                </button>
+              </div>
+            </ng-template>
+          </app-table>
+          
+          <app-pagination
+            *ngIf="activeEvents.length > 0"
+            [totalItems]="activeEvents.length"
+            [itemsPerPage]="activeEventsItemsPerPage"
+            [currentPage]="activeEventsCurrentPage"
+            (pageChange)="onActiveEventsPageChange($event)"
+            (itemsPerPageChange)="onActiveEventsItemsPerPageChange($event)"
+          ></app-pagination>
+        </div>
+      </div>
+
+      <!-- Finished Events List Tab -->
+      <div *ngSwitchCase="'finished-events'">
+        <div class="table-container">
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <h4>Sự kiện đã kết thúc</h4>
+          </div>
+          
+          <app-table
+            [columns]="finishedEventsTableColumns"
+            [data]="paginatedFinishedEvents"
+            [loading]="isLoading"
+            [emptyText]="'Chưa có sự kiện đã kết thúc'"
+            storageKey="org-finished-events"
+          >
+            <!-- Finished Status Template -->
+            <ng-template #finishedStatusTemplate let-row>
+              <span class="badge bg-secondary">
+                {{ getEventStatusText(row) }}
+              </span>
+            </ng-template>
+
+            <!-- Finished Actions Template (only have "View detail") -->
+            <ng-template #finishedActionsTemplate let-row>
+              <div class="btn-group">
+                <button class="btn-action btn-view" [routerLink]="['/manage-org', row.maSuKien]" title="Xem chi tiết">
+                  <i class="bi bi-eye"></i>
+                </button>
+              </div>
+            </ng-template>
+          </app-table>
+          
+          <app-pagination
+            *ngIf="finishedEvents.length > 0"
+            [totalItems]="finishedEvents.length"
+            [itemsPerPage]="finishedEventsItemsPerPage"
+            [currentPage]="finishedEventsCurrentPage"
+            (pageChange)="onFinishedEventsPageChange($event)"
+            (itemsPerPageChange)="onFinishedEventsItemsPerPageChange($event)"
+          ></app-pagination>
         </div>
       </div>
 
       <!-- Event Details Tab -->
-      <div *ngSwitchCase="'event-detail'" class="row">
-        <div class="col-12 mb-3">
+      <div *ngSwitchCase="'event-detail'" class="event-detail-tab">
+        <div class="d-flex justify-content-between align-items-center mb-3">
           <button class="btn btn-outline-secondary" (click)="backToEvents()">
             <i class="bi bi-arrow-left"></i> Quay lại danh sách
           </button>
+          <span class="text-muted small" *ngIf="selectedEvent">Mã sự kiện: {{ selectedEvent.maSuKien }}</span>
         </div>
 
-        <div class="col-md-4">
-          <div class="card mb-4">
-            <div class="card-header d-flex justify-content-between align-items-center">
-              <h5 class="mb-0">Thông tin sự kiện</h5>
-              <div class="btn-group btn-group-sm">
-                <button class="btn btn-outline-primary" (click)="editEvent(selectedEvent!)">
-                  <i class="bi bi-pencil"></i> Sửa
-                </button>
-                <button class="btn btn-outline-danger" (click)="finishSelectedEvent()" [disabled]="selectedEvent?.trangThai === 'Đã kết thúc'">
-                  <i class="bi bi-flag"></i> Kết thúc
-                </button>
+        <ng-container *ngIf="selectedEvent as event">
+          <div class="event-detail-wrapper">
+            <div
+              class="event-hero"
+              [style.background-image]="
+                'linear-gradient(rgba(17,24,39,0.8), rgba(17,24,39,0.85)), url(' +
+                (event.hinhAnh ? getImageUrl(event.hinhAnh) : 'assets/event-default.jpg') +
+                ')'
+              "
+            >
+              <div class="event-hero-overlay">
+                <div class="event-hero-top">
+                  <span class="badge event-status-badge" [ngClass]="getEventStatusClass(getEventStatusText(event))">
+                    {{ getEventStatusText(event) }}
+                  </span>
+                  <span class="badge event-status-badge" [ngClass]="getRecruitmentStatusClass(event)">
+                    {{ getRecruitmentStatusText(event) }}
+                  </span>
+                </div>
+                <h2 class="event-hero-title">{{ event.tenSuKien }}</h2>
+                <p class="event-hero-description">{{ event.noiDung }}</p>
+                <div class="event-hero-meta">
+                  <div class="event-hero-meta-item">
+                    <i class="bi bi-geo-alt-fill"></i>
+                    <span>{{ event.diaChi || 'Chưa cập nhật địa điểm' }}</span>
+                  </div>
+                  <div class="event-hero-meta-item">
+                    <i class="bi bi-calendar-week"></i>
+                    <span>{{ formatDate(event.ngayBatDau) }} - {{ formatDate(event.ngayKetThuc) }}</span>
+                  </div>
+                  <div class="event-hero-meta-item">
+                    <i class="bi bi-people-fill"></i>
+                    <span>{{ event.soLuongDaDangKy || 0 }}/{{ event.soLuongTNV || event.soLuong || 0 }} TNV</span>
+                  </div>
+                </div>
+                <div class="event-hero-actions">
+                  <button class="btn btn-light btn-sm" (click)="editEvent(event)">
+                    <i class="bi bi-pencil me-1"></i> Chỉnh sửa
+                  </button>
+                  <button
+                    class="btn btn-warning btn-sm text-white"
+                    *ngIf="shouldShowCloseRecruitmentButton(event)"
+                    (click)="closeRecruitment(event)"
+                    [disabled]="isClosingRecruitment"
+                  >
+                    <span *ngIf="isClosingRecruitment" class="spinner-border spinner-border-sm me-2" role="status"></span>
+                    <i *ngIf="!isClosingRecruitment" class="bi bi-door-closed me-1"></i>
+                    Đóng phiên tuyển
+                  </button>
+                  <button
+                    class="btn btn-outline-light btn-sm"
+                    (click)="finishSelectedEvent()"
+                    [disabled]="event.trangThai === 'Đã kết thúc'"
+                  >
+                    <i class="bi bi-flag me-1"></i> Kết thúc sự kiện
+                  </button>
+                </div>
               </div>
             </div>
-            <div class="card-body" *ngIf="selectedEvent">
-              <img [src]="selectedEvent.hinhAnh ? getImageUrl(selectedEvent.hinhAnh) : 'assets/event-default.jpg'" 
-                   class="img-fluid rounded mb-3" alt="Event Image">
-              <h4>{{ selectedEvent.tenSuKien }}</h4>
-              <p class="text-muted">{{ selectedEvent.noiDung }}</p>
-              
-              <dl class="row mt-3">
-                <dt class="col-sm-5">Địa điểm</dt>
-                <dd class="col-sm-7">{{ selectedEvent.diaChi }}</dd>
-                
-                <dt class="col-sm-5">Ngày bắt đầu</dt>
-                <dd class="col-sm-7">{{ formatDate(selectedEvent.ngayBatDau) }}</dd>
-                
-                <dt class="col-sm-5">Ngày kết thúc</dt>
-                <dd class="col-sm-7">{{ formatDate(selectedEvent.ngayKetThuc) }}</dd>
-                
-                <dt class="col-sm-5">Ngày bắt đầu tuyển</dt>
-                <dd class="col-sm-7">{{ selectedEvent.tuyenBatDau ? formatDate(selectedEvent.tuyenBatDau) : 'Chưa cập nhật' }}</dd>
-                
-                <dt class="col-sm-5">Ngày kết thúc tuyển</dt>
-                <dd class="col-sm-7">{{ selectedEvent.tuyenKetThuc ? formatDate(selectedEvent.tuyenKetThuc) : 'Chưa cập nhật' }}</dd>
-                
-                <dt class="col-sm-5">Số lượng TNV</dt>
-                <dd class="col-sm-7">{{ selectedEvent.soLuongTNV || 0 }}</dd>
-                
-                <dt class="col-sm-5">Đã đăng ký</dt>
-                <dd class="col-sm-7">{{ selectedEvent.soLuongDaDangKy || 0 }}</dd>
-              </dl>
-            </div>
-          </div>
-        </div>
 
-        <div class="col-md-8">
-          <div class="card">
-            <div class="card-header">
-              <h5 class="mb-0">Danh sách đăng ký tham gia</h5>
-              <div class="d-flex gap-2">
-                <select class="form-select form-select-sm" [(ngModel)]="selectedCertificateTemplate" [ngModelOptions]="{standalone: true}">
-                  <option [ngValue]="null">Chọn mẫu chứng nhận</option>
-                  <option *ngFor="let t of certificateTemplates" [ngValue]="t.maMau">{{ t.tenSuKien || ('Mẫu #' + t.maMau) }}</option>
-                </select>
-                <button class="btn btn-sm btn-success" (click)="issueCertificatesBulk()" [disabled]="!selectedCertificateTemplate">
-                  <i class="bi bi-award"></i> Cấp chứng nhận
-                </button>
-              </div>
-            </div>
-            <div class="card-body">
-              <!-- Loading state for volunteers -->
-              <div *ngIf="isLoadingVolunteers" class="text-center py-3">
-                <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
-                <span class="ms-2">Đang tải danh sách...</span>
+            <div class="row g-4 event-detail-body mt-0">
+              <div class="col-lg-4">
+                <div class="detail-card timeline-card">
+                  <h6 class="detail-card-title">Mốc thời gian</h6>
+                  <ul class="timeline-list">
+                    <li class="timeline-item">
+                      <div class="timeline-icon bg-primary text-white">
+                        <i class="bi bi-calendar-check"></i>
+                      </div>
+                      <div>
+                        <p class="timeline-label">Bắt đầu sự kiện</p>
+                        <span>{{ formatDate(event.ngayBatDau) }}</span>
+                      </div>
+                    </li>
+                    <li class="timeline-item">
+                      <div class="timeline-icon bg-primary text-white">
+                        <i class="bi bi-calendar2-check"></i>
+                      </div>
+                      <div>
+                        <p class="timeline-label">Kết thúc sự kiện</p>
+                        <span>{{ formatDate(event.ngayKetThuc) }}</span>
+                      </div>
+                    </li>
+                    <li class="timeline-item" *ngIf="event.tuyenBatDau">
+                      <div class="timeline-icon bg-warning text-white">
+                        <i class="bi bi-megaphone"></i>
+                      </div>
+                      <div>
+                        <p class="timeline-label">Mở tuyển</p>
+                        <span>{{ formatDate(event.tuyenBatDau) }}</span>
+                      </div>
+                    </li>
+                    <li class="timeline-item" *ngIf="event.tuyenKetThuc">
+                      <div class="timeline-icon bg-warning text-white">
+                        <i class="bi bi-door-closed"></i>
+                      </div>
+                      <div>
+                        <p class="timeline-label">Đóng tuyển</p>
+                        <span>{{ formatDate(event.tuyenKetThuc) }}</span>
+                      </div>
+                    </li>
+                    <li class="timeline-item" *ngIf="event.ngayDienRaBatDau">
+                      <div class="timeline-icon bg-success text-white">
+                        <i class="bi bi-clock-history"></i>
+                      </div>
+                      <div>
+                        <p class="timeline-label">Bắt đầu thực tế</p>
+                        <span>{{ formatDate(event.ngayDienRaBatDau) }}</span>
+                      </div>
+                    </li>
+                    <li class="timeline-item" *ngIf="event.ngayDienRaKetThuc">
+                      <div class="timeline-icon bg-success text-white">
+                        <i class="bi bi-flag"></i>
+                      </div>
+                      <div>
+                        <p class="timeline-label">Kết thúc thực tế</p>
+                        <span>{{ formatDate(event.ngayDienRaKetThuc) }}</span>
+                      </div>
+                    </li>
+                  </ul>
+                </div>
+
+                <div class="detail-card stats-card">
+                  <h6 class="detail-card-title">Thống kê nhanh</h6>
+                  <div class="stats-grid">
+                    <div class="stat-chip">
+                      <span class="stat-value">{{ event.soLuongDaDangKy || 0 }}</span>
+                      <span class="stat-label">Đã đăng ký</span>
+                    </div>
+                    <div class="stat-chip">
+                      <span class="stat-value">{{ event.soLuongDaDuyet || 0 }}</span>
+                      <span class="stat-label">Đã duyệt</span>
+                    </div>
+                    <div class="stat-chip">
+                      <span class="stat-value">{{ event.soLuongChoDuyet || 0 }}</span>
+                      <span class="stat-label">Chờ duyệt</span>
+                    </div>
+                    <div class="stat-chip">
+                      <span class="stat-value">{{ event.soLuongTNV || event.soLuong || 0 }}</span>
+                      <span class="stat-label">Chỉ tiêu</span>
+                    </div>
+                  </div>
+                </div>
               </div>
 
-              <!-- Volunteers list -->
-              <div *ngIf="!isLoadingVolunteers">
-                <div class="table-responsive">
-                  <table class="table table-hover">
-                    <thead>
-                      <tr>
-                        <th>Họ tên</th>
-                        <th>Email</th>
-                        <th>Số điện thoại</th>
-                        <th>Trạng thái</th>
-                        <th>Thao tác</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <tr *ngFor="let volunteer of eventVolunteers">
-                        <td>{{ volunteer.hoTen }}</td>
-                        <td>{{ volunteer.email }}</td>
-                        <td>{{ volunteer.soDienThoai || 'Chưa cập nhật' }}</td>
-                        <td>
-                          <span class="badge" 
-                                [ngClass]="{
-                                  'bg-warning': volunteer.trangThai === 0,
-                                  'bg-success': volunteer.trangThai === 1,
-                                  'bg-danger': volunteer.trangThai === 2
-                                }">
-                            {{ getStatusText(volunteer.trangThai!) }}
-                          </span>
-                        </td>
-                        <td>
-                          <div class="btn-group btn-group-sm">
-                            <button *ngIf="volunteer.trangThai === 0" 
+              <div class="col-lg-8">
+                <div class="detail-card">
+                  <div class="detail-card-header">
+                    <div>
+                      <h5 class="detail-card-title mb-1">Danh sách đăng ký</h5>
+                      <p class="detail-card-subtitle mb-0">
+                        Theo dõi và xử lý tình nguyện viên tham gia sự kiện
+                      </p>
+                    </div>
+                    <div class="detail-card-actions">
+                      <select
+                        class="form-select form-select-sm"
+                        [(ngModel)]="selectedCertificateTemplate"
+                        [ngModelOptions]="{standalone: true}"
+                      >
+                        <option [ngValue]="null">Chọn mẫu chứng nhận</option>
+                        <option *ngFor="let t of certificateTemplates" [ngValue]="t.maMau">
+                          {{ t.tenSuKien || ('Mẫu #' + t.maMau) }}
+                        </option>
+                      </select>
+                      <button
+                        class="btn btn-sm btn-success"
+                        (click)="issueCertificatesBulk()"
+                        [disabled]="!selectedCertificateTemplate"
+                      >
+                        <i class="bi bi-award me-1"></i> Cấp chứng nhận
+                      </button>
+                    </div>
+                  </div>
+                  <div class="detail-card-body">
+                    <div *ngIf="isLoadingVolunteers" class="text-center py-4">
+                      <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
+                      <div class="mt-2 text-muted small">Đang tải danh sách...</div>
+                    </div>
+
+                    <div *ngIf="!isLoadingVolunteers">
+                      <div class="table-responsive">
+                        <table class="table align-middle table-hover">
+                          <thead>
+                            <tr>
+                              <th>Họ tên</th>
+                              <th>Email</th>
+                              <th>Số điện thoại</th>
+                              <th>Trạng thái</th>
+                              <th width="220">Thao tác</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            <tr *ngFor="let volunteer of eventVolunteers">
+                              <td>{{ volunteer.hoTen }}</td>
+                              <td>{{ volunteer.email }}</td>
+                              <td>{{ volunteer.soDienThoai || 'Chưa cập nhật' }}</td>
+                              <td>
+                                <span
+                                  class="badge"
+                                  [ngClass]="{
+                                    'bg-warning': volunteer.trangThai === 0,
+                                    'bg-success': volunteer.trangThai === 1,
+                                    'bg-danger': volunteer.trangThai === 2,
+                                    'bg-secondary': volunteer.trangThai === 3
+                                  }"
+                                >
+                                  {{ getStatusText(volunteer.trangThai!) }}
+                                </span>
+                              </td>
+                              <td>
+                                <div class="btn-group btn-group-sm flex-wrap gap-2">
+                                  <button
+                                    *ngIf="volunteer.trangThai === 0"
                                     class="btn btn-outline-success"
-                                    (click)="approveVolunteer(volunteer)">
-                              <i class="bi bi-check2"></i> Duyệt
-                            </button>
-                            <button *ngIf="volunteer.trangThai === 0" 
+                                    (click)="approveVolunteer(volunteer)"
+                                  >
+                                    <i class="bi bi-check2"></i> Duyệt
+                                  </button>
+                                  <button
+                                    *ngIf="volunteer.trangThai === 0"
                                     class="btn btn-outline-danger"
-                                    (click)="rejectVolunteer(volunteer)">
-                              <i class="bi bi-x"></i> Từ chối
-                            </button>
-                            <button *ngIf="volunteer.trangThai === 2" 
+                                    (click)="rejectVolunteer(volunteer)"
+                                  >
+                                    <i class="bi bi-x"></i> Từ chối
+                                  </button>
+                                  <button
+                                    *ngIf="volunteer.trangThai === 2"
                                     class="btn btn-outline-success"
                                     (click)="inviteVolunteer(volunteer)"
-                                    title="Mời lại tình nguyện viên">
-                              <i class="bi bi-envelope"></i> Mời lại
-                            </button>
-                            <button class="btn btn-outline-info" (click)="viewVolunteerProfile(volunteer)">
-                              <i class="bi bi-person"></i> Xem hồ sơ
-                            </button>
-                            <button *ngIf="selectedEvent?.trangThai === 'Đã kết thúc' && volunteer.trangThai === 1 && !evaluatedVolunteerIds.has(volunteer.maTNV)" class="btn btn-outline-primary" (click)="openEvaluateVolunteer(volunteer)">
-                              <i class="bi bi-star"></i> Đánh giá
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                      <tr *ngIf="eventVolunteers.length === 0">
-                        <td colspan="5" class="text-center py-3">
-                          <p class="mb-0">Chưa có tình nguyện viên đăng ký tham gia</p>
-                        </td>
-                      </tr>
-                    </tbody>
-                  </table>
+                                    title="Mời lại tình nguyện viên"
+                                  >
+                                    <i class="bi bi-envelope"></i> Mời lại
+                                  </button>
+                                  <button class="btn btn-outline-info" (click)="viewVolunteerProfile(volunteer)">
+                                    <i class="bi bi-person"></i> Hồ sơ
+                                  </button>
+                                  <button
+                                    *ngIf="event.trangThai === 'Đã kết thúc' && volunteer.trangThai === 1 && !evaluatedVolunteerIds.has(volunteer.maTNV)"
+                                    class="btn btn-outline-primary"
+                                    (click)="openEvaluateVolunteer(volunteer)"
+                                  >
+                                    <i class="bi bi-star"></i> Đánh giá
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                            <tr *ngIf="eventVolunteers.length === 0">
+                              <td colspan="5" class="text-center py-4 text-muted">
+                                Chưa có tình nguyện viên đăng ký tham gia
+                              </td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
-        </div>
+        </ng-container>
       </div>
 
       <!-- Create/Edit Event Tab -->
-      <div *ngSwitchCase="'create-event'" class="card">
+      <!-- Create/Edit Event Modal (đã chuyển xuống cuối file) -->
+
+      <div *ngSwitchCase="'create-event'" class="card d-none">
         <div class="card-header">
           <h5 class="mb-0">{{ isEditingEvent ? 'Sửa sự kiện' : 'Tạo sự kiện mới' }}</h5>
         </div>
         <div class="card-body">
           <form (ngSubmit)="saveEvent()">
             <div class="mb-3">
-              <label for="eventTitle" class="form-label">Tên sự kiện</label>
-              <input type="text" class="form-control" id="eventTitle" [(ngModel)]="newEvent.tenSuKien" name="tenSuKien" required>
+              <label for="eventTitle" class="form-label">Tên sự kiện <span class="text-danger">*</span></label>
+              <input 
+                type="text" 
+                class="form-control" 
+                [class.is-invalid]="isFieldInvalid('tenSuKien')"
+                id="eventTitle" 
+                [(ngModel)]="newEvent.tenSuKien" 
+                name="tenSuKien" 
+                (blur)="markFieldAsTouched('tenSuKien')"
+                (input)="markFieldAsTouched('tenSuKien')"
+                required>
+              <small class="text-danger d-block mt-1" *ngIf="isFieldInvalid('tenSuKien')">
+                {{ getFieldErrorMessage('tenSuKien') }}
+              </small>
             </div>
             
             <div class="mb-3">
-              <label for="eventDescription" class="form-label">Mô tả sự kiện</label>
-              <textarea class="form-control" id="eventDescription" rows="4" [(ngModel)]="newEvent.noiDung" name="noiDung" required></textarea>
+              <label for="eventDescription" class="form-label">Mô tả sự kiện <span class="text-danger">*</span></label>
+              <textarea 
+                class="form-control" 
+                [class.is-invalid]="isFieldInvalid('noiDung')"
+                id="eventDescription" 
+                rows="4" 
+                [(ngModel)]="newEvent.noiDung" 
+                name="noiDung" 
+                (blur)="markFieldAsTouched('noiDung')"
+                (input)="markFieldAsTouched('noiDung')"
+                required></textarea>
+              <small class="text-danger d-block mt-1" *ngIf="isFieldInvalid('noiDung')">
+                {{ getFieldErrorMessage('noiDung') }}
+              </small>
             </div>
             
             <div class="row mb-3">
               <div class="col-md-6">
-                <label for="eventStartDate" class="form-label">Ngày bắt đầu</label>
-                <input type="date" class="form-control" id="eventStartDate" [(ngModel)]="newEvent.ngayBatDau" name="ngayBatDau" required>
+                <label for="eventStartDate" class="form-label">Thời gian bắt đầu <span class="text-danger">*</span></label>
+                <input
+                  type="datetime-local"
+                  class="form-control"
+                  id="eventStartDate"
+                  [(ngModel)]="newEvent.ngayBatDau"
+                  name="ngayBatDau"
+                  (change)="markFieldAsTouched('ngayBatDau'); markFieldAsTouched('ngayKetThuc'); markFieldAsTouched('tuyenBatDau'); markFieldAsTouched('tuyenKetThuc')"
+                  (blur)="markFieldAsTouched('ngayBatDau'); markFieldAsTouched('ngayKetThuc'); markFieldAsTouched('tuyenBatDau'); markFieldAsTouched('tuyenKetThuc')"
+                  [class.is-invalid]="isFieldInvalid('ngayBatDau')"
+                  required
+                />
+                <small class="text-danger d-block mt-1" *ngIf="isFieldInvalid('ngayBatDau')">
+                  {{ getFieldErrorMessage('ngayBatDau') }}
+                </small>
               </div>
               <div class="col-md-6">
-                <label for="eventEndDate" class="form-label">Ngày kết thúc</label>
-                <input type="date" class="form-control" id="eventEndDate" [(ngModel)]="newEvent.ngayKetThuc" name="ngayKetThuc" required>
+                <label for="eventEndDate" class="form-label">Thời gian kết thúc <span class="text-danger">*</span></label>
+                <input
+                  type="datetime-local"
+                  class="form-control"
+                  id="eventEndDate"
+                  [(ngModel)]="newEvent.ngayKetThuc"
+                  name="ngayKetThuc"
+                  (change)="markFieldAsTouched('ngayKetThuc'); markFieldAsTouched('tuyenBatDau'); markFieldAsTouched('tuyenKetThuc')"
+                  (blur)="markFieldAsTouched('ngayKetThuc'); markFieldAsTouched('tuyenBatDau'); markFieldAsTouched('tuyenKetThuc')"
+                  [class.is-invalid]="isFieldInvalid('ngayKetThuc')"
+                  required
+                />
+                <small class="text-danger d-block mt-1" *ngIf="isFieldInvalid('ngayKetThuc')">
+                  {{ getFieldErrorMessage('ngayKetThuc') }}
+                </small>
               </div>
             </div>
 
             <div class="row mb-3">
               <div class="col-md-6">
-                <label for="recruitStartDate" class="form-label">Ngày bắt đầu tuyển</label>
-                <input type="date" class="form-control" id="recruitStartDate" [(ngModel)]="newEvent.tuyenBatDau" name="tuyenBatDau">
+                <label for="recruitStartDate" class="form-label">Thời gian bắt đầu tuyển <span class="text-danger">*</span></label>
+                <input
+                  type="datetime-local"
+                  class="form-control"
+                  id="recruitStartDate"
+                  [(ngModel)]="newEvent.tuyenBatDau"
+                  name="tuyenBatDau"
+                  (change)="markFieldAsTouched('tuyenBatDau'); markFieldAsTouched('tuyenKetThuc')"
+                  (blur)="markFieldAsTouched('tuyenBatDau'); markFieldAsTouched('tuyenKetThuc')"
+                  [class.is-invalid]="isFieldInvalid('tuyenBatDau')"
+                  required
+                />
+                <small class="text-danger d-block mt-1" *ngIf="isFieldInvalid('tuyenBatDau')">
+                  {{ getFieldErrorMessage('tuyenBatDau') }}
+                </small>
               </div>
               <div class="col-md-6">
-                <label for="recruitEndDate" class="form-label">Ngày kết thúc tuyển</label>
-                <input type="date" class="form-control" id="recruitEndDate" [(ngModel)]="newEvent.tuyenKetThuc" name="tuyenKetThuc">
+                <label for="recruitEndDate" class="form-label">Thời gian kết thúc tuyển <span class="text-danger">*</span></label>
+                <input
+                  type="datetime-local"
+                  class="form-control"
+                  id="recruitEndDate"
+                  [(ngModel)]="newEvent.tuyenKetThuc"
+                  name="tuyenKetThuc"
+                  (change)="markFieldAsTouched('tuyenKetThuc'); markFieldAsTouched('tuyenBatDau')"
+                  (blur)="markFieldAsTouched('tuyenKetThuc'); markFieldAsTouched('tuyenBatDau')"
+                  [class.is-invalid]="isFieldInvalid('tuyenKetThuc')"
+                  required
+                />
+                <small class="text-danger d-block mt-1" *ngIf="isFieldInvalid('tuyenKetThuc')">
+                  {{ getFieldErrorMessage('tuyenKetThuc') }}
+                </small>
               </div>
             </div>
             
-            <div class="mb-3">
-              <label for="eventLocation" class="form-label">Địa điểm</label>
-              <input type="text" class="form-control" id="eventLocation" [(ngModel)]="newEvent.diaChi" name="diaChi" required>
+            <!-- Phần Thời gian sự kiện diễn ra thực tế (tùy chọn) -->
+            <div class="col-md-12 mt-3">
+              <h6>Thời gian sự kiện diễn ra thực tế (tùy chọn)</h6>
+              <p class="small text-muted">
+                <i class="bi bi-info-circle"></i>
+                Nếu không nhập, hệ thống tự tính: Ngày kết thúc tuyển + 1 ngày
+              </p>
             </div>
-            
-            <div class="mb-3">
-              <label for="eventVolunteerCount" class="form-label">Số lượng tình nguyện viên</label>
-              <input type="number" class="form-control" id="eventVolunteerCount" [(ngModel)]="newEvent.soLuongTNV" name="soLuongTNV">
+
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label for="actualStartDate" class="form-label">Ngày bắt đầu diễn ra</label>
+                <input
+                  type="datetime-local"
+                  class="form-control"
+                  id="actualStartDate"
+                  [(ngModel)]="newEvent.ngayDienRaBatDau"
+                  name="ngayDienRaBatDau"
+                  (change)="markFieldAsTouched('ngayDienRaBatDau')"
+                  (blur)="markFieldAsTouched('ngayDienRaBatDau')"
+                  [class.is-invalid]="isFieldInvalid('ngayDienRaBatDau')"
+                />
+                <small class="text-muted">Ngày sự kiện thực sự bắt đầu</small>
+                <small class="text-danger d-block mt-1" *ngIf="isFieldInvalid('ngayDienRaBatDau')">
+                  {{ getFieldErrorMessage('ngayDienRaBatDau') }}
+                </small>
+              </div>
+
+              <div class="col-md-6 mb-3">
+                <label for="actualEndDate" class="form-label">Ngày kết thúc diễn ra</label>
+                <input
+                  type="datetime-local"
+                  class="form-control"
+                  id="actualEndDate"
+                  [(ngModel)]="newEvent.ngayDienRaKetThuc"
+                  name="ngayDienRaKetThuc"
+                  (change)="markFieldAsTouched('ngayDienRaKetThuc')"
+                  (blur)="markFieldAsTouched('ngayDienRaKetThuc')"
+                  [class.is-invalid]="isFieldInvalid('ngayDienRaKetThuc')"
+                />
+                <small class="text-danger d-block mt-1" *ngIf="isFieldInvalid('ngayDienRaKetThuc')">
+                  {{ getFieldErrorMessage('ngayDienRaKetThuc') }}
+                </small>
+              </div>
             </div>
 
             <div class="mb-3">
-              <label class="form-label">Hình ảnh sự kiện</label>
-              <input type="file" class="form-control" accept="image/*" (change)="onFileSelected($event)">
+              <label for="cancellationLockTime" class="form-label">Khóa hủy đăng ký trước (giờ)</label>
+              <input
+                type="number"
+                class="form-control"
+                id="cancellationLockTime"
+                [(ngModel)]="newEvent.thoiGianKhoaHuy"
+                name="thoiGianKhoaHuy"
+                placeholder="24"
+                min="0"
+                max="168"
+                (change)="markFieldAsTouched('thoiGianKhoaHuy')"
+                (blur)="markFieldAsTouched('thoiGianKhoaHuy')"
+                [class.is-invalid]="isFieldInvalid('thoiGianKhoaHuy')"
+              />
+              <small class="text-muted">
+                TNV không hủy được khi < X giờ (mặc định: 24h)
+              </small>
+              <small class="text-danger d-block mt-1" *ngIf="isFieldInvalid('thoiGianKhoaHuy')">
+                {{ getFieldErrorMessage('thoiGianKhoaHuy') }}
+              </small>
+            </div>
+            
+            <div class="mb-3">
+              <label for="eventLocation" class="form-label">Địa điểm <span class="text-danger">*</span></label>
+              <input 
+                type="text" 
+                class="form-control" 
+                [class.is-invalid]="isFieldInvalid('diaChi')"
+                id="eventLocation" 
+                [(ngModel)]="newEvent.diaChi" 
+                name="diaChi" 
+                (blur)="markFieldAsTouched('diaChi')"
+                (input)="markFieldAsTouched('diaChi')"
+                required>
+              <small class="text-danger d-block mt-1" *ngIf="isFieldInvalid('diaChi')">
+                {{ getFieldErrorMessage('diaChi') }}
+              </small>
+            </div>
+            
+            <div class="mb-3">
+              <label for="eventVolunteerCount" class="form-label">Số lượng tình nguyện viên <span class="text-danger">*</span></label>
+              <input 
+                type="number" 
+                class="form-control" 
+                [class.is-invalid]="isFieldInvalid('soLuongTNV')"
+                id="eventVolunteerCount" 
+                [(ngModel)]="newEvent.soLuongTNV" 
+                name="soLuongTNV"
+                (blur)="markFieldAsTouched('soLuongTNV')"
+                (input)="markFieldAsTouched('soLuongTNV')">
+              <small class="text-danger d-block mt-1" *ngIf="isFieldInvalid('soLuongTNV')">
+                {{ getFieldErrorMessage('soLuongTNV') }}
+              </small>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label">Hình ảnh sự kiện <span class="text-danger">*</span></label>
+              <input 
+                type="file" 
+                class="form-control" 
+                [class.is-invalid]="isFieldInvalid('hinhAnh')"
+                accept="image/*" 
+                (change)="onFileSelected($event)">
               <div *ngIf="previewUrl" class="mt-2">
                 <img [src]="previewUrl" alt="Preview" style="max-height: 200px; max-width: 100%;" class="img-thumbnail">
               </div>
+              <small class="text-danger d-block mt-1" *ngIf="isFieldInvalid('hinhAnh')">
+                {{ getFieldErrorMessage('hinhAnh') }}
+              </small>
             </div>
 
             <div class="mb-3">
-              <label class="form-label">Lĩnh vực liên quan</label>
+              <label class="form-label">Lĩnh vực liên quan <span class="text-danger">*</span></label>
               <div *ngFor="let _ of selectedLinhVucs; let lvIdx = index" class="mb-2">
                 <div class="input-group mb-2">
-                  <select class="form-select" 
-                          [(ngModel)]="selectedLinhVucs[lvIdx]" 
-                          [ngModelOptions]="{standalone: true}">
+                  <select 
+                    class="form-select" 
+                    [class.is-invalid]="isFieldInvalid('linhVucIds') && lvIdx === 0"
+                    [(ngModel)]="selectedLinhVucs[lvIdx]" 
+                    [ngModelOptions]="{standalone: true}"
+                    (change)="markFieldAsTouched('linhVucIds')">
                     <option [ngValue]="null">-- Chọn lĩnh vực {{lvIdx + 1}} --</option>
                     <option *ngFor="let lv of getAvailableLinhVucs(lvIdx)" 
                             [ngValue]="lv.maLinhVuc">
@@ -314,7 +694,7 @@
                   </select>
                   <button type="button" 
                           class="btn btn-outline-danger" 
-                          (click)="removeLinhVuc(lvIdx)"
+                          (click)="removeLinhVuc(lvIdx); markFieldAsTouched('linhVucIds')"
                           [disabled]="selectedLinhVucs.length === 1">
                     <i class="bi bi-x"></i>
                   </button>
@@ -327,7 +707,7 @@
                          [ngModelOptions]="{standalone: true}">
                   <button type="button" 
                           class="btn btn-outline-success" 
-                          (click)="createNewLinhVuc(lvIdx)"
+                          (click)="createNewLinhVuc(lvIdx); markFieldAsTouched('linhVucIds')"
                           [disabled]="!newLinhVucText[lvIdx]?.trim()">
                     <i class="bi bi-plus-circle"></i> Tạo mới
                   </button>
@@ -335,22 +715,28 @@
               </div>
               <button type="button" 
                       class="btn btn-outline-primary btn-sm mt-2" 
-                      (click)="addLinhVuc()"
+                      (click)="addLinhVuc(); markFieldAsTouched('linhVucIds')"
                       [disabled]="selectedLinhVucs.length >= 10">
                 <i class="bi bi-plus-circle me-1"></i>Thêm lĩnh vực
               </button>
               <div *ngIf="linhVucs.length === 0" class="text-muted fst-italic mt-2">
                 Chưa có lĩnh vực nào được tạo
               </div>
+              <small class="text-danger d-block mt-1" *ngIf="isFieldInvalid('linhVucIds')">
+                {{ getFieldErrorMessage('linhVucIds') }}
+              </small>
             </div>
 
             <div class="mb-3">
-              <label class="form-label">Kỹ năng cần thiết</label>
+              <label class="form-label">Kỹ năng cần thiết <span class="text-danger">*</span></label>
               <div *ngFor="let _ of selectedKyNangs; let knIdx = index" class="mb-2">
                 <div class="input-group mb-2">
-                  <select class="form-select" 
-                          [(ngModel)]="selectedKyNangs[knIdx]" 
-                          [ngModelOptions]="{standalone: true}">
+                  <select 
+                    class="form-select" 
+                    [class.is-invalid]="isFieldInvalid('kyNangIds') && knIdx === 0"
+                    [(ngModel)]="selectedKyNangs[knIdx]" 
+                    [ngModelOptions]="{standalone: true}"
+                    (change)="markFieldAsTouched('kyNangIds')">
                     <option [ngValue]="null">-- Chọn kỹ năng {{knIdx + 1}} --</option>
                     <option *ngFor="let kn of getAvailableKyNangs(knIdx)" 
                             [ngValue]="kn.maKyNang">
@@ -359,7 +745,7 @@
                   </select>
                   <button type="button" 
                           class="btn btn-outline-danger" 
-                          (click)="removeKyNang(knIdx)"
+                          (click)="removeKyNang(knIdx); markFieldAsTouched('kyNangIds')"
                           [disabled]="selectedKyNangs.length === 1">
                     <i class="bi bi-x"></i>
                   </button>
@@ -372,7 +758,7 @@
                          [ngModelOptions]="{standalone: true}">
                   <button type="button" 
                           class="btn btn-outline-success" 
-                          (click)="createNewKyNang(knIdx)"
+                          (click)="createNewKyNang(knIdx); markFieldAsTouched('kyNangIds')"
                           [disabled]="!newKyNangText[knIdx]?.trim()">
                     <i class="bi bi-plus-circle"></i> Tạo mới
                   </button>
@@ -380,27 +766,162 @@
               </div>
               <button type="button" 
                       class="btn btn-outline-primary btn-sm mt-2" 
-                      (click)="addKyNang()"
+                      (click)="addKyNang(); markFieldAsTouched('kyNangIds')"
                       [disabled]="selectedKyNangs.length >= 10">
                 <i class="bi bi-plus-circle me-1"></i>Thêm kỹ năng
               </button>
               <div *ngIf="kyNangs.length === 0" class="text-muted fst-italic mt-2">
                 Chưa có kỹ năng nào được tạo
               </div>
+              <small class="text-danger d-block mt-1" *ngIf="isFieldInvalid('kyNangIds')">
+                {{ getFieldErrorMessage('kyNangIds') }}
+              </small>
             </div>
             
             <div class="d-flex justify-content-end gap-2">
               <button type="button" class="btn btn-outline-secondary" (click)="cancelEdit()">Hủy</button>
-              <button type="submit" class="btn btn-primary">
-                {{ isEditingEvent ? 'Cập nhật sự kiện' : 'Tạo sự kiện' }}
+              <button type="submit" class="btn btn-primary" [disabled]="isSavingEvent">
+                <span *ngIf="isSavingEvent" class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                {{ isSavingEvent ? (isEditingEvent ? 'Đang cập nhật...' : 'Đang tạo...') : (isEditingEvent ? 'Cập nhật sự kiện' : 'Tạo sự kiện') }}
               </button>
             </div>
           </form>
         </div>
       </div>
+
+      <!-- Certificate Samples Management Tab -->
+      <div *ngSwitchCase="'certificate-samples'">
+        <div class="card">
+          <div class="card-header">
+            <h5 class="mb-0">Quản lý mẫu chứng nhận</h5>
+          </div>
+          <div class="card-body">
+            <!-- Form tạo mẫu mới -->
+            <div class="alert alert-info">
+              <i class="bi bi-info-circle me-2"></i>
+              <strong>Hướng dẫn:</strong> Tạo mẫu mới, sau đó click nút <strong>"Chỉnh sửa"</strong> để thiết kế template với trình soạn thảo kéo thả.
+            </div>
+            
+            <h6 class="mb-3">Tạo mẫu chứng nhận mới</h6>
+            <form (ngSubmit)="createCertificateSample()">
+              <div class="row">
+                <div class="col-md-6 mb-3">
+                  <label class="form-label">Tên mẫu <span class="text-danger">*</span></label>
+                  <input type="text" 
+                         class="form-control" 
+                         [(ngModel)]="newSample.tenMau" 
+                         name="tenMau" 
+                         placeholder="VD: Mẫu chứng nhận tình nguyện viên xuất sắc"
+                         required>
+                </div>
+                <div class="col-md-6 mb-3">
+                  <label class="form-label">Ảnh nền (tùy chọn)</label>
+                  <input type="file" 
+                         id="sampleFileInput"
+                         class="form-control" 
+                         (change)="onSampleFileSelected($event)" 
+                         accept="image/*">
+                  <small class="text-muted">Khuyến nghị: 1200x800px, định dạng JPG/PNG</small>
+                </div>
+              </div>
+              <div class="mb-3">
+                <label class="form-label">Mô tả</label>
+                <textarea class="form-control" 
+                          [(ngModel)]="newSample.moTa" 
+                          name="moTa" 
+                          rows="2"
+                          placeholder="Mô tả về mẫu chứng nhận này..."></textarea>
+              </div>
+              <div class="form-check mb-3">
+                <input type="checkbox" 
+                       class="form-check-input" 
+                       id="isDefaultCheck"
+                       [(ngModel)]="newSample.isDefault" 
+                       name="isDefault">
+                <label class="form-check-label" for="isDefaultCheck">
+                  Đặt làm mẫu mặc định
+                </label>
+              </div>
+              <button type="submit" class="btn btn-primary">
+                <i class="bi bi-plus-circle me-2"></i>Tạo mẫu trống
+              </button>
+              <small class="text-muted ms-2">Sau khi tạo, click "Chỉnh sửa" để thiết kế template</small>
+            </form>
+            
+            <hr class="my-4">
+            
+            <!-- Danh sách mẫu -->
+            <h6 class="mb-3">Danh sách mẫu hiện có</h6>
+            
+            <div *ngIf="isLoadingSamples" class="text-center py-3">
+              <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Đang tải...</span>
+              </div>
+              <p class="mt-2">Đang tải danh sách mẫu...</p>
+            </div>
+            
+            <div *ngIf="!isLoadingSamples && allCertificateSamples.length === 0" class="alert alert-info">
+              <i class="bi bi-info-circle me-2"></i>
+              Chưa có mẫu chứng nhận nào. Hãy tạo mẫu đầu tiên!
+            </div>
+            
+            <div *ngIf="!isLoadingSamples && allCertificateSamples.length > 0" class="table-responsive">
+              <table class="table table-hover">
+                <thead>
+                  <tr>
+                    <th style="width: 5%">#</th>
+                    <th style="width: 25%">Tên mẫu</th>
+                    <th style="width: 35%">Mô tả</th>
+                    <th style="width: 15%">Trạng thái</th>
+                    <th style="width: 15%">Ngày tạo</th>
+                    <th style="width: 10%">Thao tác</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let sample of allCertificateSamples; let i = index">
+                    <td>{{ i + 1 }}</td>
+                    <td>
+                      <strong>{{ sample.tenMau }}</strong>
+                      <br>
+                      <small class="text-muted" *ngIf="sample.filePath">
+                        <i class="bi bi-file-earmark-pdf"></i> {{ sample.filePath }}
+                      </small>
+                    </td>
+                    <td>{{ sample.moTa || '-' }}</td>
+                    <td>
+                      <span class="badge" 
+                            [class.bg-success]="sample.isDefault" 
+                            [class.bg-secondary]="!sample.isDefault">
+                        <i [class.bi-check-circle]="sample.isDefault" 
+                           [class.bi-file-earmark]="!sample.isDefault"
+                           class="bi"></i>
+                        {{ sample.isDefault ? 'Mặc định' : 'Thường' }}
+                      </span>
+                    </td>
+                    <td>{{ sample.ngayGui | date:'dd/MM/yyyy HH:mm' }}</td>
+                    <td>
+                      <div class="btn-group" role="group">
+                        <button class="btn btn-sm btn-outline-primary" 
+                                [routerLink]="['/certificate-editor', sample.maMau]"
+                                title="Chỉnh sửa template">
+                          <i class="bi bi-pencil-square"></i>
+                        </button>
+                        <button class="btn btn-sm btn-outline-danger" 
+                                (click)="deleteSample(sample.maMau)"
+                                title="Xóa mẫu">
+                          <i class="bi bi-trash"></i>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
-</main>
 
 <!-- Volunteer Profile Viewer Component -->
 <app-volunteer-profile-viewer></app-volunteer-profile-viewer>
@@ -415,8 +936,12 @@
         </div>
         <div class="modal-body">
           <div class="mb-3">
-            <label class="form-label">Điểm (1-5)</label>
-            <input type="number" class="form-control" min="1" max="5" [(ngModel)]="evalScore" [ngModelOptions]="{standalone: true}">
+            <label class="form-label">Điểm đánh giá <span class="text-danger">*</span></label>
+            <app-star-rating 
+              [(rating)]="evalScore"
+              [size]="'lg'"
+              [showLabel]="true">
+            </app-star-rating>
           </div>
           <div class="mb-3">
             <label class="form-label">Nhận xét</label>
@@ -594,4 +1119,372 @@
       </div>
     </div>
   </div>
+</div>
+
+<!-- Create/Edit Event Modal -->
+<div class="modal fade" id="eventFormModal" tabindex="-1" aria-labelledby="eventFormModalLabel" aria-hidden="true" data-bs-backdrop="static">
+  <div class="modal-dialog modal-xl modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="eventFormModalLabel">
+          <i class="bi" [ngClass]="isEditingEvent ? 'bi-pencil-square' : 'bi-plus-circle'"></i>
+          {{ isEditingEvent ? 'Chỉnh sửa sự kiện' : 'Tạo sự kiện mới' }}
+        </h5>
+        <button type="button" class="btn-close" (click)="closeEventModal()" [disabled]="isSavingEvent"></button>
+      </div>
+      <div class="modal-body">
+        <form id="eventForm" (ngSubmit)="saveEvent()">
+          <!-- Thông tin cơ bản -->
+          <div class="section-header mb-3">
+            <h6 class="mb-0"><i class="bi bi-info-circle me-2"></i>Thông tin cơ bản</h6>
+          </div>
+
+          <div class="mb-3">
+            <label for="modalEventTitle" class="form-label">Tên sự kiện <span class="text-danger">*</span></label>
+            <input 
+              type="text" 
+              class="form-control" 
+              [class.is-invalid]="isFieldInvalid('tenSuKien')"
+              id="modalEventTitle" 
+              [(ngModel)]="newEvent.tenSuKien" 
+              name="tenSuKien" 
+              (blur)="markFieldAsTouched('tenSuKien')"
+              (input)="markFieldAsTouched('tenSuKien')"
+              required>
+            <small class="text-danger d-block mt-1" *ngIf="isFieldInvalid('tenSuKien')">
+              {{ getFieldErrorMessage('tenSuKien') }}
+            </small>
+          </div>
+          
+          <div class="mb-3">
+            <label for="modalEventDescription" class="form-label">Mô tả sự kiện <span class="text-danger">*</span></label>
+            <textarea 
+              class="form-control" 
+              [class.is-invalid]="isFieldInvalid('noiDung')"
+              id="modalEventDescription" 
+              rows="4" 
+              [(ngModel)]="newEvent.noiDung" 
+              name="noiDung" 
+              (blur)="markFieldAsTouched('noiDung')"
+              (input)="markFieldAsTouched('noiDung')"
+              required></textarea>
+            <small class="text-danger d-block mt-1" *ngIf="isFieldInvalid('noiDung')">
+              {{ getFieldErrorMessage('noiDung') }}
+            </small>
+          </div>
+
+          <div class="mb-3">
+            <label for="modalEventLocation" class="form-label">Địa điểm <span class="text-danger">*</span></label>
+            <input 
+              type="text" 
+              class="form-control" 
+              [class.is-invalid]="isFieldInvalid('diaChi')"
+              id="modalEventLocation" 
+              [(ngModel)]="newEvent.diaChi" 
+              name="diaChi" 
+              (blur)="markFieldAsTouched('diaChi')"
+              (input)="markFieldAsTouched('diaChi')"
+              required>
+            <small class="text-danger d-block mt-1" *ngIf="isFieldInvalid('diaChi')">
+              {{ getFieldErrorMessage('diaChi') }}
+            </small>
+          </div>
+
+          <div class="mb-3">
+            <label for="modalEventVolunteerCount" class="form-label">Số lượng tình nguyện viên <span class="text-danger">*</span></label>
+            <input 
+              type="number" 
+              class="form-control" 
+              [class.is-invalid]="isFieldInvalid('soLuongTNV')"
+              id="modalEventVolunteerCount" 
+              [(ngModel)]="newEvent.soLuongTNV" 
+              name="soLuongTNV"
+              (blur)="markFieldAsTouched('soLuongTNV')"
+              (input)="markFieldAsTouched('soLuongTNV')"
+              min="1"
+              required>
+            <small class="text-danger d-block mt-1" *ngIf="isFieldInvalid('soLuongTNV')">
+              {{ getFieldErrorMessage('soLuongTNV') }}
+            </small>
+          </div>
+
+          <!-- Thời gian sự kiện -->
+          <div class="section-header mb-3 mt-4">
+            <h6 class="mb-0"><i class="bi bi-calendar-event me-2"></i>Thời gian sự kiện</h6>
+          </div>
+
+          <div class="row mb-3">
+            <div class="col-md-6">
+              <label for="modalEventStartDate" class="form-label">Thời gian bắt đầu <span class="text-danger">*</span></label>
+              <input
+                type="datetime-local"
+                class="form-control"
+                id="modalEventStartDate"
+                [(ngModel)]="newEvent.ngayBatDau"
+                name="ngayBatDau"
+                (change)="markFieldAsTouched('ngayBatDau'); markFieldAsTouched('ngayKetThuc'); markFieldAsTouched('tuyenBatDau'); markFieldAsTouched('tuyenKetThuc')"
+                (blur)="markFieldAsTouched('ngayBatDau'); markFieldAsTouched('ngayKetThuc'); markFieldAsTouched('tuyenBatDau'); markFieldAsTouched('tuyenKetThuc')"
+                [class.is-invalid]="isFieldInvalid('ngayBatDau')"
+                required
+              />
+              <small class="text-danger d-block mt-1" *ngIf="isFieldInvalid('ngayBatDau')">
+                {{ getFieldErrorMessage('ngayBatDau') }}
+              </small>
+            </div>
+            <div class="col-md-6">
+              <label for="modalEventEndDate" class="form-label">Thời gian kết thúc <span class="text-danger">*</span></label>
+              <input
+                type="datetime-local"
+                class="form-control"
+                id="modalEventEndDate"
+                [(ngModel)]="newEvent.ngayKetThuc"
+                name="ngayKetThuc"
+                (change)="markFieldAsTouched('ngayKetThuc'); markFieldAsTouched('tuyenBatDau'); markFieldAsTouched('tuyenKetThuc')"
+                (blur)="markFieldAsTouched('ngayKetThuc'); markFieldAsTouched('tuyenBatDau'); markFieldAsTouched('tuyenKetThuc')"
+                [class.is-invalid]="isFieldInvalid('ngayKetThuc')"
+                required
+              />
+              <small class="text-danger d-block mt-1" *ngIf="isFieldInvalid('ngayKetThuc')">
+                {{ getFieldErrorMessage('ngayKetThuc') }}
+              </small>
+            </div>
+          </div>
+
+          <!-- Thời gian tuyển dụng -->
+          <div class="section-header mb-3 mt-4">
+            <h6 class="mb-0"><i class="bi bi-people me-2"></i>Thời gian tuyển dụng</h6>
+          </div>
+
+          <div class="row mb-3">
+            <div class="col-md-6">
+              <label for="modalRecruitStartDate" class="form-label">Thời gian bắt đầu tuyển <span class="text-danger">*</span></label>
+              <input
+                type="datetime-local"
+                class="form-control"
+                id="modalRecruitStartDate"
+                [(ngModel)]="newEvent.tuyenBatDau"
+                name="tuyenBatDau"
+                (change)="markFieldAsTouched('tuyenBatDau'); markFieldAsTouched('tuyenKetThuc')"
+                (blur)="markFieldAsTouched('tuyenBatDau'); markFieldAsTouched('tuyenKetThuc')"
+                [class.is-invalid]="isFieldInvalid('tuyenBatDau')"
+                required
+              />
+              <small class="text-danger d-block mt-1" *ngIf="isFieldInvalid('tuyenBatDau')">
+                {{ getFieldErrorMessage('tuyenBatDau') }}
+              </small>
+            </div>
+            <div class="col-md-6">
+              <label for="modalRecruitEndDate" class="form-label">Thời gian kết thúc tuyển <span class="text-danger">*</span></label>
+              <input
+                type="datetime-local"
+                class="form-control"
+                id="modalRecruitEndDate"
+                [(ngModel)]="newEvent.tuyenKetThuc"
+                name="tuyenKetThuc"
+                (change)="markFieldAsTouched('tuyenKetThuc'); markFieldAsTouched('tuyenBatDau')"
+                (blur)="markFieldAsTouched('tuyenKetThuc'); markFieldAsTouched('tuyenBatDau')"
+                [class.is-invalid]="isFieldInvalid('tuyenKetThuc')"
+                required
+              />
+              <small class="text-danger d-block mt-1" *ngIf="isFieldInvalid('tuyenKetThuc')">
+                {{ getFieldErrorMessage('tuyenKetThuc') }}
+              </small>
+            </div>
+          </div>
+
+          <!-- Thời gian diễn ra thực tế (tùy chọn) -->
+          <div class="section-header mb-3 mt-4">
+            <h6 class="mb-0"><i class="bi bi-calendar-check me-2"></i>Thời gian diễn ra thực tế (tùy chọn)</h6>
+            <p class="small text-muted mb-0 mt-1">
+              <i class="bi bi-info-circle"></i>
+              Nếu không nhập, hệ thống tự tính: Ngày kết thúc tuyển + 1 ngày
+            </p>
+          </div>
+
+          <div class="row mb-3">
+            <div class="col-md-6">
+              <label for="modalActualStartDate" class="form-label">Ngày bắt đầu diễn ra</label>
+              <input
+                type="datetime-local"
+                class="form-control"
+                id="modalActualStartDate"
+                [(ngModel)]="newEvent.ngayDienRaBatDau"
+                name="ngayDienRaBatDau"
+                (change)="markFieldAsTouched('ngayDienRaBatDau')"
+                (blur)="markFieldAsTouched('ngayDienRaBatDau')"
+                [class.is-invalid]="isFieldInvalid('ngayDienRaBatDau')"
+              />
+              <small class="text-muted d-block">Ngày sự kiện thực sự bắt đầu</small>
+              <small class="text-danger d-block mt-1" *ngIf="isFieldInvalid('ngayDienRaBatDau')">
+                {{ getFieldErrorMessage('ngayDienRaBatDau') }}
+              </small>
+            </div>
+
+            <div class="col-md-6">
+              <label for="modalActualEndDate" class="form-label">Ngày kết thúc diễn ra</label>
+              <input
+                type="datetime-local"
+                class="form-control"
+                id="modalActualEndDate"
+                [(ngModel)]="newEvent.ngayDienRaKetThuc"
+                name="ngayDienRaKetThuc"
+                (change)="markFieldAsTouched('ngayDienRaKetThuc')"
+                (blur)="markFieldAsTouched('ngayDienRaKetThuc')"
+                [class.is-invalid]="isFieldInvalid('ngayDienRaKetThuc')"
+              />
+              <small class="text-danger d-block mt-1" *ngIf="isFieldInvalid('ngayDienRaKetThuc')">
+                {{ getFieldErrorMessage('ngayDienRaKetThuc') }}
+              </small>
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <label for="modalCancellationLockTime" class="form-label">Khóa hủy đăng ký trước (giờ)</label>
+            <input
+              type="number"
+              class="form-control"
+              id="modalCancellationLockTime"
+              [(ngModel)]="newEvent.thoiGianKhoaHuy"
+              name="thoiGianKhoaHuy"
+              placeholder="24"
+              min="0"
+              max="168"
+              (change)="markFieldAsTouched('thoiGianKhoaHuy')"
+              (blur)="markFieldAsTouched('thoiGianKhoaHuy')"
+              [class.is-invalid]="isFieldInvalid('thoiGianKhoaHuy')"
+            />
+            <small class="text-muted d-block">
+              TNV không hủy được khi < X giờ (mặc định: 24h)
+            </small>
+            <small class="text-danger d-block mt-1" *ngIf="isFieldInvalid('thoiGianKhoaHuy')">
+              {{ getFieldErrorMessage('thoiGianKhoaHuy') }}
+            </small>
+          </div>
+
+          <!-- Hình ảnh -->
+          <div class="section-header mb-3 mt-4">
+            <h6 class="mb-0"><i class="bi bi-image me-2"></i>Hình ảnh sự kiện</h6>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">Hình ảnh sự kiện <span class="text-danger">*</span></label>
+            <input 
+              type="file" 
+              class="form-control" 
+              [class.is-invalid]="isFieldInvalid('hinhAnh')"
+              accept="image/*" 
+              (change)="onFileSelected($event)">
+            <div *ngIf="previewUrl" class="mt-2">
+              <img [src]="previewUrl" alt="Preview" style="max-height: 200px; max-width: 100%;" class="img-thumbnail">
+            </div>
+            <small class="text-danger d-block mt-1" *ngIf="isFieldInvalid('hinhAnh')">
+              {{ getFieldErrorMessage('hinhAnh') }}
+            </small>
+          </div>
+
+          <!-- Lĩnh vực -->
+          <div class="section-header mb-3 mt-4">
+            <h6 class="mb-0"><i class="bi bi-tags me-2"></i>Lĩnh vực liên quan</h6>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">Lĩnh vực liên quan <span class="text-danger">*</span></label>
+            <div *ngFor="let _ of selectedLinhVucs; let lvIdx = index" class="mb-2">
+              <div class="input-group mb-2">
+                <select 
+                  class="form-select" 
+                  [class.is-invalid]="isFieldInvalid('linhVucIds') && lvIdx === 0"
+                  [(ngModel)]="selectedLinhVucs[lvIdx]" 
+                  [ngModelOptions]="{standalone: true}"
+                  (change)="markFieldAsTouched('linhVucIds')">
+                  <option [ngValue]="null">-- Chọn lĩnh vực {{lvIdx + 1}} --</option>
+                  <option *ngFor="let lv of getAvailableLinhVucs(lvIdx)" 
+                          [ngValue]="lv.maLinhVuc">
+                    {{ lv.tenLinhVuc }}
+                  </option>
+                </select>
+                <button type="button" 
+                        class="btn btn-outline-danger" 
+                        (click)="removeLinhVuc(lvIdx)"
+                        [disabled]="selectedLinhVucs.length <= 1">
+                  <i class="bi bi-trash"></i>
+                </button>
+              </div>
+            </div>
+            <button type="button" 
+                    class="btn btn-outline-primary btn-sm" 
+                    (click)="addLinhVuc()"
+                    [disabled]="selectedLinhVucs.length >= linhVucs.length">
+              <i class="bi bi-plus"></i> Thêm lĩnh vực
+            </button>
+            <small class="text-danger d-block mt-1" *ngIf="isFieldInvalid('linhVucIds')">
+              {{ getFieldErrorMessage('linhVucIds') }}
+            </small>
+          </div>
+
+          <!-- Kỹ năng -->
+          <div class="section-header mb-3 mt-4">
+            <h6 class="mb-0"><i class="bi bi-award me-2"></i>Kỹ năng yêu cầu</h6>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">Kỹ năng yêu cầu <span class="text-danger">*</span></label>
+            <div *ngFor="let _ of selectedKyNangs; let knIdx = index" class="mb-2">
+              <div class="input-group mb-2">
+                <select 
+                  class="form-select" 
+                  [class.is-invalid]="isFieldInvalid('kyNangIds') && knIdx === 0"
+                  [(ngModel)]="selectedKyNangs[knIdx]" 
+                  [ngModelOptions]="{standalone: true}"
+                  (change)="markFieldAsTouched('kyNangIds')">
+                  <option [ngValue]="null">-- Chọn kỹ năng {{knIdx + 1}} --</option>
+                  <option *ngFor="let kn of getAvailableKyNangs(knIdx)" 
+                          [ngValue]="kn.maKyNang">
+                    {{ kn.tenKyNang }}
+                  </option>
+                </select>
+                <button type="button" 
+                        class="btn btn-outline-danger" 
+                        (click)="removeKyNang(knIdx)"
+                        [disabled]="selectedKyNangs.length <= 1">
+                  <i class="bi bi-trash"></i>
+                </button>
+              </div>
+            </div>
+            <button type="button" 
+                    class="btn btn-outline-primary btn-sm" 
+                    (click)="addKyNang()"
+                    [disabled]="selectedKyNangs.length >= kyNangs.length">
+              <i class="bi bi-plus"></i> Thêm kỹ năng
+            </button>
+            <small class="text-danger d-block mt-1" *ngIf="isFieldInvalid('kyNangIds')">
+              {{ getFieldErrorMessage('kyNangIds') }}
+            </small>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" (click)="closeEventModal()" [disabled]="isSavingEvent">
+          <i class="bi bi-x-circle me-2"></i>Hủy
+        </button>
+        <button type="submit" form="eventForm" class="btn btn-primary" [disabled]="isSavingEvent">
+          <span *ngIf="isSavingEvent" class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+          <i *ngIf="!isSavingEvent" class="bi" [ngClass]="isEditingEvent ? 'bi-check-circle' : 'bi-plus-circle'"></i>
+          {{ isSavingEvent ? (isEditingEvent ? 'Đang cập nhật...' : 'Đang tạo...') : (isEditingEvent ? 'Cập nhật sự kiện' : 'Tạo sự kiện') }}
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Shared Event Form Modal -->
+<app-event-form-modal
+  [(visible)]="showEventModal"
+  [isEditing]="isEditingEvent"
+  [eventData]="eventFormData"
+  [showOrganizationSelector]="false"
+  [defaultOrganizationId]="organization?.maToChuc"
+  (saved)="onEventModalSaved()"
+  (cancelled)="onEventModalCancelled()"
+></app-event-form-modal>
 </div>

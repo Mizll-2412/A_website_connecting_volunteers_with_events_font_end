@@ -1,0 +1,233 @@
+<div class="evaluations-page">
+  <div class="page-container py-4">
+    <div class="page-header d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+      <div>
+        <h2 class="page-title mb-1">Đánh giá tổ chức</h2>
+        <p class="page-subtitle mb-0">Theo dõi đánh giá từ tình nguyện viên và các đánh giá bạn đã gửi</p>
+      </div>
+      <div class="d-flex gap-2">
+        <button class="btn btn-outline-secondary" type="button" (click)="goBack()">
+          <i class="bi bi-arrow-left-short me-1"></i>
+          Quay về thống kê
+        </button>
+      </div>
+    </div>
+
+    <!-- Bộ lọc thời gian -->
+    <div class="card mb-4">
+      <div class="card-body">
+        <div class="row g-3 align-items-end">
+          <div class="col-md-3">
+            <label class="form-label small fw-semibold mb-2">Loại lọc</label>
+            <select class="form-select" [(ngModel)]="timeFilterType" (change)="onTimeFilterTypeChange()">
+              <option value="year">Theo năm</option>
+              <option value="quarter">Theo quý</option>
+              <option value="month">Theo tháng</option>
+              <option value="custom">Khoảng ngày cụ thể</option>
+            </select>
+          </div>
+
+          <!-- Lọc theo năm -->
+          <div class="col-md-3" *ngIf="timeFilterType === 'year'">
+            <label class="form-label small fw-semibold mb-2">Năm</label>
+            <select class="form-select" [(ngModel)]="selectedYear" (change)="applyTimeFilter()">
+              <option *ngFor="let year of availableYears" [value]="year">{{ year }}</option>
+            </select>
+          </div>
+
+          <!-- Lọc theo quý -->
+          <div class="col-md-2" *ngIf="timeFilterType === 'quarter'">
+            <label class="form-label small fw-semibold mb-2">Năm</label>
+            <select class="form-select" [(ngModel)]="selectedYear" (change)="applyTimeFilter()">
+              <option *ngFor="let year of availableYears" [value]="year">{{ year }}</option>
+            </select>
+          </div>
+          <div class="col-md-2" *ngIf="timeFilterType === 'quarter'">
+            <label class="form-label small fw-semibold mb-2">Quý</label>
+            <select class="form-select" [(ngModel)]="selectedQuarter" (change)="applyTimeFilter()">
+              <option value="1">Quý 1</option>
+              <option value="2">Quý 2</option>
+              <option value="3">Quý 3</option>
+              <option value="4">Quý 4</option>
+            </select>
+          </div>
+
+          <!-- Lọc theo tháng -->
+          <div class="col-md-2" *ngIf="timeFilterType === 'month'">
+            <label class="form-label small fw-semibold mb-2">Năm</label>
+            <select class="form-select" [(ngModel)]="selectedYear" (change)="applyTimeFilter()">
+              <option *ngFor="let year of availableYears" [value]="year">{{ year }}</option>
+            </select>
+          </div>
+          <div class="col-md-2" *ngIf="timeFilterType === 'month'">
+            <label class="form-label small fw-semibold mb-2">Tháng</label>
+            <select class="form-select" [(ngModel)]="selectedMonth" (change)="applyTimeFilter()">
+              <option value="1">Tháng 1</option>
+              <option value="2">Tháng 2</option>
+              <option value="3">Tháng 3</option>
+              <option value="4">Tháng 4</option>
+              <option value="5">Tháng 5</option>
+              <option value="6">Tháng 6</option>
+              <option value="7">Tháng 7</option>
+              <option value="8">Tháng 8</option>
+              <option value="9">Tháng 9</option>
+              <option value="10">Tháng 10</option>
+              <option value="11">Tháng 11</option>
+              <option value="12">Tháng 12</option>
+            </select>
+          </div>
+
+          <!-- Lọc theo khoảng ngày -->
+          <div class="col-md-4" *ngIf="timeFilterType === 'custom'">
+            <label class="form-label small fw-semibold mb-2">Khoảng thời gian</label>
+            <nz-range-picker
+              [(ngModel)]="dateRange"
+              (ngModelChange)="onDateRangeChange($event)"
+              nzFormat="dd/MM/yyyy"
+              [nzPlaceHolder]="['Từ ngày', 'Đến ngày']"
+              nzSize="default"
+              style="width: 100%;" />
+          </div>
+
+          <!-- Lọc theo số sao -->
+          <div class="col-md-2">
+            <label class="form-label small fw-semibold mb-2">Số sao tối thiểu</label>
+            <select class="form-select" [ngModel]="selectedMinScore" (ngModelChange)="onMinScoreChange($event)">
+              <option [ngValue]="null">Tất cả</option>
+              <option [ngValue]="1">1 sao trở lên</option>
+              <option [ngValue]="2">2 sao trở lên</option>
+              <option [ngValue]="3">3 sao trở lên</option>
+              <option [ngValue]="4">4 sao trở lên</option>
+              <option [ngValue]="5">5 sao</option>
+            </select>
+          </div>
+          <div class="col-md-2">
+            <label class="form-label small fw-semibold mb-2">Số sao tối đa</label>
+            <select class="form-select" [ngModel]="selectedMaxScore" (ngModelChange)="onMaxScoreChange($event)">
+              <option [ngValue]="null">Tất cả</option>
+              <option [ngValue]="1">1 sao</option>
+              <option [ngValue]="2">2 sao</option>
+              <option [ngValue]="3">3 sao</option>
+              <option [ngValue]="4">4 sao</option>
+              <option [ngValue]="5">5 sao</option>
+            </select>
+          </div>
+
+          <div class="col-md-auto">
+            <button class="btn btn-outline-secondary" (click)="clearTimeFilter()">
+              <i class="bi bi-x-circle me-1"></i>Xóa bộ lọc
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+    <div class="card-body">
+      <ul class="nav nav-pills evaluation-tabs mb-4">
+        <li class="nav-item">
+          <button 
+            class="nav-link" 
+            type="button" 
+            [class.active]="activeTab === 'received'"
+            (click)="switchTab('received')">
+            Đánh giá nhận được
+            <span class="badge bg-light text-dark ms-2">{{ receivedEvaluations.length }}</span>
+          </button>
+        </li>
+        <li class="nav-item">
+          <button 
+            class="nav-link" 
+            type="button" 
+            [class.active]="activeTab === 'given'"
+            (click)="switchTab('given')">
+            Đánh giá đã gửi
+            <span class="badge bg-light text-dark ms-2">{{ givenEvaluations.length }}</span>
+          </button>
+        </li>
+      </ul>
+
+      <div *ngIf="activeTab === 'received'">
+        <div *ngIf="isLoadingReceived" class="text-center text-muted py-5">
+          <div class="spinner-border text-primary mb-3" role="status">
+            <span class="visually-hidden">Đang tải...</span>
+          </div>
+          <p class="mb-0">Đang tải các đánh giá tổ chức nhận được...</p>
+        </div>
+        <div *ngIf="!isLoadingReceived && receivedError" class="alert alert-warning">
+          {{ receivedError }}
+        </div>
+        <div *ngIf="!isLoadingReceived && !receivedError">
+          <div *ngIf="receivedEvaluations.length === 0" class="empty-state">
+            <i class="bi bi-emoji-smile mb-3"></i>
+            <h5 class="mb-2">Chưa có đánh giá nào</h5>
+            <p class="text-muted mb-0">
+              Khi tình nguyện viên hoàn thành sự kiện và gửi đánh giá, chúng sẽ xuất hiện tại đây.
+            </p>
+          </div>
+          <div *ngFor="let evaluation of receivedEvaluations; trackBy: trackByEvaluationId" class="evaluation-card">
+            <div class="evaluation-header">
+              <div>
+                <h5 class="mb-1">{{ evaluation.scorerName || 'Tình nguyện viên' }}</h5>
+                <div class="text-muted small">
+                  <i class="bi bi-calendar-event me-1"></i>{{ evaluation.eventName || 'Không rõ sự kiện' }}
+                  <span class="mx-1">•</span>
+                  {{ evaluation.createdAt | date:'dd/MM/yyyy HH:mm' }}
+                </div>
+              </div>
+              <app-star-rating 
+                [rating]="evaluation.score" 
+                [readonly]="true" 
+                size="sm" 
+                [showLabel]="false">
+              </app-star-rating>
+            </div>
+            <p class="mb-0">{{ evaluation.content || 'Tình nguyện viên không để lại nhận xét chi tiết.' }}</p>
+          </div>
+        </div>
+      </div>
+
+      <div *ngIf="activeTab === 'given'">
+        <div *ngIf="isLoadingGiven" class="text-center text-muted py-5">
+          <div class="spinner-border text-primary mb-3" role="status">
+            <span class="visually-hidden">Đang tải...</span>
+          </div>
+          <p class="mb-0">Đang tải các đánh giá tổ chức đã gửi...</p>
+        </div>
+        <div *ngIf="!isLoadingGiven && givenError" class="alert alert-warning">
+          {{ givenError }}
+        </div>
+        <div *ngIf="!isLoadingGiven && !givenError">
+          <div *ngIf="givenEvaluations.length === 0" class="empty-state">
+            <i class="bi bi-people mb-3"></i>
+            <h5 class="mb-2">Bạn chưa đánh giá tình nguyện viên nào</h5>
+            <p class="text-muted mb-0">
+              Sau khi sự kiện kết thúc, hãy đánh giá tình nguyện viên của mình để khuyến khích và ghi nhận nỗ lực của họ.
+            </p>
+          </div>
+          <div *ngFor="let evaluation of givenEvaluations; trackBy: trackByEvaluationId" class="evaluation-card">
+            <div class="evaluation-header">
+              <div>
+                <h5 class="mb-1">{{ evaluation.targetName || 'Tình nguyện viên' }}</h5>
+                <div class="text-muted small">
+                  <i class="bi bi-calendar-event me-1"></i>{{ evaluation.eventName || 'Không rõ sự kiện' }}
+                  <span class="mx-1">•</span>
+                  {{ evaluation.createdAt | date:'dd/MM/yyyy HH:mm' }}
+                </div>
+              </div>
+              <app-star-rating 
+                [rating]="evaluation.score" 
+                [readonly]="true" 
+                size="sm" 
+                [showLabel]="false">
+              </app-star-rating>
+            </div>
+            <p class="mb-0">{{ evaluation.content || 'Bạn không để lại nhận xét chi tiết cho tình nguyện viên.' }}</p>
+          </div>
+        </div>
+      </div>
+    </div>
+    </div>
+  </div>
+</div>
+

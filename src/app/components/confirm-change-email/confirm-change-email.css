@@ -1,0 +1,13 @@
+.card {
+  border: none;
+  border-radius: 12px;
+}
+
+.card-body {
+  padding: 2rem;
+}
+
+.alert {
+  border-radius: 8px;
+}
+

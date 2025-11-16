@@ -1,0 +1,22 @@
+<div class="toast-container">
+  <div 
+    *ngFor="let toast of toasts" 
+    class="toast-item"
+    [ngClass]="getToastClass(toast.type)"
+    [attr.data-toast-id]="toast.id"
+  >
+    <div class="toast-content">
+      <i class="bi" [ngClass]="getToastIcon(toast.type)"></i>
+      <span class="toast-message">{{ toast.message }}</span>
+    </div>
+    <button 
+      type="button" 
+      class="toast-close" 
+      (click)="removeToast(toast.id)"
+      aria-label="Đóng"
+    >
+      <i class="bi bi-x"></i>
+    </button>
+  </div>
+</div>
+

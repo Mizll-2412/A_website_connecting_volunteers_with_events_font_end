@@ -12,6 +12,7 @@ import { formatDistanceToNow } from 'date-fns';
 import { vi } from 'date-fns/locale';
 import { environment } from '../../../environments/environment';
 import { getImageUrl } from '../../utils/image-url.util';
+import { ToastService } from '../../services/toast.service';
 
 @Component({
   selector: 'app-header',
@@ -45,7 +46,8 @@ export class Header implements OnInit, OnDestroy {
     private notificationService: NotificationService,
     private toChucService: ToChucService,
     private volunteerService: TinhNguyenVienService,
-    private http: HttpClient
+    private http: HttpClient,
+    private toast: ToastService
   ) { }
 
   @HostListener('window:scroll', [])
@@ -98,7 +100,9 @@ export class Header implements OnInit, OnDestroy {
     // Subscribe để lắng nghe thay đổi thông tin user
     this.auth.userInfo$.subscribe(user => {
       if (user) {
-        this.userAvatar = user.profileImage || user.anhDaiDien || null;
+        // Format URL avatar bằng getImageUrl() để đảm bảo URL đúng
+        const avatarPath = user.profileImage || user.anhDaiDien;
+        this.userAvatar = avatarPath ? getImageUrl(avatarPath) : null;
         this.username = user.hoTen || this.username;
       }
     });
@@ -163,10 +167,12 @@ export class Header implements OnInit, OnDestroy {
       this.username = this.auth.getUsername();
       this.role = this.auth.getRole();
       
-      const userInfo = localStorage.getItem('user');
-      if (userInfo) {
-        const user = JSON.parse(userInfo);
-        this.userAvatar = user.profileImage || user.anhDaiDien || null;
+      // Sử dụng authService.getUser() để lấy user từ cả localStorage và sessionStorage
+      const user = this.auth.getUser();
+      if (user) {
+        // Format URL avatar bằng getImageUrl() để đảm bảo URL đúng
+        const avatarPath = user.profileImage || user.anhDaiDien;
+        this.userAvatar = avatarPath ? getImageUrl(avatarPath) : null;
         
         // Ensure username is displayed correctly
         if (user.hoTen && !this.username) {
@@ -191,12 +197,11 @@ export class Header implements OnInit, OnDestroy {
         const org = response.data || response;
         if (org?.anhDaiDien) {
           this.userAvatar = getImageUrl(org.anhDaiDien);
-          // Update localStorage
-          const userInfo = localStorage.getItem('user');
-          if (userInfo) {
-            const user = JSON.parse(userInfo);
+          // Update user info (sử dụng authService để tự động lưu vào đúng nơi)
+          const user = this.auth.getUser();
+          if (user) {
             user.anhDaiDien = org.anhDaiDien;
-            localStorage.setItem('user', JSON.stringify(user));
+            this.auth.updateUserInfo(user);
           }
         }
         // Load verification status
@@ -216,12 +221,11 @@ export class Header implements OnInit, OnDestroy {
         const volunteer = response.data || response;
         if (volunteer?.anhDaiDien) {
           this.userAvatar = getImageUrl(volunteer.anhDaiDien);
-          // Update localStorage
-          const userInfo = localStorage.getItem('user');
-          if (userInfo) {
-            const user = JSON.parse(userInfo);
+          // Update user info (sử dụng authService để tự động lưu vào đúng nơi)
+          const user = this.auth.getUser();
+          if (user) {
             user.anhDaiDien = volunteer.anhDaiDien;
-            localStorage.setItem('user', JSON.stringify(user));
+            this.auth.updateUserInfo(user);
           }
         }
       },
@@ -248,8 +252,32 @@ export class Header implements OnInit, OnDestroy {
     } else if (this.role === 'Admin') {
       this.router.navigate(['/admin']);
     } else {
+      // Clear localStorage để đảm bảo vào tab profile mặc định
+      localStorage.removeItem('volunteerProfileActiveTab');
       this.router.navigate(['/profile']);
     }
+  }
+
+  navigateToManageOrg(event?: Event): void {
+    // Ngăn chặn default behavior của routerLink nếu có
+    if (event) {
+      event.preventDefault();
+    }
+    // Clear localStorage để reset về tab mặc định khi điều hướng từ header
+    localStorage.removeItem('eventManagementActiveTab');
+    sessionStorage.removeItem('manageOrgWasRefreshing');
+    this.router.navigate(['/manage-org']);
+  }
+
+  navigateToRegistrationList(event?: Event): void {
+    // Ngăn chặn default behavior của routerLink nếu có
+    if (event) {
+      event.preventDefault();
+    }
+    // Clear localStorage để reset về tab mặc định khi điều hướng từ header
+    localStorage.removeItem('registrationListActiveTab');
+    sessionStorage.removeItem('registrationListWasRefreshing');
+    this.router.navigate(['/dang-ky']);
   }
 
   // Phương thức cho thông báo
@@ -314,12 +342,15 @@ export class Header implements OnInit, OnDestroy {
         notification.daDoc = false;
         
         // Hiển thị thông báo lỗi cho người dùng
-        if (err.error?.message) {
-          alert('Lỗi: ' + err.error.message);
+        // Sử dụng normalizedMessage từ error interceptor (đã được chuẩn hóa)
+        if ((err as any).normalizedMessage) {
+          this.toast.error((err as any).normalizedMessage);
+        } else if (err.error?.message) {
+          this.toast.error(err.error.message);
         } else if (err.status === 401) {
-          alert('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.');
+          this.toast.warning('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.');
         } else {
-          alert('Không thể đánh dấu thông báo đã đọc. Vui lòng thử lại.');
+          this.toast.error('Không thể đánh dấu thông báo đã đọc. Vui lòng thử lại.');
         }
       }
     });
@@ -397,6 +428,9 @@ export class Header implements OnInit, OnDestroy {
       // Nếu là thông báo đăng ký mới và user là tổ chức, điều hướng đến trang quản lý sự kiện
       if (this.role === 'Organization' && notification.noiDung?.includes('đã đăng ký tham gia sự kiện')) {
         this.showNotifications = false;
+        // Clear localStorage để reset về tab mặc định (sẽ được override bởi queryParams)
+        localStorage.removeItem('eventManagementActiveTab');
+        sessionStorage.removeItem('manageOrgWasRefreshing');
         this.router.navigate(['/manage-org'], { queryParams: { tab: 'event-detail', eventId: eventId } });
         return;
       }

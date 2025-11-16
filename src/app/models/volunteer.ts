@@ -6,6 +6,7 @@ export interface TinhNguyenVien {
   gioiTinh?: string;
   email: string;
   cccd?: string;
+  soDienThoai?: string;
   diaChi?: string;
   gioiThieu?: string;
   anhDaiDien?: string;

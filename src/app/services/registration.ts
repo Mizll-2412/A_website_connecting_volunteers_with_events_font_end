@@ -40,4 +40,9 @@ export class RegistrationService {
   updateRegistrationStatus(maTNV: number, maSuKien: number, data: any): Observable<any> {
     return this.http.put(`${this.apiUrl}/${maTNV}/${maSuKien}`, data);
   }
+
+  // Kiểm tra có thể hủy đăng ký không
+  canCancelRegistration(maTNV: number, maSuKien: number): Observable<any> {
+    return this.http.get(`${this.apiUrl}/${maTNV}/${maSuKien}/can-cancel`);
+  }
 }

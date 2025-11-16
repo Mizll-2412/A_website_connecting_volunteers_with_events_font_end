@@ -7,6 +7,8 @@ import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { AuthService } from '../../services/auth';
 import { environment } from '../../../environments/environment';
 import { getImageUrl as getImageUrlUtil } from '../../utils/image-url.util';
+import { StarRatingComponent } from '../shared/star-rating/star-rating';
+import { ToastService } from '../../services/toast.service';
 
 interface EventHistoryFilter {
   nam?: number;
@@ -53,7 +55,7 @@ interface Certificate {
 @Component({
   selector: 'app-event-history',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule],
+  imports: [CommonModule, FormsModule, RouterModule, StarRatingComponent],
   templateUrl: './event-history.html',
   styleUrls: ['./event-history.css']
 })
@@ -76,7 +78,8 @@ export class EventHistory implements OnInit {
     private http: HttpClient,
     private auth: AuthService,
     private router: Router,
-    private sanitizer: DomSanitizer
+    private sanitizer: DomSanitizer,
+    private toast: ToastService
   ) {}
 
   ngOnInit(): void {
@@ -85,13 +88,12 @@ export class EventHistory implements OnInit {
   }
 
   loadUserInfo(): void {
-    const userInfo = localStorage.getItem('user');
-    if (!userInfo) {
+    // Sử dụng authService.getUser() để lấy user từ cả localStorage và sessionStorage
+    const user = this.auth.getUser();
+    if (!user) {
       this.router.navigate(['/login']);
       return;
     }
-
-    const user = JSON.parse(userInfo);
     if (user.maTaiKhoan) {
       // Lấy thông tin tình nguyện viên
       this.http.get<any>(`${this.apiUrl}/tinhnguyenvien/by-account/${user.maTaiKhoan}`).subscribe({
@@ -219,7 +221,7 @@ export class EventHistory implements OnInit {
         const org = res?.data || res;
         const maNguoiDuocDanhGia = org?.maTaiKhoan;
         if (!maNguoiDuocDanhGia) {
-          alert('Không xác định được tài khoản tổ chức.');
+          this.toast.error('Không xác định được tài khoản tổ chức.');
           return;
         }
         const payload = {
@@ -228,11 +230,13 @@ export class EventHistory implements OnInit {
           diemSo: this.rating,
           noiDung: this.ratingComment
         };
+        // Sử dụng authService.getToken() để lấy token từ cả localStorage và sessionStorage
+        const token = this.auth.getToken() || '';
         this.http.post<any>(`${this.apiUrl}/danhgia`, payload, {
-          headers: { 'Authorization': `Bearer ${localStorage.getItem('token') || ''}` }
+          headers: { 'Authorization': `Bearer ${token}` }
         }).subscribe({
           next: (response) => {
-            alert(response?.message || 'Đánh giá thành công');
+            this.toast.success(response?.message || 'Đánh giá thành công');
             const modalEl = document.getElementById('ratingModal');
             if ((window as any).bootstrap && modalEl) {
               const modal = (window as any).bootstrap.Modal.getInstance(modalEl);
@@ -246,13 +250,13 @@ export class EventHistory implements OnInit {
           },
           error: (err) => {
             console.error('Lỗi gửi đánh giá:', err);
-            alert(err?.error?.message || 'Không thể gửi đánh giá');
+            this.toast.error(err?.error?.message || 'Không thể gửi đánh giá');
           }
         });
       },
       error: (err) => {
         console.error('Lỗi lấy thông tin tổ chức:', err);
-        alert('Không thể xác định tổ chức để đánh giá');
+        this.toast.error('Không thể xác định tổ chức để đánh giá');
       }
     });
   }
@@ -261,23 +265,22 @@ export class EventHistory implements OnInit {
     if (!this.volunteer?.maTNV) return;
     
     // Lấy thông tin giấy chứng nhận
-    this.http.get<any>(`${this.apiUrl}/certificate/volunteer/${this.volunteer.maTNV}`).subscribe({
+    this.http.get<any>(`${this.apiUrl}/certificate/volunteers/${this.volunteer.maTNV}`).subscribe({
       next: (response) => {
         const certificates = response.data || response;
         // Tìm giấy chứng nhận cho sự kiện này
         const eventCertificate = certificates.find((cert: any) => cert.maSuKien === eventId);
         
         if (eventCertificate) {
-          this.certificate = eventCertificate;
-          // Mở modal xem giấy chứng nhận
-          // $('#certificateModal').modal('show');
+          // Navigate to certificate viewer
+          this.router.navigate(['/certificate-view', eventCertificate.maGiayChungNhan]);
         } else {
-          alert('Không tìm thấy giấy chứng nhận cho sự kiện này');
+          this.toast.error('Không tìm thấy giấy chứng nhận cho sự kiện này');
         }
       },
       error: (err) => {
         console.error('Lỗi tải giấy chứng nhận:', err);
-        alert('Lỗi tải giấy chứng nhận: ' + (err.error?.message || 'Đã xảy ra lỗi'));
+        this.toast.error('Lỗi tải giấy chứng nhận: ' + (err.error?.message || 'Đã xảy ra lỗi'));
       }
     });
   }

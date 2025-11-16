@@ -1,17 +1,11 @@
-<div class="main-header">
-  <h1>Quản lý Tình nguyện viên</h1>
-  <div class="actions">
-    <div class="search-box">
-      <i class="bi bi-search"></i>
-      <input type="text" [(ngModel)]="tuKhoaTimKiem" (input)="timKiem()" placeholder="Tìm kiếm tình nguyện viên..." />
-    </div>
-    <button class="btn btn-primary" (click)="batDauThemMoi()">
-      <i class="bi bi-plus-circle"></i> Thêm tình nguyện viên
-    </button>
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+  <div>
+    <h2 class="page-title mb-1">Quản lý tình nguyện viên</h2>
+    <p class="text-muted mb-0">Theo dõi hồ sơ, kỹ năng và tình trạng hoạt động của các tình nguyện viên</p>
   </div>
 </div>
 
-<div class="statistics">
+<div class="statistics mb-4">
   <div class="stat-card">
     <div class="stat-value">{{ tongSoTNV }}</div>
     <div class="stat-label">Tổng số TNV</div>
@@ -22,100 +16,119 @@
   </div>
   <div class="stat-card">
     <div class="stat-value">{{ diemTrungBinh }}</div>
-    <div class="stat-label">Điểm TB</div>
+    <div class="stat-label">Điểm trung bình</div>
   </div>
 </div>
 
 <div class="table-container">
-  <table class="data-table">
-    <thead>
-      <tr>
-        <th>Ảnh</th>
-        <th>Họ tên</th>
-        <th>Email</th>
-        <th>Kỹ năng</th>
-        <th>Lĩnh vực</th>
-        <th>Điểm đánh giá</th>
-        <th>Thao tác</th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr *ngFor="let tnv of danhSachHienThi">
-        <td>
-          <img [src]="tnv.anhDaiDien ? getImageUrl(tnv.anhDaiDien) : 'assets/default-avatar.png'" 
-               class="avatar" 
-               style="width: 50px; height: 50px; object-fit: cover; border-radius: 50%;"
-               onerror="this.src='assets/default-avatar.png'">
-        </td>
-        <td>{{ tnv.hoTen || 'Chưa cập nhật' }}</td>
-        <td>{{ tnv.email || 'Chưa cập nhật' }}</td>
-        <td>
-          <div class="skill-badges">
-            <span class="badge bg-success badge-sm" *ngFor="let skill of getVolunteerSkills(tnv.maTNV)">
-              {{ skill.tenKyNang }}
-            </span>
-            <small class="text-muted" *ngIf="getVolunteerSkills(tnv.maTNV).length === 0">Chưa cập nhật</small>
-          </div>
-        </td>
-        <td>
-          <div class="field-badges">
-            <span class="badge bg-info badge-sm" *ngFor="let field of getVolunteerFields(tnv.maTNV)">
-              {{ field.tenLinhVuc }}
-            </span>
-            <small class="text-muted" *ngIf="getVolunteerFields(tnv.maTNV).length === 0">Chưa cập nhật</small>
-          </div>
-        </td>
-        <td>
-          <span class="badge" [ngClass]="{
-            'badge-success': (tnv.diemTrungBinh ?? 0) >= 4,
-            'badge-warning': (tnv.diemTrungBinh ?? 0) >= 3 && (tnv.diemTrungBinh ?? 0) < 4,
-            'badge-danger': (tnv.diemTrungBinh ?? 0) < 3
-          }">{{ tnv.diemTrungBinh || '-' }}</span>
-        </td>
-        <td>
-          <div class="btn-group">
-            <button class="btn-action btn-view" (click)="xemChiTietTNV(tnv)" title="Xem chi tiết">
-              <i class="bi bi-eye"></i>
-            </button>
-            <button class="btn-action btn-edit" (click)="suaTNV(tnv)" title="Sửa">
-              <i class="bi bi-pencil"></i>
-            </button>
-            <button class="btn-action btn-delete" (click)="xoaTNV(tnv)" title="Xóa">
-              <i class="bi bi-trash"></i>
-            </button>
-          </div>
-        </td>
-      </tr>
-      <tr *ngIf="danhSachHienThi.length === 0">
-        <td colspan="7" class="text-center py-3">
-          <p class="text-muted mb-0">Không tìm thấy tình nguyện viên nào</p>
-        </td>
-      </tr>
-    </tbody>
-  </table>
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <div class="d-flex gap-2 align-items-center flex-wrap">
+      <h4>Quản lý tình nguyện viên</h4>
+      <span class="badge bg-primary">Tổng TNV: {{ tongSoTNV }}</span>
+      <span class="badge bg-success">Đang hoạt động: {{ tnvHoatDong }}</span>
+      <span class="badge bg-warning text-dark">Điểm TB: {{ diemTrungBinh }}</span>
+    </div>
+    <input type="text" class="form-control" style="width: 260px;" [(ngModel)]="tuKhoaTimKiem" (input)="timKiem()" placeholder="Tìm kiếm..." />
+  </div>
+  <app-table
+    [columns]="tableColumns"
+    [data]="paginatedTNVList"
+    [emptyText]="'Không tìm thấy tình nguyện viên nào'"
+    [storageKey]="'volunteer'"
+  >
+    <!-- Template cho cột Ảnh -->
+    <ng-template #anhDaiDienTemplate let-tnv>
+      <img [src]="tnv.anhDaiDien ? getImageUrl(tnv.anhDaiDien) : 'assets/default-avatar.png'" 
+           class="avatar" 
+           style="width: 50px; height: 50px; object-fit: cover; border-radius: 50%;"
+           onerror="this.src='assets/default-avatar.png'">
+    </ng-template>
+
+    <!-- Template cho cột Số điện thoại -->
+    <ng-template #soDienThoaiTemplate let-tnv>
+      {{ tnv.soDienThoai || 'Chưa cập nhật' }}
+    </ng-template>
+
+    <!-- Template cho cột Kỹ năng -->
+    <ng-template #kyNangTemplate let-tnv>
+      <div class="skill-badges">
+        <span class="badge bg-success badge-sm" *ngFor="let skill of getVolunteerSkills(tnv.maTNV)">
+          {{ skill.tenKyNang }}
+        </span>
+        <small class="text-muted" *ngIf="getVolunteerSkills(tnv.maTNV).length === 0">Chưa cập nhật</small>
+      </div>
+    </ng-template>
+
+    <!-- Template cho cột Lĩnh vực -->
+    <ng-template #linhVucTemplate let-tnv>
+      <div class="field-badges">
+        <span class="badge bg-info badge-sm" *ngFor="let field of getVolunteerFields(tnv.maTNV)">
+          {{ field.tenLinhVuc }}
+        </span>
+        <small class="text-muted" *ngIf="getVolunteerFields(tnv.maTNV).length === 0">Chưa cập nhật</small>
+      </div>
+    </ng-template>
+
+    <!-- Template cho cột Điểm đánh giá -->
+    <ng-template #diemTrungBinhTemplate let-tnv>
+      <span class="badge" [ngClass]="{
+        'badge-success': (tnv.diemTrungBinh ?? 0) >= 4,
+        'badge-warning': (tnv.diemTrungBinh ?? 0) >= 3 && (tnv.diemTrungBinh ?? 0) < 4,
+        'badge-danger': (tnv.diemTrungBinh ?? 0) < 3
+      }">{{ tnv.diemTrungBinh || '-' }}</span>
+    </ng-template>
+
+    <!-- Template cho cột Thao tác -->
+    <ng-template #actionsTemplate let-tnv>
+      <div class="btn-group">
+        <button class="btn-action btn-view" (click)="xemChiTietTNV(tnv); $event.stopPropagation()" title="Xem chi tiết">
+          <i class="bi bi-eye"></i>
+        </button>
+        <button class="btn-action btn-edit" (click)="suaTNV(tnv); $event.stopPropagation()" title="Sửa">
+          <i class="bi bi-pencil"></i>
+        </button>
+        <button class="btn-action btn-delete" (click)="xoaTNV(tnv); $event.stopPropagation()" title="Xóa">
+          <i class="bi bi-trash"></i>
+        </button>
+      </div>
+    </ng-template>
+  </app-table>
+  
+  <app-pagination
+    *ngIf="danhSachHienThi.length > 0"
+    [totalItems]="danhSachHienThi.length"
+    [itemsPerPage]="itemsPerPage"
+    [currentPage]="currentPage"
+    (pageChange)="onPageChange($event)"
+    (itemsPerPageChange)="onItemsPerPageChange($event)"
+  ></app-pagination>
 </div>
 
 <!-- Form thêm/sửa TNV -->
-<div class="modal" *ngIf="dangSua || dangThem" (click)="huyChinhSua()">
+<div class="modal" *ngIf="dangSua" (click)="huyChinhSua()">
   <div class="modal-content" (click)="$event.stopPropagation()">
     <div class="modal-header">
-      <h2>{{ dangSua ? 'Cập nhật thông tin' : 'Thêm tình nguyện viên mới' }}</h2>
+      <h2>Cập nhật tình nguyện viên</h2>
       <button class="btn-close" (click)="huyChinhSua()">&times;</button>
     </div>
     <div class="modal-body">
       <form (ngSubmit)="luuTNV()">
-        <div class="form-grid">
+        <div class="form-grid two-col">
           <div class="form-group">
-            <label>Họ tên *</label>
-            <input type="text" [(ngModel)]="tnvmoi.hoTen" name="hoTen" required>
+            <label>Họ tên <span class="required">*</span></label>
+            <input class="form-control" type="text" [(ngModel)]="tnvmoi.hoTen" name="hoTen" placeholder="Nhập họ tên tình nguyện viên" required>
           </div>
           <div class="form-group">
-            <label>Email *</label>
-            <input type="email" [(ngModel)]="tnvmoi.email" name="email" required>
+            <label>Email <span class="required">*</span></label>
+            <input class="form-control" type="email" [(ngModel)]="tnvmoi.email" name="email" placeholder="email@domain.com" required>
+          </div>
+          <div class="form-group">
+            <label>Số điện thoại</label>
+            <input class="form-control" type="tel" [(ngModel)]="tnvmoi.soDienThoai" name="soDienThoai" placeholder="Ví dụ: 0912345678">
           </div>
           <div class="form-group">
             <label>Giới tính</label>
-            <select [(ngModel)]="tnvmoi.gioiTinh" name="gioiTinh">
+            <select class="form-control" [(ngModel)]="tnvmoi.gioiTinh" name="gioiTinh">
               <option value="">Chọn giới tính</option>
               <option value="Nam">Nam</option>
               <option value="Nữ">Nữ</option>
@@ -124,26 +137,66 @@
           </div>
           <div class="form-group">
             <label>Ngày sinh</label>
-            <input type="date" [(ngModel)]="tnvmoi.ngaySinh" name="ngaySinh">
+            <input class="form-control" type="date" [(ngModel)]="tnvmoi.ngaySinh" name="ngaySinh">
           </div>
           <div class="form-group">
             <label>CCCD</label>
-            <input type="text" [(ngModel)]="tnvmoi.cccd" name="cccd">
+            <input class="form-control" type="text" [(ngModel)]="tnvmoi.cccd" name="cccd" placeholder="Số căn cước công dân">
           </div>
           <div class="form-group">
             <label>Địa chỉ</label>
-            <input type="text" [(ngModel)]="tnvmoi.diaChi" name="diaChi">
+            <input class="form-control" type="text" [(ngModel)]="tnvmoi.diaChi" name="diaChi" placeholder="Số nhà, đường, phường/xã, quận/huyện, tỉnh/thành">
           </div>
           <div class="form-group">
-            <label>Điểm trung bình</label>
-            <input type="number" step="0.1" min="0" max="5" [(ngModel)]="tnvmoi.diemTrungBinh" name="diemTrungBinh">
-          </div>
-          <div class="form-group full-width">
-            <label>Giới thiệu</label>
-            <textarea [(ngModel)]="tnvmoi.gioiThieu" name="gioiThieu" rows="3"></textarea>
+          <label>Điểm trung bình</label>
+          <input class="form-control" type="number" step="0.1" min="0" max="5" [ngModel]="tnvmoi.diemTrungBinh" name="diemTrungBinh" placeholder="0 - 5" disabled>
           </div>
         </div>
-        <div class="modal-footer">
+
+      <!-- Chọn kỹ năng (ng-zorro nz-select multiple) -->
+      <div class="form-group">
+        <label for="kyNangIds">Kỹ năng</label>
+        <nz-select
+          id="kyNangIds"
+          nzMode="multiple"
+          nzShowSearch
+          nzPlaceHolder="Chọn kỹ năng"
+          [(ngModel)]="tnvmoi.kyNangIds"
+          name="kyNangIds"
+          style="width: 100%;"
+          nzSize="large"
+          [nzMaxTagCount]="5">
+          <nz-option *ngFor="let skill of allSkills"
+                     [nzValue]="skill.maKyNang"
+                     [nzLabel]="skill.tenKyNang">
+          </nz-option>
+        </nz-select>
+      </div>
+
+      <!-- Chọn lĩnh vực (ng-zorro nz-select multiple) -->
+      <div class="form-group">
+        <label for="linhVucIds">Lĩnh vực</label>
+        <nz-select
+          id="linhVucIds"
+          nzMode="multiple"
+          nzShowSearch
+          nzPlaceHolder="Chọn lĩnh vực"
+          [(ngModel)]="tnvmoi.linhVucIds"
+          name="linhVucIds"
+          style="width: 100%;"
+          nzSize="large"
+          [nzMaxTagCount]="5">
+          <nz-option *ngFor="let field of allFields"
+                     [nzValue]="field.maLinhVuc"
+                     [nzLabel]="field.tenLinhVuc">
+          </nz-option>
+        </nz-select>
+      </div>
+        <div class="form-group">
+          <label>Giới thiệu</label>
+          <textarea class="form-control" [(ngModel)]="tnvmoi.gioiThieu" name="gioiThieu" rows="4" placeholder="Giới thiệu ngắn gọn về kinh nghiệm, điểm mạnh..."></textarea>
+        </div>
+        <div class="modal-footer px-0 pb-0">
           <button type="button" class="btn-modal btn-cancel" (click)="huyChinhSua()">Hủy</button>
           <button type="submit" class="btn-modal btn-approve">{{ dangSua ? 'Lưu thay đổi' : 'Thêm mới' }}</button>
         </div>
@@ -154,93 +207,156 @@
 
 <!-- Modal chi tiết TNV -->
 <div class="modal" *ngIf="tnvdangxem" (click)="dongChiTietTNV()">
-  <div class="modal-content" (click)="$event.stopPropagation()">
+  <div class="modal-content modal-lg" (click)="$event.stopPropagation()">
     <div class="modal-header">
       <h2>Chi tiết tình nguyện viên</h2>
       <button class="btn-close" (click)="dongChiTietTNV()">&times;</button>
     </div>
-    <div class="modal-body">
-      <div class="row">
-        <div class="col-md-4 text-center mb-3">
-          <img [src]="tnvdangxem.anhDaiDien ? getImageUrl(tnvdangxem.anhDaiDien) : 'assets/default-avatar.png'"
-               class="img-fluid rounded" alt="Avatar" style="max-height: 200px;">
-        </div>
-        <div class="col-md-8">
-          <h4>{{ tnvdangxem.hoTen }}</h4>
-          <div class="detail-row"><div class="label">Email:</div><div class="value">{{ tnvdangxem.email }}</div></div>
-          <div class="detail-row"><div class="label">SĐT:</div><div class="value">{{ tnvdangxem.soDienThoai || 'Chưa cập nhật' }}</div></div>
-          <div class="detail-row"><div class="label">Địa chỉ:</div><div class="value">{{ tnvdangxem.diaChi || 'Chưa cập nhật' }}</div></div>
-          <div class="detail-row"><div class="label">Điểm TB:</div><div class="value">{{ tnvdangxem.diemTrungBinh || '-' }}</div></div>
-          <div class="detail-row full-width"><div class="label">Giới thiệu:</div><div class="value">{{ tnvdangxem.gioiThieu || 'Chưa cập nhật' }}</div></div>
-        </div>
-      </div>
-
-      <div class="mt-3">
-        <h5>Kỹ năng</h5>
-        <div class="d-flex flex-wrap gap-2">
-          <span class="badge bg-success" *ngFor="let s of tnvdangxemSkills">{{ s.tenKyNang }}</span>
-          <span *ngIf="!tnvdangxemSkills || tnvdangxemSkills.length===0" class="text-muted">Chưa cập nhật</span>
-        </div>
-      </div>
-
-      <div class="mt-3">
-        <h5>Lĩnh vực</h5>
-        <div class="d-flex flex-wrap gap-2">
-          <span class="badge bg-info" *ngFor="let f of tnvdangxemFields">{{ f.tenLinhVuc }}</span>
-          <span *ngIf="!tnvdangxemFields || tnvdangxemFields.length===0" class="text-muted">Chưa cập nhật</span>
-        </div>
-      </div>
-
-      <div class="mt-4">
-        <h5>Lịch sử sự kiện</h5>
-        <div class="table-responsive">
-          <table class="table table-sm table-hover">
-            <thead>
-              <tr>
-                <th>Tên sự kiện</th>
-                <th>Ngày</th>
-                <th>Trạng thái</th>
-                <th>Chứng nhận</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr *ngIf="!tnvdangxemHistory || tnvdangxemHistory.length===0">
-                <td colspan="4" class="text-center">Chưa có lịch sử</td>
-              </tr>
-              <tr *ngFor="let h of tnvdangxemHistory">
-                <td>{{ h.tenSuKien }}</td>
-                <td>{{ h.ngayBatDau | date:'dd/MM/yyyy' }} - {{ h.ngayKetThuc | date:'dd/MM/yyyy' }}</td>
-                <td>{{ h.trangThaiText || (h.hoanThanh ? 'Đã kết thúc' : 'Đang diễn ra') }}</td>
-                <td>
-                  <span *ngIf="h.coGiayChungNhan" class="badge bg-success">Có</span>
-                  <span *ngIf="!h.coGiayChungNhan" class="badge bg-secondary">Không</span>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      <div class="mt-4">
-        <h5>Đánh giá gần nhất</h5>
-        <div *ngIf="tnvdangxemLatestReview; else noReview" class="card p-3">
-          <div class="d-flex justify-content-between">
-            <div>
-              <div class="fw-semibold">Sự kiện: {{ tnvdangxemLatestReview.tenSuKien }}</div>
-              <div class="text-muted small">Bởi: {{ tnvdangxemLatestReview.tenNguoiDanhGia }}</div>
-            </div>
-            <div class="badge bg-warning text-dark align-self-start">{{ tnvdangxemLatestReview.diemSo }}/5</div>
+    <div class="modal-body" *ngIf="tnvdangxem">
+      <div class="tnv-detail-grid">
+        <div class="tnv-hero">
+          <div class="tnv-hero-avatar">
+            <img [src]="tnvdangxem.anhDaiDien ? getImageUrl(tnvdangxem.anhDaiDien) : 'assets/default-avatar.png'"
+                 alt="Avatar tình nguyện viên"
+                 onerror="this.src='assets/default-avatar.png'">
           </div>
-          <div class="mt-2">{{ tnvdangxemLatestReview.noiDung || 'Không có nhận xét' }}</div>
-          <div class="text-muted small mt-1">{{ tnvdangxemLatestReview.ngayTao | date:'dd/MM/yyyy HH:mm' }}</div>
+          <div class="tnv-hero-info">
+            <h3 class="tnv-name">{{ tnvdangxem.hoTen || 'Chưa cập nhật' }}</h3>
+            <div class="tnv-meta">
+              <span class="badge bg-primary-soft">Điểm TB: {{ tnvdangxem.diemTrungBinh || '-' }}</span>
+              <span class="tnv-meta-item">
+                <i class="bi bi-envelope"></i> {{ tnvdangxem.email }}
+              </span>
+              <span class="tnv-meta-item">
+                <i class="bi bi-telephone"></i> {{ tnvdangxem.soDienThoai || 'Chưa cập nhật' }}
+              </span>
+              <span class="tnv-meta-item" *ngIf="tnvdangxem.diaChi">
+                <i class="bi bi-geo-alt"></i> {{ tnvdangxem.diaChi }}
+              </span>
+            </div>
+          </div>
         </div>
-        <ng-template #noReview>
-          <div class="text-muted fst-italic">Chưa có đánh giá</div>
-        </ng-template>
+
+        <div class="tnv-detail-two-col">
+          <div class="detail-section">
+            <h3>Giới thiệu</h3>
+            <p class="detail-text">{{ tnvdangxem.gioiThieu || 'Chưa cập nhật giới thiệu.' }}</p>
+
+            <div class="tnv-subsection">
+              <h4>Kỹ năng</h4>
+              <div class="chip-list">
+                <span class="chip chip-success" *ngFor="let s of tnvdangxemSkills">{{ s.tenKyNang }}</span>
+                <span *ngIf="!tnvdangxemSkills || tnvdangxemSkills.length===0" class="text-muted">Chưa cập nhật kỹ năng</span>
+              </div>
+            </div>
+
+            <div class="tnv-subsection">
+              <h4>Lĩnh vực</h4>
+              <div class="chip-list">
+                <span class="chip chip-info" *ngFor="let f of tnvdangxemFields">{{ f.tenLinhVuc }}</span>
+                <span *ngIf="!tnvdangxemFields || tnvdangxemFields.length===0" class="text-muted">Chưa cập nhật lĩnh vực</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="detail-section">
+            <h3>Thông tin cá nhân</h3>
+            <div class="info-list">
+              <div class="info-item">
+                <span class="info-label">Giới tính</span>
+                <span class="info-value">{{ tnvdangxem.gioiTinh || 'Chưa cập nhật' }}</span>
+              </div>
+              <div class="info-item">
+                <span class="info-label">Ngày sinh</span>
+                <span class="info-value">{{ tnvdangxem.ngaySinh ? (tnvdangxem.ngaySinh | date:'dd/MM/yyyy') : 'Chưa cập nhật' }}</span>
+              </div>
+              <div class="info-item">
+                <span class="info-label">CCCD</span>
+                <span class="info-value">{{ tnvdangxem.cccd || 'Chưa cập nhật' }}</span>
+              </div>
+              <div class="info-item">
+                <span class="info-label">Địa chỉ</span>
+                <span class="info-value">{{ tnvdangxem.diaChi || 'Chưa cập nhật' }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Bỏ phần đánh giá theo yêu cầu -->
+
+        <!-- Chứng nhận (thu gọn + preview) -->
+        <div class="detail-section">
+          <h3>Chứng nhận</h3>
+          <div class="detail-table-wrapper" *ngIf="hasCertificates(); else noCerts">
+            <table class="detail-table">
+              <thead>
+                <tr>
+                  <th>Sự kiện</th>
+                  <th>Ngày cấp</th>
+                  <th>Hành động</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let c of tnvdangxemCertificates | slice:0:5">
+                  <td>{{ c.tenSuKien || c.suKien?.tenSuKien }}</td>
+                  <td>{{ (c.ngayCap || c.ngayTao) | date:'dd/MM/yyyy' }}</td>
+                  <td>
+                    <button class="btn btn-sm btn-outline-primary" 
+                            (click)="openCertificateById(c.maGiayChungNhan || c.certificateId)"
+                            [disabled]="!(c?.maGiayChungNhan || c?.certificateId)">
+                      Xem chứng nhận
+                    </button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <ng-template #noCerts>
+            <div class="text-muted fst-italic">Chưa có chứng nhận</div>
+          </ng-template>
+        </div>
+
+        <!-- Certificate Viewer Modal (reuse existing component) -->
+        <app-certificate-viewer-modal
+          [certificateId]="certificateIdToView"
+          [show]="showCertificateViewer"
+          (close)="onCloseCertificateViewer()">
+        </app-certificate-viewer-modal>
       </div>
     </div>
     <div class="modal-footer">
       <button class="btn-modal btn-cancel" (click)="dongChiTietTNV()">Đóng</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal xác nhận xóa tình nguyện viên -->
+<div class="modal" *ngIf="tnvCanXoa" (click)="huyXoaTNV()">
+  <div class="modal-content modal-confirm" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h2>Xác nhận xóa</h2>
+      <button class="btn-close" (click)="huyXoaTNV()">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div class="confirm-content">
+        <div class="confirm-icon">
+          <i class="bi bi-exclamation-triangle"></i>
+        </div>
+        <h3>Bạn có chắc chắn muốn xóa?</h3>
+        <p class="confirm-message">
+          Tình nguyện viên <strong>"{{ tnvCanXoa.hoTen }}"</strong> sẽ bị xóa vĩnh viễn và không thể khôi phục.
+        </p>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn-modal btn-cancel" (click)="huyXoaTNV()" [disabled]="isDeleting">Hủy</button>
+      <button type="button" class="btn-modal btn-delete" (click)="xacNhanXoaTNV()" [disabled]="isDeleting">
+        <span *ngIf="!isDeleting">Xóa</span>
+        <span *ngIf="isDeleting">
+          <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+          Đang xóa...
+        </span>
+      </button>
     </div>
   </div>
 </div>

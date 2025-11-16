@@ -1,0 +1,22 @@
+<div 
+  class="confirm-backdrop" 
+  *ngIf="isOpen"
+  role="dialog"
+  aria-modal="true"
+  aria-labelledby="confirm-title"
+>
+  <div class="confirm-dialog" [class.danger]="isDanger">
+    <div class="confirm-header">
+      <h5 id="confirm-title">{{ title }}</h5>
+    </div>
+    <div class="confirm-body">
+      <p class="mb-0">{{ current?.message }}</p>
+    </div>
+    <div class="confirm-footer">
+      <button type="button" class="btn btn-outline-secondary" (click)="onCancel()">{{ cancelText }}</button>
+      <button type="button" class="btn" [class.btn-danger]="isDanger" [class.btn-primary]="!isDanger" (click)="onOk()">{{ okText }}</button>
+    </div>
+  </div>
+</div>
+
+

@@ -35,10 +35,15 @@
             id="hoTen" 
             name="hoTen"
             [(ngModel)]="registerData.hoTen" 
+            (blur)="validateHoTen()"
             placeholder="Nguyễn Văn A"
             required
             [disabled]="isLoading"
+            [class.error]="fieldErrors.hoTen"
           />
+          <div *ngIf="fieldErrors.hoTen" class="field-error">
+            {{ fieldErrors.hoTen }}
+          </div>
         </div>
 
         <div class="form-group">
@@ -48,10 +53,15 @@
             id="email" 
             name="email"
             [(ngModel)]="registerData.email" 
+            (blur)="validateEmail()"
             placeholder="abc@gmail.com"
             required
             [disabled]="isLoading"
+            [class.error]="fieldErrors.email"
           />
+          <div *ngIf="fieldErrors.email" class="field-error">
+            {{ fieldErrors.email }}
+          </div>
         </div>
       </div>
 
@@ -63,10 +73,17 @@
             id="password" 
             name="password"
             [(ngModel)]="registerData.password" 
+            (input)="validatePassword()"
+            (blur)="validatePassword()"
             placeholder="••••••••"
             required
             [disabled]="isLoading"
+            [class.error]="fieldErrors.password"
           />
+          <div *ngIf="fieldErrors.password" class="field-error">
+            {{ fieldErrors.password }}
+          </div>
+          <!-- <small *ngIf="!fieldErrors.password && registerData.password" class="password-hint">Mật khẩu phải có ít nhất 8 ký tự, bao gồm chữ hoa, chữ thường và số</small> -->
         </div>
 
         <div class="form-group">
@@ -76,23 +93,30 @@
             id="confirmPassword" 
             name="confirmPassword"
             [(ngModel)]="registerData.confirmPassword" 
+            (input)="validateConfirmPassword()"
+            (blur)="validateConfirmPassword()"
             placeholder="••••••••"
             required
             [disabled]="isLoading"
+            [class.error]="fieldErrors.confirmPassword"
           />
+          <div *ngIf="fieldErrors.confirmPassword" class="field-error">
+            {{ fieldErrors.confirmPassword }}
+          </div>
         </div>
       </div>
 
       <!-- Vai trò -->
       <div class="form-group">
         <label>Bạn là? *</label>
-        <div class="role-selection">
+        <div class="role-selection" [class.error]="fieldErrors.vaiTro">
           <label class="role-option">
             <input 
               type="radio" 
               name="vaiTro" 
               value="User"
               [(ngModel)]="registerData.vaiTro"
+              (change)="validateVaiTro()"
               required
               [disabled]="isLoading"
             />
@@ -108,6 +132,7 @@
               name="vaiTro" 
               value="Organization"
               [(ngModel)]="registerData.vaiTro"
+              (change)="validateVaiTro()"
               required
               [disabled]="isLoading"
             />
@@ -116,6 +141,9 @@
               Tổ chức
             </span>
           </label>
+        </div>
+        <div *ngIf="fieldErrors.vaiTro" class="field-error">
+          {{ fieldErrors.vaiTro }}
         </div>
       </div>
 

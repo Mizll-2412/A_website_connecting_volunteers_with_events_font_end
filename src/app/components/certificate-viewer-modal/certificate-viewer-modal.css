@@ -1,0 +1,84 @@
+/* Ensure nested modal overlays correctly above parent modal */
+#certificateViewerModal {
+  z-index: 1062;
+}
+
+.modal-backdrop {
+  z-index: 1061;
+}
+.certificate-preview {
+  padding: 20px;
+  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  border-radius: 8px;
+  overflow: auto;
+}
+
+.canvas-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 400px;
+  padding: 20px;
+}
+
+.certificate-canvas {
+  max-width: 100%;
+  height: auto;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+  border-radius: 4px;
+  background: white;
+  display: block;
+}
+
+.modal-xl {
+  max-width: 1200px;
+}
+
+/* Loading và Error states */
+.spinner-border {
+  width: 3rem;
+  height: 3rem;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .certificate-preview {
+    padding: 10px;
+  }
+  
+  .canvas-container {
+    padding: 10px;
+    min-height: 300px;
+  }
+  
+  .certificate-canvas {
+    max-width: 100%;
+  }
+}
+
+/* Modal fullscreen trên mobile */
+@media (max-width: 576px) {
+  .modal-fullscreen-md-down {
+    max-width: 100%;
+    margin: 0;
+  }
+  
+  .modal-fullscreen-md-down .modal-content {
+    height: 100vh;
+    border: 0;
+    border-radius: 0;
+  }
+  
+  .modal-fullscreen-md-down .modal-body {
+    overflow-y: auto;
+  }
+}
+
+/* Button styles */
+.modal-footer .btn {
+  min-width: 120px;
+}
+
+.btn-close-white {
+  filter: brightness(0) invert(1);
+}

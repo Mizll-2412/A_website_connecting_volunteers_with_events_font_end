@@ -170,8 +170,14 @@
   text-decoration: underline;
 }
 
+.button-group {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
 .btn-primary {
-  width: 100%;
+  flex: 1;
   padding: 14px;
   background: #4CAF50;
   color: white;
@@ -191,6 +197,10 @@
 .btn-primary:disabled {
   opacity: 0.6;
   cursor: not-allowed;
+}
+
+.globe-button-wrapper {
+  flex-shrink: 0;
 }
 
 .auth-footer {

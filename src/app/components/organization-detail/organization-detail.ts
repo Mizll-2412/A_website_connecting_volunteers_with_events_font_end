@@ -4,12 +4,14 @@ import { CommonModule } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { ToChucService } from '../../services/organization';
 import { EventService } from '../../services/event';
+import { EvaluationService } from '../../services/evaluation.service';
 import { getImageUrl, getOrgDefaultImage as getOrgDefaultImageUtil } from '../../utils/image-url.util';
+import { EventCardComponent } from '../shared/event-card/event-card';
 
 @Component({
   selector: 'app-organization-detail',
   standalone: true,
-  imports: [CommonModule, RouterModule],
+  imports: [CommonModule, RouterModule, EventCardComponent],
   templateUrl: './organization-detail.html',
   styleUrls: ['./organization-detail.css']
 })
@@ -17,7 +19,9 @@ export class OrganizationDetailComponent implements OnInit {
   organizationId?: number;
   organization: any = null;
   events: any[] = [];
+  evaluations: any[] = [];
   isLoading = false;
+  isLoadingEvaluations = false;
   errorMessage = '';
 
   constructor(
@@ -25,6 +29,7 @@ export class OrganizationDetailComponent implements OnInit {
     private router: Router,
     private orgService: ToChucService,
     private eventService: EventService,
+    private evaluationService: EvaluationService,
     private http: HttpClient
   ) {}
 
@@ -34,6 +39,7 @@ export class OrganizationDetailComponent implements OnInit {
       if (this.organizationId) {
         this.loadOrganizationDetails(this.organizationId);
         this.loadOrganizationEvents(this.organizationId);
+        this.loadOrganizationEvaluations(this.organizationId);
       }
     });
   }
@@ -75,12 +81,52 @@ export class OrganizationDetailComponent implements OnInit {
     return date.toLocaleDateString('vi-VN');
   }
 
-  getStatusText(status: number | string | undefined): string {
-    if (typeof status === 'string') {
-      return status;
+  getStatusText(event: any): string {
+    // Ưu tiên sử dụng trangThaiHienThi từ backend nếu có
+    if (event?.trangThaiHienThi) {
+      return event.trangThaiHienThi;
     }
-    if (typeof status === 'number') {
-      switch (status) {
+    
+    // Nếu có status dạng string, trả về luôn
+    if (typeof event?.trangThai === 'string') {
+      if (event.trangThai === 'Đã kết thúc' || event.trangThai === 'Sự kiện đã kết thúc') {
+        return 'Sự kiện đã kết thúc';
+      }
+      return event.trangThai;
+    }
+    
+    // Tính toán trạng thái dựa trên ngày thực tế
+    if (event?.ngayBatDau && event?.ngayKetThuc) {
+      const now = new Date();
+      const startDate = new Date(event.ngayBatDau);
+      const endDate = new Date(event.ngayKetThuc);
+      const recruitStart = event.tuyenBatDau ? new Date(event.tuyenBatDau) : null;
+      const recruitEnd = event.tuyenKetThuc ? new Date(event.tuyenKetThuc) : null;
+      
+      // Kiểm tra đã kết thúc
+      if (endDate < now) {
+        return 'Sự kiện đã kết thúc';
+      }
+      
+      // Kiểm tra đang diễn ra
+      if (startDate <= now && endDate >= now) {
+        return 'Đang diễn ra';
+      }
+      
+      // Kiểm tra đang tuyển
+      if (recruitStart && recruitEnd && recruitStart <= now && recruitEnd >= now) {
+        return 'Đang tuyển';
+      }
+      
+      // Sắp diễn ra
+      if (startDate > now) {
+        return 'Sắp diễn ra';
+      }
+    }
+    
+    // Fallback: sử dụng status number nếu có
+    if (typeof event?.trangThai === 'number') {
+      switch (event.trangThai) {
         case 0: return 'Đang tuyển';
         case 1: return 'Đã duyệt';
         case 2: return 'Đã hủy';
@@ -88,29 +134,25 @@ export class OrganizationDetailComponent implements OnInit {
         default: return 'Đang tuyển';
       }
     }
+    
     return 'Đang tuyển';
   }
 
-  getStatusClass(status: number | string | undefined): string {
-    if (typeof status === 'string') {
-      if (status === 'Đã duyệt' || status === 'Kết thúc' || status === 'Đã kết thúc') {
-        return 'bg-success';
-      } else if (status === 'Đang tuyển' || status === 'Sắp diễn ra') {
-        return 'bg-warning';
-      } else if (status === 'Đã hủy' || status === 'Hủy bỏ') {
-        return 'bg-danger';
-      }
+  getStatusClass(event: any): string {
+    const status = this.getStatusText(event);
+    
+    if (status === 'Sự kiện đã kết thúc' || status === 'Đã kết thúc') {
       return 'bg-secondary';
+    } else if (status === 'Đang diễn ra') {
+      return 'bg-success';
+    } else if (status === 'Đang tuyển') {
+      return 'bg-warning';
+    } else if (status === 'Sắp diễn ra') {
+      return 'bg-info';
+    } else if (status === 'Đã hủy' || status === 'Hủy bỏ') {
+      return 'bg-danger';
     }
-    if (typeof status === 'number') {
-      switch (status) {
-        case 0: return 'bg-warning';
-        case 1: return 'bg-success';
-        case 2: return 'bg-danger';
-        case 3: return 'bg-info';
-        default: return 'bg-secondary';
-      }
-    }
+    
     return 'bg-secondary';
   }
 
@@ -120,6 +162,83 @@ export class OrganizationDetailComponent implements OnInit {
 
   getOrgDefaultImage(): string {
     return getOrgDefaultImageUtil();
+  }
+
+  loadOrganizationEvaluations(orgId: number): void {
+    this.isLoadingEvaluations = true;
+    
+    // Lấy tất cả đánh giá từ các sự kiện của tổ chức
+    // Lấy danh sách event IDs trước
+    this.eventService.getEventsByOrganization(orgId).subscribe({
+      next: (eventsResponse: any) => {
+        const orgEvents = eventsResponse.data || eventsResponse || [];
+        const eventIds = orgEvents.map((e: any) => e.maSuKien).filter((id: any) => id);
+        
+        if (eventIds.length === 0) {
+          this.evaluations = [];
+          this.isLoadingEvaluations = false;
+          return;
+        }
+        
+        // Load đánh giá từ tất cả các sự kiện
+        // Lọc chỉ lấy đánh giá từ TNV đến tổ chức (vaiTroNguoiDanhGia = 'User', vaiTroNguoiDuocDanhGia = 'Organization')
+        const allEvaluations: any[] = [];
+        let loadedCount = 0;
+        
+        eventIds.forEach((eventId: number) => {
+          this.evaluationService.getEvaluationsByEvent(eventId).subscribe({
+            next: (response: any) => {
+              const evals = response.data || response || [];
+              // Lọc chỉ lấy đánh giá từ User đến Organization
+              const filteredEvals = evals.filter((e: any) => 
+                e.vaiTroNguoiDanhGia === 'User' && 
+                e.vaiTroNguoiDuocDanhGia === 'Organization'
+              );
+              allEvaluations.push(...filteredEvals);
+              
+              loadedCount++;
+              if (loadedCount === eventIds.length) {
+                // Sắp xếp theo ngày tạo mới nhất
+                this.evaluations = allEvaluations.sort((a, b) => {
+                  const dateA = new Date(a.ngayTao || 0).getTime();
+                  const dateB = new Date(b.ngayTao || 0).getTime();
+                  return dateB - dateA;
+                });
+                this.isLoadingEvaluations = false;
+              }
+            },
+            error: (err) => {
+              console.error(`Lỗi khi tải đánh giá cho sự kiện ${eventId}:`, err);
+              loadedCount++;
+              if (loadedCount === eventIds.length) {
+                this.evaluations = allEvaluations.sort((a, b) => {
+                  const dateA = new Date(a.ngayTao || 0).getTime();
+                  const dateB = new Date(b.ngayTao || 0).getTime();
+                  return dateB - dateA;
+                });
+                this.isLoadingEvaluations = false;
+              }
+            }
+          });
+        });
+      },
+      error: (err) => {
+        console.error('Lỗi khi tải danh sách sự kiện để lấy đánh giá:', err);
+        this.isLoadingEvaluations = false;
+      }
+    });
+  }
+
+  formatDateTime(dateStr?: any): string {
+    if (!dateStr) return '';
+    const date = new Date(dateStr);
+    return date.toLocaleString('vi-VN', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
   }
 }
 

@@ -1,9 +1,15 @@
 import { Component, Input, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { HttpClient } from '@angular/common/http';
 import { TinhNguyenVienService } from '../../services/volunteer';
 import { SkillService } from '../../services/skill';
 import { FieldService } from '../../services/field';
+import { EvaluationService } from '../../services/evaluation.service';
+import { RegistrationService } from '../../services/registration';
+import { CertificateService } from '../../services/certificate.service';
 import { getImageUrl } from '../../utils/image-url.util';
+import { environment } from '../../../environments/environment';
+import { ToastService } from '../../services/toast.service';
 
 interface Volunteer {
   maTNV: number;
@@ -37,11 +43,33 @@ export class VolunteerProfileViewerComponent implements OnInit {
   skills: any[] = [];
   fields: any[] = [];
   modalId = `volunteerProfileModal_${Math.random().toString(36).substr(2, 9)}`;
+  
+  // Tab navigation
+  activeTab: string = 'info';
+  
+  // Data cho các tabs
+  evaluations: any[] = [];
+  activeEvents: any[] = [];
+  finishedEvents: any[] = [];
+  certificates: any[] = [];
+  
+  // Loading states
+  isLoadingEvaluations = false;
+  isLoadingEvents = false;
+  isLoadingCertificates = false;
+  
+  // API URL
+  private apiUrl = environment.apiUrl;
 
   constructor(
     private volunteerService: TinhNguyenVienService,
     private skillService: SkillService,
-    private fieldService: FieldService
+    private fieldService: FieldService,
+    private evaluationService: EvaluationService,
+    private registrationService: RegistrationService,
+    private certificateService: CertificateService,
+    private http: HttpClient,
+    private toast: ToastService
   ) {}
 
   ngOnInit(): void {
@@ -83,6 +111,7 @@ export class VolunteerProfileViewerComponent implements OnInit {
 
     this.isLoading = true;
     this.volunteerDetail = null;
+    this.activeTab = 'info'; // Reset về tab thông tin
 
     // Load thông tin chi tiết TNV
     this.volunteerService.getVolunteerById(targetMaTNV).subscribe({
@@ -100,7 +129,93 @@ export class VolunteerProfileViewerComponent implements OnInit {
       error: (err) => {
         console.error('Lỗi tải chi tiết TNV:', err);
         this.isLoading = false;
-        alert('Không thể tải thông tin chi tiết');
+        this.toast.error('Không thể tải thông tin chi tiết');
+      }
+    });
+  }
+
+  selectTab(tab: string): void {
+    this.activeTab = tab;
+    
+    // Load dữ liệu cho tab tương ứng
+    if (tab === 'evaluations' && this.evaluations.length === 0) {
+      this.loadEvaluations();
+    } else if (tab === 'active-events' && this.activeEvents.length === 0) {
+      this.loadEvents();
+    } else if (tab === 'finished-events' && this.finishedEvents.length === 0) {
+      this.loadEvents();
+    } else if (tab === 'certificates' && this.certificates.length === 0) {
+      this.loadCertificates();
+    }
+  }
+
+  loadEvaluations(): void {
+    if (!this.volunteerDetail?.maTaiKhoan) return;
+    
+    this.isLoadingEvaluations = true;
+    // Load đánh giá nhận được từ tổ chức (received evaluations)
+    this.evaluationService.getReceivedEvaluations(this.volunteerDetail.maTaiKhoan).subscribe({
+      next: (response: any) => {
+        this.evaluations = response.data || response || [];
+        this.isLoadingEvaluations = false;
+      },
+      error: (err) => {
+        console.error('Lỗi tải đánh giá:', err);
+        this.isLoadingEvaluations = false;
+      }
+    });
+  }
+
+  loadEvents(): void {
+    if (!this.volunteerDetail?.maTNV) return;
+    
+    this.isLoadingEvents = true;
+    this.registrationService.getRegistrationsByVolunteer(this.volunteerDetail.maTNV).subscribe({
+      next: (response: any) => {
+        const registrations = response.data || response || [];
+        console.log('Danh sách đăng ký gốc:', registrations);
+        
+        const now = new Date();
+        
+        // Phân loại sự kiện - backend đã trả về thông tin event đầy đủ
+        this.activeEvents = registrations.filter((reg: any) => {
+          if (!reg.event || !reg.event.ngayKetThuc) return false;
+          const endDate = new Date(reg.event.ngayKetThuc);
+          // Chỉ hiển thị sự kiện đã duyệt (1) và chưa kết thúc
+          return endDate >= now && reg.trangThai === 1;
+        });
+        
+        this.finishedEvents = registrations.filter((reg: any) => {
+          if (!reg.event || !reg.event.ngayKetThuc) return false;
+          const endDate = new Date(reg.event.ngayKetThuc);
+          // Chỉ hiển thị sự kiện đã duyệt (1) và đã kết thúc
+          return endDate < now && reg.trangThai === 1;
+        });
+        
+        console.log('Sự kiện đang tham gia:', this.activeEvents);
+        console.log('Sự kiện đã tham gia:', this.finishedEvents);
+        
+        this.isLoadingEvents = false;
+      },
+      error: (err) => {
+        console.error('Lỗi tải sự kiện:', err);
+        this.isLoadingEvents = false;
+      }
+    });
+  }
+
+  loadCertificates(): void {
+    if (!this.volunteerDetail?.maTNV) return;
+    
+    this.isLoadingCertificates = true;
+    this.certificateService.getCertificatesByVolunteer(this.volunteerDetail.maTNV).subscribe({
+      next: (response: any) => {
+        this.certificates = response.data || response || [];
+        this.isLoadingCertificates = false;
+      },
+      error: (err) => {
+        console.error('Lỗi tải chứng nhận:', err);
+        this.isLoadingCertificates = false;
       }
     });
   }

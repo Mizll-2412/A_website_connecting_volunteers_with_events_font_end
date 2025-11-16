@@ -31,6 +31,7 @@
             ],
             "styles": [
               "node_modules/bootstrap/dist/css/bootstrap.min.css",
+              "node_modules/ng-zorro-antd/ng-zorro-antd.min.css",
               "src/styles.css"
             ],
             "scripts": [
@@ -62,7 +63,7 @@
             "development": {
               "optimization": false,
               "extractLicenses": false,
-              "sourceMap": true
+              "sourceMap": false
             }
           },
           "defaultConfiguration": "development"
@@ -73,9 +74,9 @@
             "host": "0.0.0.0",
             "port": 4200,
             "allowedHosts": [
-              "tinhnguyenvien.buituantu.com",
-              "api.buituantu.com",
-              ".buituantu.com"
+              "tinhnguyenvien.io.vn",
+              "api.tinhnguyenvien.io.vn",
+              ".tinhnguyenvien.io.vn"
             ]
           },
           "configurations": {

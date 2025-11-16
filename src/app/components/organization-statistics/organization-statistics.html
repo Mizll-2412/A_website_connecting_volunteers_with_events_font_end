@@ -1,0 +1,380 @@
+<div class="stats-page">
+  <div class="page-container py-4">
+    <div class="page-header mb-4">
+      <div>
+        <h2 class="page-title mb-1">Thống kê tổ chức</h2>
+        <p class="text-muted mb-0" *ngIf="stats">{{ stats.organizationName }}</p>
+      </div>
+    </div>
+
+    <!-- Bộ lọc thời gian -->
+    <div class="card mb-4">
+      <div class="card-body">
+        <div class="row g-3 align-items-end">
+          <div class="col-md-3">
+            <label class="form-label small fw-semibold mb-2">Loại lọc</label>
+            <select class="form-select" [(ngModel)]="timeFilterType" (change)="onTimeFilterTypeChange()">
+              <option value="year">Theo năm</option>
+              <option value="quarter">Theo quý</option>
+              <option value="month">Theo tháng</option>
+              <option value="custom">Khoảng ngày cụ thể</option>
+            </select>
+          </div>
+
+          <!-- Lọc theo năm -->
+          <div class="col-md-3" *ngIf="timeFilterType === 'year'">
+            <label class="form-label small fw-semibold mb-2">Năm</label>
+            <select class="form-select" [(ngModel)]="selectedYear" (change)="applyTimeFilter()">
+              <option *ngFor="let year of availableYears" [value]="year">{{ year }}</option>
+            </select>
+          </div>
+
+          <!-- Lọc theo quý -->
+          <div class="col-md-2" *ngIf="timeFilterType === 'quarter'">
+            <label class="form-label small fw-semibold mb-2">Năm</label>
+            <select class="form-select" [(ngModel)]="selectedYear" (change)="applyTimeFilter()">
+              <option *ngFor="let year of availableYears" [value]="year">{{ year }}</option>
+            </select>
+          </div>
+          <div class="col-md-2" *ngIf="timeFilterType === 'quarter'">
+            <label class="form-label small fw-semibold mb-2">Quý</label>
+            <select class="form-select" [(ngModel)]="selectedQuarter" (change)="applyTimeFilter()">
+              <option value="1">Quý 1</option>
+              <option value="2">Quý 2</option>
+              <option value="3">Quý 3</option>
+              <option value="4">Quý 4</option>
+            </select>
+          </div>
+
+          <!-- Lọc theo tháng -->
+          <div class="col-md-2" *ngIf="timeFilterType === 'month'">
+            <label class="form-label small fw-semibold mb-2">Năm</label>
+            <select class="form-select" [(ngModel)]="selectedYear" (change)="applyTimeFilter()">
+              <option *ngFor="let year of availableYears" [value]="year">{{ year }}</option>
+            </select>
+          </div>
+          <div class="col-md-2" *ngIf="timeFilterType === 'month'">
+            <label class="form-label small fw-semibold mb-2">Tháng</label>
+            <select class="form-select" [(ngModel)]="selectedMonth" (change)="applyTimeFilter()">
+              <option value="1">Tháng 1</option>
+              <option value="2">Tháng 2</option>
+              <option value="3">Tháng 3</option>
+              <option value="4">Tháng 4</option>
+              <option value="5">Tháng 5</option>
+              <option value="6">Tháng 6</option>
+              <option value="7">Tháng 7</option>
+              <option value="8">Tháng 8</option>
+              <option value="9">Tháng 9</option>
+              <option value="10">Tháng 10</option>
+              <option value="11">Tháng 11</option>
+              <option value="12">Tháng 12</option>
+            </select>
+          </div>
+
+          <!-- Lọc theo khoảng ngày -->
+          <div class="col-md-4" *ngIf="timeFilterType === 'custom'">
+            <label class="form-label small fw-semibold mb-2">Khoảng thời gian</label>
+            <nz-range-picker
+              [(ngModel)]="dateRange"
+              (ngModelChange)="onDateRangeChange($event)"
+              nzFormat="dd/MM/yyyy"
+              [nzPlaceHolder]="['Từ ngày', 'Đến ngày']"
+              nzSize="default"
+              style="width: 100%;" />
+          </div>
+
+          <div class="col-md-auto">
+            <button class="btn btn-outline-secondary" (click)="clearTimeFilter()">
+              <i class="bi bi-x-circle me-1"></i>Xóa bộ lọc
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  <!-- Loading state -->
+    <div *ngIf="isLoading" class="loading-state text-center py-5">
+    <div class="spinner-border text-primary" role="status">
+      <span class="visually-hidden">Đang tải...</span>
+    </div>
+      <p class="mt-3 mb-0">Đang tải dữ liệu thống kê...</p>
+  </div>
+
+    <div *ngIf="!isLoading && stats" class="stats-content">
+    <!-- Tổng quan -->
+    <div class="row g-4 mb-4">
+      <div class="col-md-3">
+        <div class="stat-card">
+          <div class="stat-icon bg-primary">
+            <i class="bi bi-calendar-event"></i>
+          </div>
+          <div class="stat-content">
+            <h3 class="stat-value">{{ stats.totalEvents || 0 }}</h3>
+            <p class="stat-label">Tổng sự kiện</p>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="stat-card">
+          <div class="stat-icon bg-info">
+            <i class="bi bi-file-earmark-text"></i>
+          </div>
+          <div class="stat-content">
+            <h3 class="stat-value">{{ stats.totalRegistrations || 0 }}</h3>
+            <p class="stat-label">Tổng đơn đăng ký</p>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="stat-card">
+          <div class="stat-icon bg-success">
+            <i class="bi bi-people-fill"></i>
+          </div>
+          <div class="stat-content">
+            <h3 class="stat-value">{{ stats.totalVolunteers || 0 }}</h3>
+            <p class="stat-label">Tổng số TNV tham gia</p>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="stat-card">
+          <div class="stat-icon bg-warning">
+            <i class="bi bi-star-fill"></i>
+          </div>
+          <div class="stat-content">
+            <h3 class="stat-value">{{ formatAverage(stats.averageRating, 1) }}</h3>
+            <p class="stat-label">Điểm đánh giá TB</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Thống kê sự kiện -->
+    <div class="row g-4 mb-4">
+      <div class="col-md-6">
+        <div class="card">
+          <div class="card-header bg-white">
+            <h5 class="mb-0">Thống kê sự kiện</h5>
+          </div>
+          <div class="card-body">
+            <div class="chart-container">
+              <div class="chart-wrapper" style="height: 300px;">
+                <div class="chart-bars">
+                  <div *ngFor="let month of getMonthsArray()" class="chart-bar-container">
+                    <div class="chart-value">{{ getEventCountForMonth(month) }}</div>
+                    <div class="chart-bar-wrapper">
+                      <div class="chart-bar" [style.height.%]="getEventMonthPercentage(month)"></div>
+                    </div>
+                    <div class="chart-label">T{{ month }}</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="row mt-4">
+              <div class="col-6">
+                <div class="d-flex align-items-center mb-2">
+                  <div class="stat-indicator bg-success me-2"></div>
+                  <span>Hoàn thành: {{ stats.completedEvents || 0 }}</span>
+                </div>
+                <div class="d-flex align-items-center mb-2">
+                  <div class="stat-indicator bg-primary me-2"></div>
+                  <span>Đang diễn ra: {{ stats.activeEvents || 0 }}</span>
+                </div>
+              </div>
+              <div class="col-6">
+                <div class="d-flex align-items-center mb-2">
+                  <div class="stat-indicator bg-danger me-2"></div>
+                  <span>Đã hủy: {{ stats.cancelledEvents || 0 }}</span>
+                </div>
+                <div class="d-flex align-items-center mb-2">
+                  <div class="stat-indicator bg-secondary me-2"></div>
+                  <span>Sắp diễn ra: {{ stats.pendingEvents || 0 }}</span>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Indicator sự kiện có TNV chờ duyệt -->
+            <div *ngIf="eventsWithPendingRegistrations.length > 0" class="mt-3">
+              <div class="alert alert-warning border-0 shadow-sm mb-0">
+                <div class="d-flex align-items-center mb-2">
+                  <i class="bi bi-exclamation-triangle-fill me-2" style="font-size: 1.2rem;"></i>
+                  <strong>Sự kiện có tình nguyện viên chờ duyệt</strong>
+                </div>
+                <div class="list-group list-group-flush">
+                  <a *ngFor="let event of eventsWithPendingRegistrations" 
+                     (click)="navigateToEvent(event.eventId)"
+                     class="list-group-item list-group-item-action d-flex justify-content-between align-items-center"
+                     style="cursor: pointer; border: none; padding: 0.5rem 0;">
+                    <span class="text-truncate me-2">{{ event.eventName }}</span>
+                    <span class="badge bg-warning text-dark">{{ event.pendingCount }} đơn chờ duyệt</span>
+                  </a>
+                </div>
+              </div>
+            </div>
+            <div *ngIf="!isLoadingPendingEvents && eventsWithPendingRegistrations.length === 0 && stats && stats.totalEvents > 0" class="mt-3">
+              <div class="alert alert-success border-0 shadow-sm mb-0">
+                <i class="bi bi-check-circle-fill me-2"></i>
+                <strong>Không có sự kiện nào có tình nguyện viên chờ duyệt</strong>
+              </div>
+            </div>
+            <div class="row mt-3">
+              <div class="col-md-6 mb-3 mb-md-0">
+                <div class="bg-light rounded p-3 h-100">
+                  <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span class="text-muted">TNV mỗi sự kiện</span>
+                    <strong>{{ formatAverage(stats.averageVolunteersPerEvent, 2) }}</strong>
+                  </div>
+                  <div class="d-flex justify-content-between align-items-center">
+                    <span class="text-muted">Điểm trung bình</span>
+                    <strong>{{ formatAverage(stats.averageEventRating, 1) }}/5</strong>
+                  </div>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <h6 class="fw-semibold">Theo lĩnh vực</h6>
+                <ul class="list-unstyled mb-0">
+                  <li *ngFor="let item of getEntriesWithPercentage(stats.eventsByField, stats.totalEvents)" class="d-flex justify-content-between mb-1">
+                    <span>{{ item.key }}</span>
+                    <span>{{ item.value }} ({{ item.percentage }}%)</span>
+                  </li>
+                  <li *ngIf="getRecordEntries(stats.eventsByField).length === 0" class="text-muted">Không có dữ liệu</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Thống kê đăng ký -->
+      <div class="col-md-6">
+        <div class="card">
+          <div class="card-header bg-white">
+            <h5 class="mb-0">Thống kê đăng ký sự kiện</h5>
+          </div>
+          <div class="card-body">
+            <div class="chart-container">
+              <div class="chart-wrapper" style="height: 300px;">
+                <div class="chart-bars">
+                  <div *ngFor="let month of getMonthsArray()" class="chart-bar-container">
+                    <div class="chart-value">{{ getRegistrationCountForMonth(month) }}</div>
+                    <div class="chart-bar-wrapper">
+                      <div class="chart-bar" [style.height.%]="getRegistrationMonthPercentage(month)" style="background-color: #28a745;"></div>
+                    </div>
+                    <div class="chart-label">T{{ month }}</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="row mt-4">
+              <div class="col-md-6">
+                <div class="pie-chart-container">
+                  <div class="pie-chart" [ngStyle]="getRegistrationPieStyle()">
+                    <div class="pie-center">{{ stats.totalRegistrations || 0 }}</div>
+                  </div>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="d-flex align-items-center mb-2">
+                  <div class="stat-indicator bg-success me-2"></div>
+                  <span>Đã duyệt: {{ stats.approvedRegistrations || 0 }}</span>
+                </div>
+                <div class="d-flex align-items-center mb-2">
+                  <div class="stat-indicator bg-warning me-2"></div>
+                  <span>Chờ duyệt: {{ stats.pendingRegistrations || 0 }}</span>
+                </div>
+                <div class="d-flex align-items-center mb-2">
+                  <div class="stat-indicator bg-danger me-2"></div>
+                  <span>Đã từ chối: {{ stats.rejectedRegistrations || 0 }}</span>
+                </div>
+                <div class="d-flex align-items-center mb-2">
+                  <div class="stat-indicator bg-info me-2"></div>
+                  <span>Tỷ lệ chấp nhận: {{ formatAverage(stats.approvalRate, 1) }}%</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Thống kê đánh giá -->
+    <div class="row g-4 mb-4">
+      <div class="col-md-12">
+        <div class="card">
+          <div class="card-header bg-white">
+            <h5 class="mb-0">Thống kê đánh giá</h5>
+          </div>
+          <div class="card-body">
+            <div class="row">
+              <div class="col-md-6">
+                <div class="pie-chart-container">
+                  <div class="pie-chart" [ngStyle]="getRatingPieStyle()">
+                    <div class="pie-center">{{ formatAverage(stats.averageRating, 1) }}</div>
+                  </div>
+                </div>
+                <div class="text-center mt-3">
+                  <strong>Điểm trung bình: {{ formatAverage(stats.averageRating, 1) }}/5</strong>
+                  <p class="text-muted small mb-0">Tổng đánh giá: {{ stats.totalRatings || 0 }}</p>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <h6>Phân bố điểm đánh giá</h6>
+                <div class="rating-stats">
+                  <div *ngFor="let rating of [5,4,3,2,1]" class="rating-item">
+                    <div class="d-flex justify-content-between mb-1">
+                      <div>
+                        <i *ngFor="let i of [1,2,3,4,5]" class="bi" 
+                           [ngClass]="i <= rating ? 'bi-star-fill' : 'bi-star'"
+                           style="color: #ffc107;"></i>
+                      </div>
+                      <span>{{ getRatingCount(rating) }}</span>
+                    </div>
+                    <div class="progress">
+                      <div class="progress-bar bg-warning" 
+                           [style.width.%]="getRatingPercentage(rating)"></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="latest-evaluations mt-4">
+              <div class="d-flex justify-content-between align-items-center mb-3">
+                <h6 class="mb-0">Đánh giá mới nhất</h6>
+                <button class="btn btn-outline-primary btn-sm" type="button" (click)="navigateToEvaluations()">
+                  Xem thêm đánh giá
+                  <i class="bi bi-arrow-right-short ms-1"></i>
+                </button>
+              </div>
+              <div *ngIf="isLoadingEvaluations" class="text-center text-muted py-3">
+                <div class="spinner-border spinner-border-sm text-primary" role="status">
+                  <span class="visually-hidden">Đang tải đánh giá...</span>
+                </div>
+                <p class="mb-0 mt-2">Đang tải đánh giá mới nhất...</p>
+              </div>
+              <div *ngIf="!isLoadingEvaluations && evaluationError" class="alert alert-warning py-2 px-3 mb-0">
+                {{ evaluationError }}
+              </div>
+              <ng-container *ngIf="!isLoadingEvaluations && !evaluationError">
+                <div *ngIf="latestEvaluations.length === 0" class="text-muted">
+                  Chưa có đánh giá nào từ tình nguyện viên.
+                </div>
+                <div *ngFor="let evaluation of latestEvaluations" class="evaluation-preview p-3 mb-2">
+                  <div class="d-flex justify-content-between align-items-center mb-1">
+                    <strong>{{ evaluation.scorerName || 'Tình nguyện viên' }}</strong>
+                    <span class="badge bg-light text-dark">
+                      <i class="bi bi-star-fill text-warning me-1"></i>{{ evaluation.score }}/5
+                    </span>
+                  </div>
+                  <div class="text-muted small mb-2">
+                    {{ evaluation.eventName || 'Không rõ sự kiện' }} • {{ evaluation.createdAt | date:'dd/MM/yyyy HH:mm' }}
+                  </div>
+                  <p class="mb-0 text-truncate-2">{{ evaluation.content || 'Tình nguyện viên chưa để lại nhận xét chi tiết.' }}</p>
+                </div>
+              </ng-container>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
