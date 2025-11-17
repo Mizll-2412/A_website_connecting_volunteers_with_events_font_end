@@ -455,25 +455,28 @@ export class OrganizationStatistics implements OnInit {
   }
 
   getVolunteerRanks(): RankInfo[] {
-    if (!this.stats || !this.stats.volunteersByRank) return [];
+    const total = this.stats?.totalVolunteers || 0;
+    
+    // Định nghĩa tất cả các rank theo thứ tự từ thấp đến cao
+    const allRanks = [
+      { name: 'Tình nguyện viên Đồng', color: '#cd7f32' },
+      { name: 'Tình nguyện viên Bạc', color: '#c0c0c0' },
+      { name: 'Tình nguyện viên Vàng', color: '#ffd700' },
+      { name: 'Tình nguyện viên Bạch Kim', color: '#e5e4e2' },
+      { name: 'Tình nguyện viên Kim Cương', color: '#b9f2ff' }
+    ];
     
     const ranks: RankInfo[] = [];
-    const total = this.stats.totalVolunteers || 1;
+    const volunteersByRank = this.stats?.volunteersByRank || {};
     
-    const colors: Record<string, string> = {
-      'Tình nguyện viên Đồng': '#cd7f32',
-      'Tình nguyện viên Bạc': '#c0c0c0',
-      'Tình nguyện viên Vàng': '#ffd700',
-      'Tình nguyện viên Bạch Kim': '#e5e4e2',
-      'Tình nguyện viên Kim Cương': '#b9f2ff'
-    };
-    
-    for (const [name, count] of Object.entries(this.stats.volunteersByRank)) {
+    // Luôn hiển thị tất cả các rank, kể cả khi count = 0
+    for (const rank of allRanks) {
+      const count = volunteersByRank[rank.name] || 0;
       ranks.push({
-        name,
-        count,
-        percentage: (count / total) * 100,
-        color: colors[name] || '#6c757d'
+        name: rank.name,
+        count: count,
+        percentage: total > 0 ? (count / total) * 100 : 0,
+        color: rank.color
       });
     }
     
