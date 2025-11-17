@@ -1624,6 +1624,11 @@ export class EventManagementComponent implements OnInit, AfterViewInit, OnDestro
 
   rejectVolunteer(volunteer: Volunteer) {
     if (!this.selectedEvent) return;
+
+    if (this.isSelectedEventFinished()) {
+      this.toastService.warning('Sự kiện đã kết thúc, không thể từ chối thêm tình nguyện viên.');
+      return;
+    }
     
     // Hiển thị popup xác nhận
     const confirmed = confirm(`Bạn có chắc chắn muốn từ chối ${volunteer.hoTen} tham gia sự kiện "${this.selectedEvent.tenSuKien}"?`);
@@ -1689,6 +1694,21 @@ export class EventManagementComponent implements OnInit, AfterViewInit, OnDestro
     if (this.volunteerProfileViewer) {
       this.volunteerProfileViewer.open(volunteer.maTNV, volunteer);
     }
+  }
+
+  private isSelectedEventFinished(): boolean {
+    if (!this.selectedEvent) {
+      return false;
+    }
+
+    if (this.selectedEvent.ngayKetThuc) {
+      const eventEnd = new Date(this.selectedEvent.ngayKetThuc);
+      const now = new Date();
+      return eventEnd < now;
+    }
+
+    const status = (this.selectedEvent as any).trangThaiSuKien || this.selectedEvent.trangThai;
+    return typeof status === 'string' && status.toLowerCase().includes('kết thúc');
   }
 
   selectTab(tab: string) {
