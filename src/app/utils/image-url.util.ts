@@ -30,3 +30,17 @@ export function getOrgDefaultImage(): string {
   return 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgZmlsbD0iI2U1ZTdlZSIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTQiIGZpbGw9IiM5Y2EzYWYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIj5Ub1x1MDBmMGMgY2hcdTAwZjBjYzwvdGV4dD48L3N2Zz4=';
 }
 
+export function getImageUrll(path: string | null | undefined): string {
+  if (!path) return 'assets/default-event.jpg';
+  
+  if (path.startsWith('http://') || path.startsWith('https://')) {
+    return path;
+  }
+  
+  const baseUrl = environment.apiUrl.replace('/api', '');
+  return `${baseUrl}${path}`;
+}
+
+export function getEventImageUrl(path: string | null | undefined): string {
+  return getImageUrl(path);
+}

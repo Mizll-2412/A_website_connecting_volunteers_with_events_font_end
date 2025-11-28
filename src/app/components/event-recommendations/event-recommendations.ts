@@ -80,7 +80,7 @@ export class EventRecommendations implements OnInit {
       return;
     }
     
-    this.http.get<any>(`${this.apiUrl}/recommendation/volunteer/${this.volunteer.maTNV}`).subscribe({
+    this.http.get<any>(`${this.apiUrl}/recommendation/python/${this.volunteer.maTNV}`).subscribe({
       next: (response) => {
         this.recommendations = response.data || response;
         
@@ -92,6 +92,7 @@ export class EventRecommendations implements OnInit {
         this.isLoading = false;
       }
     });
+    
   }
   
   loadEventDetails(): void {

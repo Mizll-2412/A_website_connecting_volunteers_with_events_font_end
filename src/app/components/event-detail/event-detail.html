@@ -52,26 +52,27 @@
       <div class="col-lg-8">
         <!-- Event Image -->
         <img [src]="getImageUrl(event?.hinhAnh) || 'tinhnguyen.png'" class="event-img" alt="{{ event?.tenSuKien }}">
-        
+
         <!-- Organization Info - Chia đôi -->
         <div class="event-info-card mb-4" *ngIf="organization">
           <h3 class="event-info-title">Tổ chức tổ chức</h3>
           <div class="row">
             <div class="col-md-6">
               <div class="d-flex align-items-start mb-3">
-                <a [routerLink]="['/to-chuc', organization.maToChuc]" class="text-decoration-none" style="cursor: pointer;">
-                  <img [src]="getImageUrl(organization.anhDaiDien) || getOrgDefaultImage()" 
-                       class="organization-logo me-3" 
-                       alt="{{ organization.tenToChuc }}"
-                       onerror="this.onerror=null; this.src=this.getAttribute('data-fallback')"
-                       [attr.data-fallback]="getOrgDefaultImage()"
-                       style="cursor: pointer;">
+                <a [routerLink]="['/to-chuc', organization.maToChuc]" class="text-decoration-none"
+                  style="cursor: pointer;">
+                  <img [src]="getImageUrl(organization.anhDaiDien) || getOrgDefaultImage()"
+                    class="organization-logo me-3" alt="{{ organization.tenToChuc }}"
+                    onerror="this.onerror=null; this.src=this.getAttribute('data-fallback')"
+                    [attr.data-fallback]="getOrgDefaultImage()" style="cursor: pointer;">
                 </a>
                 <div>
-                  <a [routerLink]="['/to-chuc', organization.maToChuc]" class="text-decoration-none text-dark" style="cursor: pointer;">
+                  <a [routerLink]="['/to-chuc', organization.maToChuc]" class="text-decoration-none text-dark"
+                    style="cursor: pointer;">
                     <h5 class="mb-1" style="cursor: pointer;">
                       {{ organization.tenToChuc }}
-                      <i class="bi bi-check-circle text-primary ms-1" *ngIf="organization.trangThaiXacMinh === 1" title="Đã xác minh"></i>
+                      <i class="bi bi-check-circle text-primary ms-1" *ngIf="organization.trangThaiXacMinh === 1"
+                        title="Đã xác minh"></i>
                     </h5>
                   </a>
                   <p class="small text-muted mb-2" *ngIf="organization.gioiThieu">{{ organization.gioiThieu }}</p>
@@ -94,22 +95,21 @@
               </div>
               <div class="small mb-2" *ngIf="organization.website">
                 <i class="bi bi-link-45deg me-2"></i>
-                <a [href]="(organization.website.startsWith('http') ? '' : 'https://') + organization.website" 
-                   target="_blank" 
-                   class="text-blue">
+                <a [href]="(organization.website.startsWith('http') ? '' : 'https://') + organization.website"
+                  target="_blank" class="text-blue">
                   {{ organization.website }}
                 </a>
               </div>
             </div>
           </div>
         </div>
-        
+
         <!-- Event Description -->
         <div class="event-info-card">
           <h3 class="event-info-title">Mô tả sự kiện</h3>
           <p>{{ event?.noiDung || event?.moTa || 'Chưa có mô tả' }}</p>
         </div>
-        
+
         <!-- Skills and Fields -->
         <div class="event-info-card" *ngIf="getEventSkills().length > 0 || getEventFields().length > 0">
           <h3 class="event-info-title">Kỹ năng & Lĩnh vực</h3>
@@ -130,24 +130,24 @@
             </div>
           </div>
         </div>
-        
+
         <!-- Event Requirements -->
         <div class="event-info-card" *ngIf="event?.yeuCau">
           <h3 class="event-info-title">Yêu cầu</h3>
           <p>{{ event.yeuCau }}</p>
         </div>
-        
+
         <!-- Event Benefits -->
         <div class="event-info-card" *ngIf="event?.quyenLoi">
           <h3 class="event-info-title">Quyền lợi</h3>
           <p>{{ event.quyenLoi }}</p>
         </div>
-        
+
         <!-- Event Evaluations (chỉ hiển thị nếu sự kiện đã kết thúc) -->
         <div class="event-info-card" *ngIf="isEventEnded()">
           <h3 class="event-info-title">Đánh giá từ tình nguyện viên</h3>
           <p class="text-muted small mb-3">Các đánh giá của tình nguyện viên về tổ chức và sự kiện này</p>
-          
+
           <!-- Loading -->
           <div *ngIf="isLoadingEvaluations" class="text-center py-4">
             <div class="spinner-border text-primary" role="status">
@@ -155,29 +155,25 @@
             </div>
             <p class="mt-2 text-muted">Đang tải đánh giá...</p>
           </div>
-          
+
           <!-- Average Rating -->
           <div *ngIf="!isLoadingEvaluations && evaluations.length > 0" class="mb-4">
             <div class="d-flex align-items-center gap-3 mb-3">
               <div class="text-center">
                 <h2 class="mb-0">{{ averageRating.toFixed(1) }}</h2>
-                <app-star-rating 
-                  [rating]="averageRating" 
-                  [readonly]="true" 
-                  size="lg" 
-                  [showLabel]="false">
+                <app-star-rating [rating]="averageRating" [readonly]="true" size="lg" [showLabel]="false">
                 </app-star-rating>
                 <p class="text-muted small mb-0 mt-2">{{ evaluations.length }} đánh giá</p>
               </div>
             </div>
           </div>
-          
+
           <!-- No Evaluations -->
           <div *ngIf="!isLoadingEvaluations && evaluations.length === 0" class="text-center py-4">
             <i class="bi bi-star text-muted" style="font-size: 3rem;"></i>
             <p class="text-muted mt-3 mb-0">Chưa có đánh giá nào cho sự kiện này</p>
           </div>
-          
+
           <!-- Evaluations List -->
           <div *ngIf="!isLoadingEvaluations && evaluations.length > 0" class="evaluations-list">
             <div *ngFor="let evaluation of evaluations" class="evaluation-item mb-3 p-3 border rounded">
@@ -193,11 +189,7 @@
                 </div>
               </div>
               <div class="mb-2">
-                <app-star-rating 
-                  [rating]="evaluation.diemSo" 
-                  [readonly]="true" 
-                  size="sm" 
-                  [showLabel]="false">
+                <app-star-rating [rating]="evaluation.diemSo" [readonly]="true" size="sm" [showLabel]="false">
                 </app-star-rating>
               </div>
               <p class="mb-0" *ngIf="evaluation.noiDung">{{ evaluation.noiDung }}</p>
@@ -205,30 +197,27 @@
             </div>
           </div>
         </div>
-        
+
         <!-- Similar Events -->
         <div class="event-info-card">
           <div class="d-flex align-items-center mb-3">
             <h3 class="event-info-title mb-0">Sự kiện tương tự</h3>
-            <span class="ms-2" 
-                  [attr.data-bs-toggle]="'tooltip'"
-                  [attr.data-bs-placement]="'top'"
-                  [attr.data-bs-title]="getSimilarEventsExplanation()"
-                  style="cursor: help;">
+            <span class="ms-2" [attr.data-bs-toggle]="'tooltip'" [attr.data-bs-placement]="'top'"
+              [attr.data-bs-title]="getSimilarEventsExplanation()" style="cursor: help;">
               <i class="bi bi-question-circle text-muted" style="font-size: 1.2rem;"></i>
             </span>
           </div>
           <div class="row g-4" *ngIf="similarEvents.length > 0">
             <div class="col-md-4" *ngFor="let similarEvent of similarEvents">
-              <div class="card similar-event-card" (click)="navigateToOtherEvent(similarEvent.maSuKien)" style="cursor: pointer;">
-                <img [src]="getImageUrl(similarEvent.hinhAnh) || 'tinhnguyen.png'" 
-                     class="card-img-top" 
-                     alt="{{ similarEvent.tenSuKien }}"
-                     style="height: 180px; object-fit: cover;"
-                     onerror="this.src='assets/event-default.jpg'">
+              <div class="card similar-event-card" (click)="navigateToOtherEvent(similarEvent.maSuKien)"
+                style="cursor: pointer;">
+                <img [src]="getImageUrl(similarEvent.hinhAnh) || 'tinhnguyen.png'" class="card-img-top"
+                  alt="{{ similarEvent.tenSuKien }}" style="height: 180px; object-fit: cover;"
+                  onerror="this.src='assets/event-default.jpg'">
                 <div class="card-body">
                   <h6 class="card-title">{{ similarEvent.tenSuKien }}</h6>
-                  <p class="small text-muted mb-1" style="display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">
+                  <p class="small text-muted mb-1"
+                    style="display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">
                     {{ similarEvent.noiDung || 'Chưa có mô tả' }}
                   </p>
                   <div class="d-flex align-items-center small text-muted">
@@ -252,18 +241,18 @@
           <div class="d-flex justify-content-center mb-3" *ngIf="event?.matchRate">
             <div class="match-rate">{{ event?.matchRate }}%</div>
           </div>
-          
+
           <h4 class="text-center mb-4">
             <i class="bi bi-clipboard-check me-2"></i>Thông tin đăng ký
           </h4>
-          
+
           <!-- Số lượng tuyển với progress bar và thống kê chi tiết -->
           <div class="recruitment-info-box mb-4">
             <div class="d-flex align-items-center mb-2">
               <i class="bi bi-people-fill text-primary me-2 fs-5"></i>
               <h6 class="mb-0">Thống kê đăng ký</h6>
             </div>
-            
+
             <!-- Thống kê 3 loại -->
             <div class="stats-grid mb-3">
               <div class="stat-box approved">
@@ -288,25 +277,23 @@
                 </div>
               </div>
             </div>
-            
+
             <!-- Progress bar stacked -->
             <div class="progress recruitment-progress mb-2" style="height: 12px;">
-              <div class="progress-bar bg-success" 
-                   [style.width.%]="getApprovedPercentage()"
-                   [title]="'Đã duyệt: ' + (event?.soLuongDaDuyet || 0)">
+              <div class="progress-bar bg-success" [style.width.%]="getApprovedPercentage()"
+                [title]="'Đã duyệt: ' + (event?.soLuongDaDuyet || 0)">
               </div>
-              <div class="progress-bar bg-warning" 
-                   [style.width.%]="getPendingPercentage()"
-                   [title]="'Chờ duyệt: ' + (event?.soLuongChoDuyet || 0)">
+              <div class="progress-bar bg-warning" [style.width.%]="getPendingPercentage()"
+                [title]="'Chờ duyệt: ' + (event?.soLuongChoDuyet || 0)">
               </div>
             </div>
-            
+
             <div class="text-muted small">
               <i class="bi bi-info-circle me-1"></i>
               Giới hạn đăng ký: <strong>{{ event?.gioiHanDangKy || 0 }}</strong> (1.5x)
             </div>
           </div>
-          
+
           <!-- Thời gian tuyển -->
           <div class="time-info-box mb-3" *ngIf="event?.tuyenBatDau && event?.tuyenKetThuc">
             <div class="d-flex align-items-start">
@@ -324,7 +311,7 @@
               </div>
             </div>
           </div>
-          
+
           <!-- Thời gian sự kiện -->
           <div class="time-info-box mb-4">
             <div class="d-flex align-items-start">
@@ -366,12 +353,12 @@
             <div class="d-flex align-items-center">
               <i class="bi bi-info-circle me-2"></i>
               <small>
-                <strong>Lưu ý:</strong> Bạn không thể hủy đăng ký trong vòng 
+                <strong>Lưu ý:</strong> Bạn không thể hủy đăng ký trong vòng
                 <strong>{{ event.thoiGianKhoaHuy }} giờ</strong> trước khi sự kiện bắt đầu diễn ra.
               </small>
             </div>
           </div>
-          
+
           <!-- 2 Badges trạng thái - chỉ hiện khi sự kiện chưa kết thúc -->
           <div class="status-badges mb-4" *ngIf="event?.trangThaiSuKien !== 'Đã kết thúc'">
             <div class="d-flex align-items-center mb-2">
@@ -400,7 +387,7 @@
               </span>
             </div>
           </div>
-          
+
           <!-- Trạng thái sự kiện khi đã kết thúc -->
           <div class="alert alert-secondary mb-4" *ngIf="event?.trangThaiSuKien === 'Đã kết thúc'">
             <i class="bi bi-check-circle-fill me-2"></i>
@@ -414,7 +401,7 @@
             </div>
             <a [routerLink]="['/login']" class="btn btn-blue w-100">Đăng nhập</a>
           </div>
-          
+
           <!-- Not a Volunteer -->
           <div *ngIf="isLoggedIn && role === 'Organization'">
             <div class="alert alert-warning mb-3">
@@ -426,9 +413,10 @@
               Chỉ tình nguyện viên mới có thể đăng ký tham gia sự kiện
             </div>
           </div>
-          
+
           <!-- Volunteer and Not Registered -->
-          <div *ngIf="isLoggedIn && role === 'User' && !isRegistered && event?.choPhepDangKy && registrationStatus !== 2">
+          <div
+            *ngIf="isLoggedIn && role === 'User' && !isRegistered && event?.choPhepDangKy && registrationStatus !== 2">
             <div class="alert alert-warning mb-3" *ngIf="(event?.soLuongConLai || 0) <= 0">
               <i class="bi bi-exclamation-triangle me-2"></i>Sự kiện đã đủ số lượng tình nguyện viên
             </div>
@@ -436,15 +424,14 @@
               <label class="form-label">Ghi chú (nếu có)</label>
               <textarea class="form-control" rows="3" [(ngModel)]="registrationNote"></textarea>
             </div>
-            <button class="btn btn-register w-100" 
-                    (click)="registerForEvent()"
-                    [disabled]="(event?.soLuongConLai || 0) <= 0 || isRegistering">
+            <button class="btn btn-register w-100" (click)="registerForEvent()"
+              [disabled]="(event?.soLuongConLai || 0) <= 0 || isRegistering">
               <i class="bi bi-check-circle me-2"></i>
               <span *ngIf="isRegistering">Đang xử lý...</span>
               <span *ngIf="!isRegistering">Đăng ký tham gia</span>
             </button>
           </div>
-          
+
           <!-- Không cho phép đăng ký - Gộp tất cả trường hợp -->
           <div *ngIf="isLoggedIn && role === 'User' && !isRegistered && !event?.choPhepDangKy">
             <div class="alert mb-3 d-flex align-items-start" [ngClass]="{
@@ -486,7 +473,8 @@
                 <small class="text-muted" *ngIf="event?.trangThaiTuyen === 'Hết hạn tuyển'">
                   Thời gian tuyển dụng đã kết thúc
                 </small>
-                <small class="text-muted" *ngIf="event?.trangThaiTuyen === 'Đã đủ người' || event?.trangThaiTuyen === 'Đã đủ đơn'">
+                <small class="text-muted"
+                  *ngIf="event?.trangThaiTuyen === 'Đã đủ người' || event?.trangThaiTuyen === 'Đã đủ đơn'">
                   Sự kiện đã đủ số lượng tình nguyện viên
                 </small>
                 <small class="text-muted" *ngIf="event?.trangThaiTuyen === 'Đóng'">
@@ -495,7 +483,7 @@
               </div>
             </div>
           </div>
-          
+
           <!-- Volunteer and Already Registered - Chờ duyệt -->
           <div *ngIf="isLoggedIn && role === 'User' && isRegistered && registrationStatus === 0">
             <div class="registration-info mb-3">
@@ -504,12 +492,12 @@
               </div>
               <p class="mb-0 small text-muted">Vui lòng chờ tổ chức xem xét và phê duyệt đơn đăng ký của bạn</p>
             </div>
-            
+
             <button class="btn btn-cancel w-100" *ngIf="canCancelRegistration()" (click)="cancelRegistration()">
               Hủy chờ duyệt
             </button>
           </div>
-          
+
           <!-- Volunteer and Already Registered - Đã duyệt -->
           <div *ngIf="isLoggedIn && role === 'User' && isRegistered && registrationStatus === 1">
             <div class="registration-info mb-3">
@@ -518,9 +506,10 @@
               </div>
               <p class="mb-0 small">Vui lòng đến đúng giờ và chuẩn bị những vật dụng cần thiết</p>
             </div>
-            
+
             <!-- Countdown hủy đăng ký -->
-            <div class="alert alert-info mb-3" *ngIf="cancellationInfo && cancellationInfo.canCancel && cancellationInfo.hoursRemaining > 0">
+            <div class="alert alert-info mb-3"
+              *ngIf="cancellationInfo && cancellationInfo.canCancel && cancellationInfo.hoursRemaining > 0">
               <div class="d-flex align-items-center">
                 <i class="bi bi-clock-history me-2 fs-5"></i>
                 <div class="flex-grow-1">
@@ -531,19 +520,17 @@
                 </div>
               </div>
             </div>
-            
+
             <div class="alert alert-warning mb-3" *ngIf="cancellationInfo && !cancellationInfo.canCancel">
               <i class="bi bi-exclamation-triangle me-2"></i>
               {{ cancellationInfo.reason }}
             </div>
-            
-            <button class="btn btn-cancel w-100" 
-                    *ngIf="cancellationInfo?.canCancel" 
-                    (click)="cancelRegistration()">
+
+            <button class="btn btn-cancel w-100" *ngIf="cancellationInfo?.canCancel" (click)="cancelRegistration()">
               <i class="bi bi-x-circle me-2"></i>Hủy đăng ký
             </button>
           </div>
-          
+
           <!-- Volunteer and Rejected - Có thể đăng ký lại -->
           <div *ngIf="isLoggedIn && role === 'User' && registrationStatus === 2 && isRecruitingOpen()">
             <div class="alert alert-danger mb-3">
@@ -556,14 +543,13 @@
               <label class="form-label">Ghi chú (nếu có)</label>
               <textarea class="form-control" rows="3" [(ngModel)]="registrationNote"></textarea>
             </div>
-            <button class="btn btn-register w-100" 
-                    (click)="registerForEvent()"
-                    [disabled]="getRemainingSlots() <= 0 || isRegistering">
+            <button class="btn btn-register w-100" (click)="registerForEvent()"
+              [disabled]="getRemainingSlots() <= 0 || isRegistering">
               <span *ngIf="isRegistering">Đang xử lý...</span>
               <span *ngIf="!isRegistering">Đăng ký lại</span>
             </button>
           </div>
-          
+
           <!-- Not in recruiting period - Chỉ hiển thị khi sự kiện đã kết thúc -->
           <div *ngIf="isLoggedIn && role === 'User' && !isRegistered && isEventEnded()">
             <div class="alert alert-danger mb-3 d-flex align-items-start">
@@ -577,11 +563,37 @@
             </div>
           </div>
         </div>
-        
+
         <!-- Event Location -->
         <div class="event-info-card">
           <h3 class="event-info-title">Địa điểm</h3>
           <p><i class="bi bi-geo-alt text-blue me-2"></i>{{ event?.diaChi }}</p>
+        </div>
+        <div class="event-info-card">
+          <h3 class="event-info-title">Gợi ý sự kiện</h3>
+          <div *ngFor="let recommendation of recommendations" class="recommendation-card">
+            <img [src]="getImageUrl(recommendation.hinhAnh)" [alt]="recommendation.tenSuKien" class="recommendation-img"
+              (error)="$event.target.src='assets/default-event.jpg'">
+
+            <div class="recommendation-content">
+              <h4 class="recommendation-title">{{ recommendation.tenSuKien }}</h4>
+
+              <p class="recommendation-location mb-0">
+                <i class="bi bi-geo-alt"></i>
+                {{ recommendation.diaChi }}
+              </p>
+
+              <div class="recommendation-progress">
+                <div class="progress-bar-wrapper">
+                  <div class="progress-bar-fill" [style.width.%]="recommendation.diemPhuHop"></div>
+                </div>
+                <span class="match-badge">{{ recommendation.diemPhuHop | number:'1.0-0' }}%</span>
+              </div>
+            </div>
+          </div>
+          <ng-template #noData>
+            <p class="text-muted">Không có gợi ý sự kiện</p>
+          </ng-template>
         </div>
       </div>
     </div>

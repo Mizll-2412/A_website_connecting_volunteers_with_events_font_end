@@ -29,6 +29,8 @@ export class EventDetailComponent implements OnInit, AfterViewInit {
   apiUrl = `${environment.apiUrl}/sukien`;
   apiVolunteerUrl = `${environment.apiUrl}/tinhnguyenvien`;
   apiRegistrationUrl = `${environment.apiUrl}/dondangky`;
+  apiRecommendationUrl = `${environment.apiUrl}/recommendation`;
+
 
   eventId?: number;
   event: any = null;
@@ -46,12 +48,12 @@ export class EventDetailComponent implements OnInit, AfterViewInit {
   volunteer: any = null;
   user: any = null;
   soLuongDaDangKy: number = 0; // Số người đã đăng ký (đã duyệt)
-  
+  recommendations: any[] = []
   // Evaluations
   evaluations: EvaluationResponseDto[] = [];
   isLoadingEvaluations = false;
   averageRating: number = 0;
-  
+
   // Skills and Fields
   allSkills: any[] = [];
   allFields: any[] = [];
@@ -114,13 +116,16 @@ export class EventDetailComponent implements OnInit, AfterViewInit {
         this.loadVolunteerInfo();
       }
     }
-
     this.route.params.subscribe(params => {
       this.eventId = +params['id'];
       if (this.eventId) {
         this.loadEventDetails(this.eventId);
       }
     });
+    // console.log('Component init');
+    // console.log('Volunteer:', this.volunteer);
+    // console.log('🔵 maTNV:', this.volunteer?.maTNV);
+    // this.loadRecommendations();
   }
 
   ngAfterViewInit() {
@@ -132,7 +137,7 @@ export class EventDetailComponent implements OnInit, AfterViewInit {
       });
     }, 100);
   }
-  
+
   loadMasterData(): void {
     // Load all skills
     this.http.get<any>(`${environment.apiUrl}/kynang`).subscribe({
@@ -144,7 +149,7 @@ export class EventDetailComponent implements OnInit, AfterViewInit {
         this.allSkills = [];
       }
     });
-    
+
     // Load all fields
     this.http.get<any>(`${environment.apiUrl}/linhvuc`).subscribe({
       next: (response) => {
@@ -156,7 +161,7 @@ export class EventDetailComponent implements OnInit, AfterViewInit {
       }
     });
   }
-  
+
   getEventSkills(): any[] {
     if (!this.event?.kyNangIds || this.event.kyNangIds.length === 0) {
       return [];
@@ -165,7 +170,7 @@ export class EventDetailComponent implements OnInit, AfterViewInit {
       .map((id: number) => this.allSkills.find(s => s.maKyNang === id))
       .filter((skill: any) => skill != null);
   }
-  
+
   getEventFields(): any[] {
     if (!this.event?.linhVucIds || this.event.linhVucIds.length === 0) {
       return [];
@@ -174,7 +179,7 @@ export class EventDetailComponent implements OnInit, AfterViewInit {
       .map((id: number) => this.allFields.find(f => f.maLinhVuc === id))
       .filter((field: any) => field != null);
   }
-  
+
   isRecruitingOpen(): boolean {
     if (!this.event?.tuyenBatDau || !this.event?.tuyenKetThuc) {
       return false;
@@ -209,7 +214,7 @@ export class EventDetailComponent implements OnInit, AfterViewInit {
     this.eventService.getSuKienById(id).subscribe({
       next: (response: any) => {
         console.log('Chi tiết sự kiện từ API:', response);
-        
+
         // Xử lý nhiều định dạng dữ liệu có thể có
         let eventData: any;
         if (response && response.data) {
@@ -222,7 +227,7 @@ export class EventDetailComponent implements OnInit, AfterViewInit {
           this.isLoading = false;
           return;
         }
-        
+
         // Chuẩn hóa số lượng cần tuyển - thử nhiều trường có thể có
         const slots = eventData.soLuong ?? eventData.soLuongCanTuyen ?? eventData.soLuongTNV ?? eventData.soLuongTnv ?? 0;
         eventData.soLuong = slots;
@@ -230,37 +235,37 @@ export class EventDetailComponent implements OnInit, AfterViewInit {
         if (eventData.soLuongCanTuyen == null) {
           eventData.soLuongCanTuyen = slots;
         }
-        
+
         // Khởi tạo soLuongDaDangKy nếu chưa có (từ API response)
         if (eventData.soLuongDaDangKy == null || eventData.soLuongDaDangKy === undefined) {
           eventData.soLuongDaDangKy = 0;
         }
-        
+
         // Cập nhật biến soLuongDaDangKy từ API response
         this.soLuongDaDangKy = eventData.soLuongDaDangKy;
-        
+
         this.event = eventData;
-        
+
         // Load thông tin tổ chức
         if (this.event.maToChuc) {
           this.loadOrganizationDetails(this.event.maToChuc);
         }
-        
+
         // Load sự kiện tương tự
         this.loadSimilarEvents();
-        
+
         // Load đánh giá nếu sự kiện đã kết thúc
         if (this.isEventEnded()) {
           this.loadEvaluations();
         }
-        
+
         // Nếu đã đăng nhập, kiểm tra xem đã đăng ký chưa
         if (this.isLoggedIn && this.volunteer) {
           this.checkRegistrationStatus();
         }
-        
+
         this.isLoading = false;
-        
+
         // Khởi tạo lại tooltip sau khi load xong dữ liệu
         setTimeout(() => {
           const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
@@ -285,6 +290,7 @@ export class EventDetailComponent implements OnInit, AfterViewInit {
     });
   }
 
+
   loadRegisteredCount(eventId: number): void {
     this.registrationService.getRegistrationsByEvent(eventId).subscribe({
       next: (response: any) => {
@@ -304,12 +310,37 @@ export class EventDetailComponent implements OnInit, AfterViewInit {
       }
     });
   }
+  loadRecommendations(): void {
+    if (!this.volunteer?.maTNV) {
+      console.log('Không có maTNV');
+      return;
+    }
 
+    console.log('Đang gọi API Recommendation với maTNV:', this.volunteer.maTNV);
+
+    this.http.get<any>(`${this.apiRecommendationUrl}/python/${this.volunteer.maTNV}`)
+      .subscribe({
+        next: (response) => {
+          console.log('Response từ API:', response);
+          console.log('Type of response:', typeof response);
+          console.log('Response.data:', response.data);
+
+          this.recommendations = response.data || response;
+          console.log('Recommendations sau khi gán:', this.recommendations);
+          console.log('Số lượng recommendations:', this.recommendations?.length);
+        },
+        error: (err) => {
+          console.error('Lỗi API:', err);
+          console.error('Error status:', err.status);
+          console.error('Error message:', err.message);
+        }
+      });
+  }
   loadOrganizationDetails(orgId: number) {
     this.orgService.getOrganizationById(orgId).subscribe({
       next: (response: any) => {
         console.log('Thông tin tổ chức từ API:', response);
-        
+
         // Xử lý nhiều định dạng dữ liệu có thể có
         if (response && response.data) {
           this.organization = response.data;
@@ -337,9 +368,11 @@ export class EventDetailComponent implements OnInit, AfterViewInit {
         } else {
           this.volunteer = response;
         }
-        
+
         console.log('Thông tin tình nguyện viên:', this.volunteer);
-        
+        this.loadRecommendations();
+
+
         // Nếu đã load được sự kiện, kiểm tra trạng thái đăng ký
         if (this.event) {
           this.checkRegistrationStatus();
@@ -362,7 +395,7 @@ export class EventDetailComponent implements OnInit, AfterViewInit {
           const registrationData = response.data || response;
           this.isRegistered = true;
           this.registrationStatus = registrationData.trangThai !== undefined ? registrationData.trangThai : null;
-          
+
           // Nếu đã duyệt (status = 1), kiểm tra trạng thái hủy
           if (this.registrationStatus === 1) {
             this.checkCancellationStatus();
@@ -383,7 +416,7 @@ export class EventDetailComponent implements OnInit, AfterViewInit {
       this.toast.warning('Tổ chức không thể đăng ký tham gia sự kiện');
       return;
     }
-    
+
     if (!this.volunteer?.maTNV || !this.eventId) {
       // Kiểm tra nếu đã đăng nhập nhưng chưa có hồ sơ tình nguyện viên
       if (this.isLoggedIn && this.role === 'User' && this.user?.maTaiKhoan && !this.volunteer) {
@@ -391,7 +424,7 @@ export class EventDetailComponent implements OnInit, AfterViewInit {
         this.router.navigate(['/profile']);
         return;
       }
-      
+
       this.toast.warning('Bạn cần đăng nhập và hoàn thiện hồ sơ tình nguyện viên trước khi đăng ký');
       return;
     }
@@ -410,7 +443,7 @@ export class EventDetailComponent implements OnInit, AfterViewInit {
     }
 
     this.isRegistering = true;
-    
+
     const registerData = {
       maTNV: this.volunteer.maTNV,
       maSuKien: this.eventId,
@@ -434,12 +467,12 @@ export class EventDetailComponent implements OnInit, AfterViewInit {
       error: (err: HttpErrorResponse) => {
         console.error('Lỗi khi đăng ký sự kiện:', err);
         this.isRegistering = false;
-        
+
         // Sử dụng normalizedMessage từ error interceptor (đã được chuẩn hóa)
-        const errorMessage = (err as any).normalizedMessage || 
-          (err.error && err.error.message) || 
+        const errorMessage = (err as any).normalizedMessage ||
+          (err.error && err.error.message) ||
           'Không thể đăng ký tham gia. Vui lòng thử lại sau.';
-        
+
         this.registrationError = errorMessage;
         this.toast.error(errorMessage);
       }
@@ -497,23 +530,23 @@ export class EventDetailComponent implements OnInit, AfterViewInit {
 
   getEventStatusText(): string {
     if (!this.event) return '';
-    
+
     if (this.event.trangThaiHienThi) {
       return this.event.trangThaiHienThi;
     }
-    
+
     if (this.event.trangThai === 'Đã kết thúc' || this.event.trangThai === 'Sự kiện đã kết thúc') {
       return 'Sự kiện đã kết thúc';
     }
-    
+
     const now = new Date();
     const start = this.event.ngayBatDau ? new Date(this.event.ngayBatDau) : null;
     const end = this.event.ngayKetThuc ? new Date(this.event.ngayKetThuc) : null;
-    
+
     if (end && end < now) return 'Sự kiện đã kết thúc';
     if (start && start > now) return 'Sắp diễn ra';
     if (start && start <= now && (!end || end >= now)) return 'Đang diễn ra';
-    
+
     return 'Đang tuyển';
   }
 
@@ -529,7 +562,7 @@ export class EventDetailComponent implements OnInit, AfterViewInit {
     if (this.isEventEnded()) {
       return false;
     }
-    
+
     // Không thể hủy nếu hết thời gian tuyển (tuy nhiên vẫn có thể hủy nếu đã đăng ký trước đó)
     // Chỉ kiểm tra sự kiện đã kết thúc
     return true;
@@ -541,19 +574,19 @@ export class EventDetailComponent implements OnInit, AfterViewInit {
 
   loadEvaluations(): void {
     if (!this.eventId) return;
-    
+
     this.isLoadingEvaluations = true;
     this.evaluationService.getEvaluationsByEvent(this.eventId).subscribe({
       next: (response: any) => {
         const data = response?.data || response || [];
         const allEvaluations = Array.isArray(data) ? data : [];
-        
+
         // Lọc chỉ lấy đánh giá từ User (tình nguyện viên) đến Organization (tổ chức)
         this.evaluations = allEvaluations.filter((evaluation: EvaluationResponseDto) => {
-          return evaluation.vaiTroNguoiDanhGia === 'User' && 
-                 evaluation.vaiTroNguoiDuocDanhGia === 'Organization';
+          return evaluation.vaiTroNguoiDanhGia === 'User' &&
+            evaluation.vaiTroNguoiDuocDanhGia === 'Organization';
         });
-        
+
         // Tính điểm trung bình
         if (this.evaluations.length > 0) {
           const total = this.evaluations.reduce((sum, evaluation) => sum + (evaluation.diemSo || 0), 0);
@@ -561,7 +594,7 @@ export class EventDetailComponent implements OnInit, AfterViewInit {
         } else {
           this.averageRating = 0;
         }
-        
+
         this.isLoadingEvaluations = false;
       },
       error: (err: HttpErrorResponse) => {
@@ -574,56 +607,56 @@ export class EventDetailComponent implements OnInit, AfterViewInit {
 
   loadSimilarEvents(): void {
     if (!this.event?.maSuKien) return;
-    
+
     // Load tất cả sự kiện
     this.eventService.getAllSuKien().subscribe({
       next: (response: any) => {
         const allEvents = response?.data || response || [];
-        
+
         // Lọc các sự kiện tương tự (không phải sự kiện hiện tại)
         let similar: any[] = allEvents.filter((e: any) => e.maSuKien !== this.event.maSuKien);
-        
+
         // Ưu tiên các sự kiện có cùng lĩnh vực hoặc kỹ năng
         if (this.event.linhVucIds && this.event.linhVucIds.length > 0) {
-          const sameField = similar.filter((e: any) => 
-            e.linhVucIds && e.linhVucIds.some((id: number) => 
+          const sameField = similar.filter((e: any) =>
+            e.linhVucIds && e.linhVucIds.some((id: number) =>
               this.event.linhVucIds.includes(id)
             )
           );
-          
-          const differentField = similar.filter((e: any) => 
-            !e.linhVucIds || !e.linhVucIds.some((id: number) => 
+
+          const differentField = similar.filter((e: any) =>
+            !e.linhVucIds || !e.linhVucIds.some((id: number) =>
               this.event.linhVucIds.includes(id)
             )
           );
-          
+
           similar = [...sameField, ...differentField];
         }
-        
+
         // Ưu tiên các sự kiện có cùng kỹ năng
         if (this.event.kyNangIds && this.event.kyNangIds.length > 0) {
-          const sameSkill = similar.filter((e: any) => 
-            e.kyNangIds && e.kyNangIds.some((id: number) => 
+          const sameSkill = similar.filter((e: any) =>
+            e.kyNangIds && e.kyNangIds.some((id: number) =>
               this.event.kyNangIds.includes(id)
             )
           );
-          
-          const differentSkill = similar.filter((e: any) => 
-            !e.kyNangIds || !e.kyNangIds.some((id: number) => 
+
+          const differentSkill = similar.filter((e: any) =>
+            !e.kyNangIds || !e.kyNangIds.some((id: number) =>
               this.event.kyNangIds.includes(id)
             )
           );
-          
+
           similar = [...sameSkill, ...differentSkill];
         }
-        
+
         // Ưu tiên các sự kiện cùng tổ chức
         if (this.event.maToChuc) {
           const sameOrg = similar.filter((e: any) => e.maToChuc === this.event.maToChuc);
           const differentOrg = similar.filter((e: any) => e.maToChuc !== this.event.maToChuc);
           similar = [...sameOrg, ...differentOrg];
         }
-        
+
         // Giới hạn tối đa 6 sự kiện
         this.similarEvents = similar.slice(0, 6);
       },
@@ -645,23 +678,23 @@ export class EventDetailComponent implements OnInit, AfterViewInit {
 
   getSimilarEventsExplanation(): string {
     const reasons: string[] = [];
-    
+
     if (this.event?.linhVucIds && this.event.linhVucIds.length > 0) {
       reasons.push('cùng lĩnh vực');
     }
-    
+
     if (this.event?.kyNangIds && this.event.kyNangIds.length > 0) {
       reasons.push('cùng kỹ năng yêu cầu');
     }
-    
+
     if (this.event?.maToChuc) {
       reasons.push('cùng tổ chức');
     }
-    
+
     if (reasons.length === 0) {
       return 'Các sự kiện được gợi ý dựa trên các sự kiện khác trong hệ thống.';
     }
-    
+
     return `Các sự kiện được gợi ý vì có ${reasons.join(', ')} với sự kiện này.`;
   }
 
@@ -712,12 +745,11 @@ export class EventDetailComponent implements OnInit, AfterViewInit {
     const pending = ((this.event.soLuongChoDuyet || 0) / this.event.soLuong) * 100;
     return Math.min(pending, 100 - approved);
   }
-
   cancellationInfo: any = null;
 
   checkCancellationStatus(): void {
     if (!this.volunteer || !this.eventId || this.registrationStatus !== 1) return;
-    
+
     this.registrationService.canCancelRegistration(this.volunteer.maTNV, this.eventId).subscribe({
       next: (res) => {
         this.cancellationInfo = res;
@@ -730,16 +762,16 @@ export class EventDetailComponent implements OnInit, AfterViewInit {
 
   formatHoursToCountdown(hours: number): string {
     if (hours <= 0) return 'Đã hết hạn';
-    
+
     const days = Math.floor(hours / 24);
     const remainingHours = Math.floor(hours % 24);
     const minutes = Math.floor((hours * 60) % 60);
-    
+
     let result = '';
     if (days > 0) result += `${days} ngày `;
     if (remainingHours > 0) result += `${remainingHours} giờ `;
     if (minutes > 0 && days === 0) result += `${minutes} phút`;
-    
+
     return result.trim() || '< 1 phút';
   }
 }
